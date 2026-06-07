@@ -107,6 +107,13 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Incrément 4 : fiche-chantier (étapes + prochaine étape)
+- **Fait** : cliquer sur un 🟢 dans « Semaine » ouvre la **fiche du chantier** : titre, barre de progression (n/total étapes · %), liste d'étapes cochables (case ✓, texte barré, compteur en temps réel), champ « Prochaine étape » éditable (sauvegarde à blur, reflété sur la carte Semaine), bouton « + » pour ajouter une étape, retour « ← Semaine » avec rechargement du backlog. Le ✕ de la carte Semaine reste fonctionnel (stopPropagation).
+- **Pourquoi** : les chantiers 🟢 sont des projets multi-semaines qui progressent, pas des cases à cocher. La fiche donne un espace de suivi réel sans alourdir la vue Semaine.
+- **DoD** : testé preview — ajout étape, cochage (barre 0→100 %), retour Semaine, chantier re-listé avec prochaine étape mise à jour. Zéro erreur console.
+- **Décisions** : pas de suppression d'étape en v1 (scope minimal) ; la barre de progression n'apparaît que si ≥1 étape (évite le widget vide inutile). CSS `.back-btn`, `.prog-wrap`, `.prog-bar`, `.prog-fill` ajoutés sans toucher aux tokens existants.
+- **Prochain** : AMWAP enrichi (log de victoires, feedback dopamine) puis Capturer (upload fichier, second cerveau).
+
 ## 2026-06-07 — Nettoyage dead code : getTaskCheck / toggleTaskCheck
 - **Fait** : suppression des deux helpers `getTaskCheck` et `toggleTaskCheck` dans `db.js`.
 - **Pourquoi** : orphelins depuis la suppression des `DEF_TASKS` hardcodées (incrément 2c). Aucun appel dans `index.html` ni dans `sync.js`. La table `taskChecks` reste dans le schéma Dexie (données utilisateur préservées) et dans `SYNC_TABLES` (compatibilité export/import) — la migration de table est un scope distinct.

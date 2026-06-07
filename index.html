@@ -209,6 +209,73 @@ function Capture({onCapture}){
   </div>`;
 }
 
+/* ── Fiche-chantier ─────────────────────────── */
+function FicheChantier({id,onBack}){
+  const [chantier,setChantier]=useState(null);
+  const [etapes,setEtapes]=useState([]);
+  const [prochaine,setProchaine]=useState('');
+  const [nouvelleEtape,setNouvelleEtape]=useState('');
+
+  const load=useCallback(async()=>{
+    const ch=await db.chantiers.get(id);
+    const et=await getEtapes(id);
+    setChantier(ch); setEtapes(et);
+    if(ch) setProchaine(ch.prochaine||'');
+  },[id]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function togEtape(eid,fait){
+    await toggleEtape(eid,fait);
+    setEtapes(prev=>prev.map(e=>e.id===eid?{...e,fait}:e));
+  }
+  async function saveProchaine(){ await updateChantier(id,{prochaine:prochaine.trim()}); }
+  async function ajouterEtape(){
+    if(!nouvelleEtape.trim()) return;
+    await addEtape(id,nouvelleEtape.trim());
+    setNouvelleEtape(''); await load();
+  }
+
+  if(!chantier) return html`<div class="scroll"><div class="greet">Chargement…</div></div>`;
+  const done=etapes.filter(e=>e.fait).length;
+  const pct=etapes.length?Math.round(done/etapes.length*100):0;
+  const now=new Date();
+
+  return html`<div class="scroll">
+    <div class="hdr">
+      <button class="back-btn" onClick=${onBack}>← Semaine</button>
+      <div class="date-lbl">Chantier 🟢</div>
+    </div>
+    <div class="h1">${chantier.titre}</div>
+    <div class="greet">Un geste à la fois — progress, ne coche pas.</div>
+
+    ${etapes.length>0?html`<div class="prog-wrap">
+      <div class="set-note">${done}/${etapes.length} étapes · ${pct} %</div>
+      <div class="prog-bar"><div class="prog-fill" style=${'width:'+pct+'%'}/></div>
+    </div>`:''}
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Étapes</span><span class="sec-c">${done}/${etapes.length}</span></div>
+      ${etapes.length===0?html`<div class="empty-state">Aucune étape — ajoute la première ↓</div>`:''}
+      ${etapes.map(e=>html`<div class=${'task'+(e.fait?' done':'')} onClick=${()=>togEtape(e.id,!e.fait)} key=${e.id}>
+        <div class="box"/>
+        <span class="t-txt">${e.titre}</span>
+      </div>`)}
+      <div class="composer-b" style="margin-top:8px">
+        <input class="taginp" style="flex:1" value=${nouvelleEtape} onInput=${e=>setNouvelleEtape(e.target.value)} placeholder="Ajouter une étape…" onKeyDown=${e=>e.key==='Enter'&&ajouterEtape()}/>
+        <button class="save-btn" onClick=${ajouterEtape}>+</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Prochaine étape</span></div>
+      <input class="taginp" style="width:100%;box-sizing:border-box" value=${prochaine} onInput=${e=>setProchaine(e.target.value)} onBlur=${saveProchaine} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Le prochain geste concret…"/>
+      <div class="hint">Sauvegardé à la perte de focus · reflété dans la liste Semaine.</div>
+    </div>
+
+    <div class="foot">Zebracorn OS · Chantier · ${fmtDate(now)}</div>
+  </div>`;
+}
+
 /* ── Semaine (backlog 3 couleurs) ─────────────── */
 
 const PRIO_PILLS = [['rouge','🔴','Échéance'],['bleu','🔵','Semaine'],['vert','🟢','Chantier']];
@@ -218,6 +285,7 @@ function Semaine(){
   const [chantiers,setChant] = useState([]);
   const [titre,setTitre]     = useState('');
   const [prio,setPrio]       = useState('rouge');
+  const [ficheId,setFicheId] = useState(null);
 
   const load = useCallback(async()=>{
     setTaches(await getTaches({fait:false}));
@@ -234,6 +302,8 @@ function Semaine(){
   async function togTache(id,fait){ await toggleTacheDone(id,fait); await load(); }
   async function delTache(id){ await deleteTache(id); await load(); }
   async function delChant(id){ await deleteChantier(id); await load(); }
+
+  if(ficheId!==null) return html`<${FicheChantier} id=${ficheId} onBack=${()=>{setFicheId(null);load();}}/>`;
 
   const rouge = taches.filter(t=>t.prio==='rouge');
   const bleu  = taches.filter(t=>t.prio==='bleu');
@@ -270,9 +340,9 @@ function Semaine(){
     <div class="sec">
       <div class="sec-h"><span class="sec-t">🟢 Chantiers · long terme</span><span class="sec-c">${chantiers.length}</span></div>
       ${chantiers.length===0?html`<div class="empty-state">aucun chantier ✶</div>`:''}
-      ${chantiers.map(c=>html`<div class="chantier-card" key=${c.id}>
-        <div class="ch-top"><span class="ch-ti">${c.titre}</span><span class="t-del" onClick=${()=>delChant(c.id)}>✕</span></div>
-        <div class="ch-prog">${c.prochaine?('prochaine étape : '+c.prochaine):'à suivre — un geste à la fois'}</div>
+      ${chantiers.map(c=>html`<div class="chantier-card" style="cursor:pointer" onClick=${()=>setFicheId(c.id)} key=${c.id}>
+        <div class="ch-top"><span class="ch-ti">${c.titre}</span><span class="t-del" onClick=${e=>{e.stopPropagation();delChant(c.id);}}>✕</span></div>
+        <div class="ch-prog">${c.prochaine?('→ '+c.prochaine):'Ouvre pour ajouter la 1ʳᵉ étape →'}</div>
       </div>`)}
     </div>
 
