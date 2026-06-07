@@ -202,9 +202,27 @@ async function seedOnce() {
   localStorage.setItem('zebracorn_seed_v1', 'done');
 }
 
+// v3 — AMWAP : log de victoires quotidiennes
+db.version(3).stores({
+  amwap: '++id, date',
+});
+
+// ── AMWAP (mes victoires du jour) ──────────────────────────────────────────
+
+async function saveAmwap(v1, v2, v3) {
+  const d = today();
+  await db.amwap.filter(a => a.date.startsWith(d)).delete();
+  return db.amwap.add({ v1: v1.trim(), v2: v2.trim(), v3: v3.trim(), date: new Date().toISOString() });
+}
+
+async function getAmwap(dateStr) {
+  const rows = await db.amwap.filter(a => a.date.startsWith(dateStr)).toArray();
+  return rows.length ? rows[rows.length - 1] : null;
+}
+
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };

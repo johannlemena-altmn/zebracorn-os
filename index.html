@@ -68,6 +68,40 @@ function useClock(){
   return n;
 }
 
+/* ── AmwapModal ──────────────────────────────── */
+const AMWAP_PH = [
+  'Victoire n°1 — grande ou petite…',
+  'Victoire n°2…',
+  'Victoire n°3 — même un micro-geste compte…',
+];
+function AmwapModal({onClose,onSave}){
+  const [vs,setVs]=useState(['','','']);
+  const [sent,setSent]=useState(false);
+  const set=(i,v)=>setVs(p=>p.map((x,j)=>j===i?v:x));
+  async function valider(){
+    if(!vs[0].trim()) return;
+    await saveAmwap(vs[0],vs[1],vs[2]);
+    setSent(true);
+    setTimeout(()=>{ onSave(); onClose(); },650);
+  }
+  return html`<div class="modal-ov" onClick=${e=>e.target===e.currentTarget&&onClose()}>
+    <div class="modal-sh">
+      <div class="modal-hdl"/>
+      <div class="sec-t" style="display:block;margin-bottom:1.1rem">AMWAP · Mes victoires du jour</div>
+      ${sent
+        ? html`<div class="amwap-ok">✓ Victoires enregistrées</div>`
+        : html`<div>
+          ${[0,1,2].map(i=>html`<div style="margin-bottom:9px" key=${i}>
+            <div class="set-label">${i+1}.</div>
+            <input class="taginp" style="width:100%" value=${vs[i]} onInput=${e=>set(i,e.target.value)} placeholder=${AMWAP_PH[i]} onKeyDown=${e=>e.key==='Enter'&&(i<2?e.target.closest('.modal-sh').querySelectorAll('.taginp')[i+1]?.focus():valider())}/>
+          </div>`)}
+          <button class="save-btn" style="width:100%;margin-top:6px" onClick=${valider} disabled=${!vs[0].trim()}>Valider mes victoires ✓</button>
+          <div class="hint" style="text-align:center;margin-top:8px">Tes victoires restent ici — privées, locales.</div>
+        </div>`}
+    </div>
+  </div>`;
+}
+
 /* ── Maintenant ─────────────────────────────── */
 function Maintenant({inboxCount,onGoCapture}){
   const [mode,setMode]=useState('fort');
@@ -77,6 +111,8 @@ function Maintenant({inboxCount,onGoCapture}){
   const [streaks,setStreaks]=useState([0,0,0]);
   const [week,setWeek]=useState([]);
   const [caps,setCaps]=useState([]);
+  const [amwapOpen,setAmwapOpen]=useState(false);
+  const [amwapYest,setAmwapYest]=useState(null);
   const typed=useTypewriter(RAIL_Q[mode]);
   const now=useClock();
 
@@ -88,12 +124,24 @@ function Maintenant({inboxCount,onGoCapture}){
     setRouts(await Promise.all(DEF_ROUTINES.map(r=>getRoutineCheck(r.key))));
     setStreaks(await Promise.all(DEF_ROUTINES.map(r=>getStreak(r.key))));
     setCaps((await getInbox()).slice(0,4));
+    const yest=new Date(); yest.setDate(yest.getDate()-1);
+    setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
   },[]);
   useEffect(()=>{ load(); },[load]);
 
   async function blurIntent(){ await saveIntention(intent); setWeek(await getWeekData()); }
   async function togTask(id){ const t=dayTasks.find(x=>x.id===id); await toggleTacheDone(id,!t.fait); setDayTasks(dayTasks.map(x=>x.id===id?{...x,fait:!x.fait}:x)); }
-  async function togRout(i){ const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x)); await toggleRoutineCheck(DEF_ROUTINES[i].key,v); const s=await getStreak(DEF_ROUTINES[i].key); setStreaks(p=>p.map((x,j)=>j===i?s:x)); }
+  async function togRout(i){
+    if(i===2&&!routs[2]){ setAmwapOpen(true); return; }
+    const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x));
+    await toggleRoutineCheck(DEF_ROUTINES[i].key,v);
+    const s=await getStreak(DEF_ROUTINES[i].key); setStreaks(p=>p.map((x,j)=>j===i?s:x));
+  }
+  async function onAmwapSave(){
+    setRouts(p=>p.map((x,j)=>j===2?true:x));
+    await toggleRoutineCheck(DEF_ROUTINES[2].key,true);
+    const s=await getStreak(DEF_ROUTINES[2].key); setStreaks(p=>p.map((x,j)=>j===2?s:x));
+  }
 
   const done=dayTasks.filter(t=>t.fait).length;
   const idone=week.filter(d=>d.done).length;
@@ -130,7 +178,10 @@ function Maintenant({inboxCount,onGoCapture}){
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Routines · ne casse pas la chaîne</span></div>
       ${DEF_ROUTINES.map((r,i)=>html`<div class=${'rout'+(routs[i]?' on':'')} onClick=${()=>togRout(i)} key=${r.key}><div class="dot"/><span class="r-txt">${r.nom}</span><span class="r-mom">${r.moment}</span>${streaks[i]>0?html`<span class="streak">🔥 ${streaks[i]}</span>`:''}</div>`)}
+      ${amwapYest?html`<div class="amwap-recap"><span style="color:var(--ink3)">Hier · </span>${amwapYest.v1}${amwapYest.v2?' · '+amwapYest.v2:''}${amwapYest.v3?' · '+amwapYest.v3:''}</div>`:''}
     </div>
+
+    ${amwapOpen?html`<${AmwapModal} onClose=${()=>setAmwapOpen(false)} onSave=${onAmwapSave}/>`:''}
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>

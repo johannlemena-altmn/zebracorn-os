@@ -107,6 +107,13 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Incrément 5 : AMWAP enrichi (modal slide-up + mémoire courte)
+- **Fait** : cliquer sur la routine AMWAP (non cochée) ouvre une **modal slide-up** : 3 champs numérotés, bouton « Valider » (désactivé si champ 1 vide), animation ✓ + fermeture auto 650ms. À validation : sauvegarde en DB (`amwap` table v3) + routine cochée + streak mis à jour. **Recap « Hier »** : si des victoires existent pour la veille, une ligne mémo apparaît sous les routines (fondation mémoire cumulative).
+- **Pourquoi** : transformer une case à cocher passive en rituel actif avec feedback immédiat. L'entrée (3 points fixes) donne un cadre ; la fermeture automatique évite le vide après la validation. Le recap « Hier » crée une continuité narrative sans effort.
+- **DoD** : testé preview — 3 champs remplis, validation → DB contient l'entrée, routine `.on`, modal fermée. Zéro erreur console.
+- **Décisions** : modal `position:fixed` = fonctionne sur vrai iPhone indépendamment du scroll ; pas de portal Preact nécessaire. Pas de "recap du jour" (seulement hier) — évite la redondance avec ce qu'on vient de saisir.
+- **Prochain** : incrément 6 — Capturer enrichie (upload fichier image/PDF, share natif iOS → NotebookLM).
+
 ## 2026-06-07 — Incrément 4 : fiche-chantier (étapes + prochaine étape)
 - **Fait** : cliquer sur un 🟢 dans « Semaine » ouvre la **fiche du chantier** : titre, barre de progression (n/total étapes · %), liste d'étapes cochables (case ✓, texte barré, compteur en temps réel), champ « Prochaine étape » éditable (sauvegarde à blur, reflété sur la carte Semaine), bouton « + » pour ajouter une étape, retour « ← Semaine » avec rechargement du backlog. Le ✕ de la carte Semaine reste fonctionnel (stopPropagation).
 - **Pourquoi** : les chantiers 🟢 sont des projets multi-semaines qui progressent, pas des cases à cocher. La fiche donne un espace de suivi réel sans alourdir la vue Semaine.
