@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Zebracorn">
+  <meta name="theme-color" content="#c2552f">
+  <title>Zebracorn OS</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
+<script src="db.js"></script>
+<script type="module">
+import { h, render } from 'https://esm.sh/preact@10';
+import { useState, useEffect, useCallback } from 'https://esm.sh/preact@10/hooks';
+import htm from 'https://esm.sh/htm@3';
+const html = htm.bind(h);
+
+/* ── constantes ─────────────────────────────── */
+const DAYS   = ['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
+const MONTHS = ['JANV','FÉVR','MARS','AVR','MAI','JUIN','JUIL','AOÛT','SEPT','OCT','NOV','DÉC'];
+const RAIL_Q = {
+  fort:    "Qu'est-ce que tu cherches, là, maintenant ?",
+  relache: "Pause méritée — un geste qui te fait du bien ?",
+  libre:   "Profite. Reviens quand tu veux.",
+};
+const DEF_TASKS = [
+  "Avancer Zebracorn OS (30 min)",
+  "Lire 1 chapitre — Bihouix, L'Âge des low-tech",
+  "Capturer + traiter 1 source (ACTOR)",
+];
+const DEF_ROUTINES = [
+  { key:'routine_0', nom:'Pas de tel 15 min au réveil',    moment:'Matin'  },
+  { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
+  { key:'routine_2', nom:'AMWAP — mes victoires du jour',   moment:'Soir'   },
+];
+const T_ICONS = { note:'📝', lien:'🔗', pdf:'📄', video:'🎥' };
+const T_LBLS  = { note:'Note', lien:'Lien', pdf:'PDF', video:'Vidéo' };
+const T_PH    = {
+  note:'Note une idée brute, sans la juger…',
+  lien:'Colle un lien (article, site)…',
+  pdf:'Ajoute un PDF / une référence…',
+  video:"Colle l'URL d'une vidéo…",
+};
+
+/* ── helpers ────────────────────────────────── */
+function fmtDate(d){ return `${DAYS[d.getDay()]}. ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+function fmtTime(d){ return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function relDate(iso){
+  const h=(Date.now()-new Date(iso))/3600000;
+  return h<1?"à l'instant":h<24?`il y a ${Math.floor(h)} h`:h<48?'hier':`il y a ${Math.floor(h/24)} j`;
+}
+function useTypewriter(text,speed=30){
+  const [d,setD]=useState('');
+  useEffect(()=>{
+    setD(''); let i=0;
+    const t=setInterval(()=>{ i++; setD(text.slice(0,i)); if(i>=text.length)clearInterval(t); },speed);
+    return()=>clearInterval(t);
+  },[text]);
+  return d;
+}
+function useClock(){
+  const [n,setN]=useState(new Date());
+  useEffect(()=>{ const t=setInterval(()=>setN(new Date()),30000); return()=>clearInterval(t); },[]);
+  return n;
+}
+
+/* ── Maintenant ─────────────────────────────── */
+function Maintenant({inboxCount,onGoCapture}){
+  const [mode,setMode]=useState('fort');
+  const [intent,setIntent]=useState('');
+  const [tasks,setTasks]=useState([false,false,false]);
+  const [routs,setRouts]=useState([false,false,false]);
+  const [streaks,setStreaks]=useState([0,0,0]);
+  const [week,setWeek]=useState([]);
+  const [caps,setCaps]=useState([]);
+  const typed=useTypewriter(RAIL_Q[mode]);
+  const now=useClock();
+
+  const load=useCallback(async()=>{
+    setIntent(await getTodayIntention());
+    setWeek(await getWeekData());
+    setTasks(await Promise.all(DEF_TASKS.map((_,i)=>getTaskCheck('task_'+i))));
+    setRouts(await Promise.all(DEF_ROUTINES.map(r=>getRoutineCheck(r.key))));
+    setStreaks(await Promise.all(DEF_ROUTINES.map(r=>getStreak(r.key))));
+    setCaps((await getInbox()).slice(0,4));
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function blurIntent(){ await saveIntention(intent); setWeek(await getWeekData()); }
+  async function togTask(i){ const v=!tasks[i]; setTasks(tasks.map((x,j)=>j===i?v:x)); await toggleTaskCheck('task_'+i,v); }
+  async function togRout(i){ const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x)); await toggleRoutineCheck(DEF_ROUTINES[i].key,v); const s=await getStreak(DEF_ROUTINES[i].key); setStreaks(p=>p.map((x,j)=>j===i?s:x)); }
+
+  const done=tasks.filter(Boolean).length;
+  const idone=week.filter(d=>d.done).length;
+
+  return html`<div class="scroll">
+    <div class="hdr"><div class="brand">Zebracorn OS</div><div class="date-lbl">${fmtDate(now)} · ${fmtTime(now)}</div></div>
+    <div class="h1">Maintenant.</div>
+    <div class="greet">Avant de scroller — une intention, un geste.</div>
+
+    <div class="modes">
+      ${Object.keys(RAIL_Q).map(m=>html`<button class=${'mode'+(mode===m?' on':'')} onClick=${()=>setMode(m)}>${m==='fort'?'Intercept fort':m==='relache'?'Relâché':'Libre'}</button>`)}
+    </div>
+
+    <div class="rail">
+      <div class="rail-k">◇ Le rail · ${mode==='fort'?'matin/journée':mode==='relache'?'pause':'week-end'}</div>
+      <div class="rail-q">${typed}${typed.length<RAIL_Q[mode].length?html`<span class="cursor"/>`:''}</div>
+      <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention pour ce moment…"/>
+    </div>
+
+    <div class="track">
+      <div class="kpi"><div class="kpi-n">${streaks.length?Math.max(...streaks):0}<small> j</small></div><div class="kpi-l">Meilleure série</div></div>
+      <div class="week-box">
+        <div class="week-l">Intentions tenues · ${idone}/7</div>
+        <div class="days">${week.map((d,i)=>html`<div class=${'day'+(d.done?' f3':'')+(d.isToday?' today':'')} key=${i}><b/><span>${DAYS[(new Date(d.date+'T12:00:00')).getDay()][0]}</span></div>`)}</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">3 tâches clés du jour</span><span class="sec-c">${done}/3</span></div>
+      ${DEF_TASKS.map((t,i)=>html`<div class=${'task'+(tasks[i]?' done':'')} onClick=${()=>togTask(i)} key=${i}><div class="box"/><span class="t-txt">${t}</span><span class="t-num">${i+1}</span></div>`)}
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Routines · ne casse pas la chaîne</span></div>
+      ${DEF_ROUTINES.map((r,i)=>html`<div class=${'rout'+(routs[i]?' on':'')} onClick=${()=>togRout(i)} key=${r.key}><div class="dot"/><span class="r-txt">${r.nom}</span><span class="r-mom">${r.moment}</span>${streaks[i]>0?html`<span class="streak">🔥 ${streaks[i]}</span>`:''}</div>`)}
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>
+      <div class="read"><div class="read-ic">📖</div><div><div class="read-t">Lecture avant le coucher</div><div class="read-s">Objectif : 20 pages · au lieu du tel après 22 h</div></div></div>
+    </div>
+
+    <div class="quote">« La liberté n'est pas un libre arbitre héroïque ; c'est une liberté praticable. »<small>Ressurgi de — Pilier Spinoza</small></div>
+
+    ${(caps.length>0||inboxCount>0)?html`<div class="sec">
+      <div class="sec-h"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
+      <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
+    </div>`:''}
+
+    <div class="foot">Zebracorn OS · v0.1 · ${fmtDate(now)}</div>
+  </div>`;
+}
+
+/* ── Capture ─────────────────────────────────── */
+function Capture({onCapture}){
+  const [type,setType]=useState('note');
+  const [content,setContent]=useState('');
+  const [tag,setTag]=useState('');
+  const [inbox,setInbox]=useState([]);
+  const [done,setDone]=useState([]);
+  const [saving,setSaving]=useState(false);
+
+  const load=useCallback(async()=>{
+    const[a,b]=await Promise.all([getInbox(),getDone()]);
+    setInbox(a); setDone(b);
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function save(){
+    if(!content.trim()||saving)return;
+    setSaving(true);
+    await addCapture(type,content.trim(),tag.trim());
+    setContent(''); setTag(''); setSaving(false);
+    await load(); if(onCapture)onCapture();
+  }
+  async function markDone(id){ await updateCaptureStatut(id,'traité'); await load(); if(onCapture)onCapture(); }
+  async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
+
+  const now=new Date();
+  return html`<div class="scroll">
+    <div class="hdr"><div class="brand">Zebracorn OS · Capture</div><div class="date-lbl">${fmtDate(now)}</div></div>
+    <div class="h1">Capturer.</div>
+    <div class="greet">Capte en 1 geste. Le jugement vient après. ✶</div>
+
+    <div class="composer">
+      <div class="types">${['note','lien','pdf','video'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>setType(t)} key=${t}>${T_LBLS[t]}</button>`)}</div>
+      <textarea value=${content} onInput=${e=>setContent(e.target.value)} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>
+      <div class="composer-b">
+        <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
+        <button class="save-btn" onClick=${save} disabled=${saving}>${saving?'…':'Capter'}</button>
+      </div>
+      <div class="hint">⌁ Aucune friction à l'entrée — la réflexion (ACTOR) se fait plus tard.</div>
+    </div>
+
+    <div class="sec-h"><span class="sec-t">À traiter</span><span class="sec-c">${inbox.length}</span></div>
+    ${inbox.length===0?html`<div class="empty-state">Inbox vide — prête à capter ✶</div>`:''}
+    ${inbox.map(item=>html`<div class="item" key=${item.id}>
+      <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
+        <div style="flex:1;min-width:0"><div class="item-ti">${item.contenu.slice(0,100)}${item.contenu.length>100?'…':''}</div>
+        <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div></div></div>
+      <div class="item-b"><button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter · ACTOR</button><button class="btn" onClick=${()=>markLater(item.id)}>Plus tard</button></div>
+    </div>`)}
+
+    ${done.length>0?html`<div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
+    ${done.slice(0,5).map(item=>html`<div class="item" key=${item.id}>
+      <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
+      <div><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,80)}</div>
+      <div class="item-src"><span class="done-tag">✓ Traité</span> · ${relDate(item.date)}</div></div></div>
+    </div>`)}`:'' }
+
+    <div class="foot">Zebracorn OS · Capture · v0.1</div>
+  </div>`;
+}
+
+/* ── App ─────────────────────────────────────── */
+function App(){
+  const [tab,setTab]=useState('maintenant');
+  const [inboxCount,setCount]=useState(0);
+  const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
+  useEffect(()=>{ refresh(); },[refresh]);
+
+  return html`<div class="phone">
+    ${tab==='maintenant'
+      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')}/>`
+      : html`<${Capture} onCapture=${refresh}/>`
+    }
+    <nav class="tabnav">
+      <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
+        <span class="tico">🌱</span><span class="tlbl">Maintenant</span>
+      </button>
+      <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
+        <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
+        <span class="tlbl">Capturer</span>
+      </button>
+    </nav>
+  </div>`;
+}
+
+render(html`<${App}/>`, document.getElementById('root'));
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+</script>
+</body>
+</html>
