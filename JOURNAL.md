@@ -5,6 +5,18 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Incrément 2a : fondation données backlog
+- **Fait** : modèle `Chantier` (🟢 long terme, progression + prochaine étape) +
+  `Étape` + `Tâche` one-shot (🔴/🔵) ajoutés à `db.js` (migration Dexie v2) avec
+  leurs helpers CRUD (add/get/update/delete, toggleEtape, toggleTacheDone, setTacheDate).
+- **Pourquoi** : poser le socle de données AVANT l'UI, pour le découper du gros
+  incrément 2 et rester frugal en budget (pas de screenshots). Les 3 objets
+  reflètent la conception : un chantier ne se coche pas (il progresse).
+- **DoD** : testé en console (preview) — création chantier+étape+tâche, survie au
+  reload, nettoyage OK. Pas encore d'UI (c'est la tranche 2b).
+- **Prochain** : 2b — onglet « La semaine » (3 groupes couleur 🔴🔵🟢, CRUD visible).
+- **Jauge** : ≈ 3,6 € / 5 € (estimation).
+
 ## 2026-06-07 — Skill « atelier-produit » + discipline de suivi
 - **Fait** : création du skill projet `.claude/skills/atelier-produit/` (posture
   PO/PM senior + UX/architecte frugal, boucle en 5 temps) et de ce JOURNAL.
@@ -45,7 +57,7 @@ Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (su
 
 **Incréments produit à venir**
 1. ✅ Slice verticale (Maintenant + Capture persistée).
-2. Modèle `Chantier`/`Tache` + onglet « La semaine » (3 groupes couleur, CRUD).
+2. 🚧 Onglet « La semaine » (3 groupes couleur, CRUD) — **2a fondation données ✅**, reste 2b (UI) + 2c (lier au Maintenant).
 3. Badges couleur sur Maintenant + fiches-chantiers 🟢 (étapes + captures reliées).
 4. Moteur de composition auto des 3 tâches du jour (prio + variation anti-monotonie).
 5. Google Calendar (lecture events + prép auto). — le plus lourd, en dernier.

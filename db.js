@@ -7,6 +7,13 @@ db.version(1).stores({
   routineChecks: '[key+date]',
 });
 
+// v2 — backlog hebdo : chantiers (long terme 🟢), tâches (one-shot 🔴/🔵)
+db.version(2).stores({
+  chantiers: '++id, prio, statut, echeance',
+  etapes:    '++id, chantierId',
+  taches:    '++id, prio, fait, date, chantierId, echeance',
+});
+
 // ── helpers ──────────────────────────────────────────────
 
 function today() {
@@ -107,4 +114,69 @@ async function getStreak(key) {
     // i===0 (today) not done yet is OK, continue checking yesterday
   }
   return streak;
+}
+
+// ── Chantiers (🟢 long terme : progression, pas case à cocher) ──────────
+
+async function addChantier({ titre, prio = 'vert', organe = '', echeance = null, varier = true }) {
+  const now = new Date().toISOString();
+  return db.chantiers.add({
+    titre, prio, organe, echeance, varier,
+    progression: '', prochaine: '', statut: 'actif', cree: now, maj: now,
+  });
+}
+
+async function getChantiers(statut = 'actif') {
+  return db.chantiers.where('statut').equals(statut).reverse().sortBy('maj');
+}
+
+async function updateChantier(id, patch) {
+  return db.chantiers.update(id, { ...patch, maj: new Date().toISOString() });
+}
+
+async function deleteChantier(id) {
+  await db.etapes.where('chantierId').equals(id).delete();
+  return db.chantiers.delete(id);
+}
+
+// ── Étapes d'un chantier ──
+
+async function addEtape(chantierId, titre) {
+  return db.etapes.add({ chantierId, titre, fait: false, date: null });
+}
+
+async function getEtapes(chantierId) {
+  return db.etapes.where('chantierId').equals(chantierId).sortBy('id');
+}
+
+async function toggleEtape(id, fait) {
+  return db.etapes.update(id, { fait, date: fait ? new Date().toISOString() : null });
+}
+
+// ── Tâches one-shot (backlog 🔴 J+1 / 🔵 semaine) ──
+
+async function addTache({ titre, prio = 'bleu', echeance = null, chantierId = null }) {
+  return db.taches.add({
+    titre, prio, echeance, chantierId,
+    date: null, fait: false, cree: new Date().toISOString(),
+  });
+}
+
+async function getTaches({ fait = null, prio = null } = {}) {
+  let arr = await db.taches.toArray();
+  if (fait !== null) arr = arr.filter(t => t.fait === fait);
+  if (prio !== null) arr = arr.filter(t => t.prio === prio);
+  return arr.sort((a, b) => (a.cree < b.cree ? 1 : -1));
+}
+
+async function toggleTacheDone(id, fait) {
+  return db.taches.update(id, { fait });
+}
+
+async function setTacheDate(id, date) {
+  return db.taches.update(id, { date });
+}
+
+async function deleteTache(id) {
+  return db.taches.delete(id);
 }
