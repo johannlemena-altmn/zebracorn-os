@@ -5,6 +5,21 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Incrément 2c + seed : Maintenant ↔ backlog + amorçage
+- **Fait** : les « 3 tâches clés du jour » de Maintenant sont désormais **piochées
+  dans le backlog** (🔴 d'abord, puis 🔵), avec pastille couleur ; cocher une tâche
+  écrit la même donnée que l'onglet Semaine → cohérence inter-écrans. **Seed
+  initial** (une fois, flag localStorage) qui amorce la semaine avec les 11
+  objectifs réels de Johann (4 🔴 + 4 🔵 + 3 chantiers 🟢 avec 1ʳᵉ étape).
+- **Pourquoi** : relier planification (Semaine) et action (Maintenant) — le backlog
+  devient vivant ; donner de la matière pour tester dès demain matin.
+- **DoD** : testé preview — purge + reload déclenche le seed (8 tâches, 3 chantiers),
+  Maintenant affiche les 3 🔴 prioritaires, cocher persiste.
+- **Décisions** : suppression de `DEF_TASKS` (tâches hardcodées). Les helpers
+  `taskChecks` deviennent inutilisés → à nettoyer. **Abandon du faux compteur
+  « €/5 € »** : la vraie jauge = panneau d'usage Claude Code ; skill corrigé.
+- **Prochain** : backlog priorisé ci-dessous (à faire sur Sonnet).
+
 ## 2026-06-07 — Incrément 2b : onglet « La semaine » (UI backlog)
 - **Fait** : 3ᵉ onglet « Semaine » avec ajout rapide (input + pastilles 🔴🔵🟢) et
   3 groupes : 🔴 *Cette échéance* / 🔵 *Cette semaine* (tâches cochables, suppr.)
@@ -79,11 +94,14 @@ Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (su
 
 **Incréments produit à venir**
 1. ✅ Slice verticale (Maintenant + Capture persistée).
-2. 🚧 Onglet « La semaine » (3 groupes couleur, CRUD) — **2a données ✅ + 2b UI ✅**, reste 2c (lier au Maintenant).
-3. Badges couleur sur Maintenant + fiches-chantiers 🟢 (étapes + captures reliées).
-4. Moteur de composition auto des 3 tâches du jour (prio + variation anti-monotonie).
-5. Google Calendar (lecture events + prép auto). — le plus lourd, en dernier.
-6. Traitement ACTOR + module « Le Filtre » (résumé épistémologique IA).
+2. ✅ Onglet « La semaine » (3 couleurs, CRUD) + Maintenant pioche le backlog + seed.
+3. Icônes PWA (manifest → `/icons/*` manquants) pour l'install iPhone propre. [petit]
+4. Fiche-chantier : ouvrir un 🟢 → cocher ses étapes + éditer la prochaine étape. [moyen]
+5. Lier captures ↔ chantiers (mémoire cumulative) depuis l'inbox. [moyen]
+6. Échéances datées sur 🔴/🔵 + tri + nettoyage dead code (`taskChecks`). [petit-moyen]
+7. Traitement ACTOR sur une capture + « Le Filtre » (résumé IA, clé API). [gros, cœur jugement]
+8. Google Calendar (events du jour + prép auto). [gros, en dernier]
+9. Moteur de variation anti-monotonie (rotation des angles). [moyen]
 
 **Objectifs réels à saisir dans l'app (incrément 2)** : répondre à Léo, répondre
 à Laura, réviser finance (test), Talents for the Planet (chantier), liste de

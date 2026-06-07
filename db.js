@@ -180,3 +180,36 @@ async function setTacheDate(id, date) {
 async function deleteTache(id) {
   return db.taches.delete(id);
 }
+
+// ── Seed initial (une seule fois) : amorce la semaine de Johann ──────────
+// Flag localStorage → si Johann supprime des items, ils ne reviennent pas.
+
+async function seedOnce() {
+  if (localStorage.getItem('zebracorn_seed_v1')) return;
+
+  const R = t => addTache({ titre: t, prio: 'rouge' });
+  const B = t => addTache({ titre: t, prio: 'bleu' });
+
+  // 🔴 Échéance — d'ici demain
+  await R('Répondre à Léo — projet');
+  await R('Répondre à Laura — lettre');
+  await R('Réviser finance — test (voir mail MS)');
+  await R('Talents for the Planet — artefacts + postuler avant J');
+
+  // 🔵 Cette semaine — avant le week-end
+  await B('Liste de courses');
+  await B('Caler les séances sport + cooking de la semaine');
+  await B('Repérer 1 ressource pour avancer un prisme');
+  await B('Acheter 1-2 livres low-tech / archi-AMO');
+
+  // 🟢 Chantiers — long terme (avec une 1ʳᵉ étape pour démarrer)
+  const ch = async (titre, prochaine) => {
+    const id = await addChantier({ titre, prio: 'vert' });
+    await updateChantier(id, { prochaine });
+  };
+  await ch('Prix hédonique', 'lister 3 questions à approfondir');
+  await ch('Médiation scientifique (Julien Bobroff)', 'revoir la vidéo + noter le format');
+  await ch('Format de contenu depuis un signal faible', 'rouvrir 1 vieux dossier à réactiver');
+
+  localStorage.setItem('zebracorn_seed_v1', 'done');
+}

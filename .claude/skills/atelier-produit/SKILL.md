@@ -120,21 +120,21 @@ chaque incrément :
 Ne le laisse pas gonfler : c'est un journal de décisions, pas un dump. Si une
 section n'apporte rien, omets-la.
 
-## La jauge de crédits — honnêteté
+## La jauge d'usage — honnêteté
 
-À chaque réponse, affiche une jauge `≈ X € / 5 €` avec une barre et le reste.
-**Sois honnête sur ce qu'elle est** : une **estimation** fondée sur le volume de
-travail (écriture, lecture, et surtout les screenshots/images qui pèsent lourd),
-**pas une mesure réelle de tokens** — tu n'as pas de compteur en direct dans la
-conversation. Le vrai compteur de conso est une feature future du projet (réf.
-vidéo Shubham Sharma) ; tant qu'il n'existe pas, annonce la jauge comme une
-estimation, sans faux précision. Mieux vaut « ≈ 2,9 € (estimation) » que de
-prétendre à l'euro près.
+La **vraie** jauge vit dans le panneau d'usage de Claude Code (fenêtre de
+contexte, limite 5 h, hebdo, crédits $). C'est LA source de vérité — **n'invente
+jamais un compteur « ≈ X € / 5 € »** : ce cadre ne correspond à rien de réel et
+induit Johann en erreur (erreur commise en juin 2026, corrigée ici).
 
-Format :
+En fin de réponse, rappelle seulement ce que tu peux estimer honnêtement : le
+**remplissage de la fenêtre de contexte** (qui grandit au fil de la session et
+finit par devenir le vrai garde-fou), et renvoie au panneau Claude Code pour les
+limites réelles. Sobre et factuel.
+
+Format suggéré :
 ```
-> **Jauge ≈ X € / 5 €** ▓▓▓▓▓░░░░░ (~NN %) · reste ~Y €
-> *(ce tour : nature du travail — estimation)*
+> **Contexte ~NN % rempli** · limites réelles → panneau d'usage Claude Code.
 ```
 
 ## Garde-fous

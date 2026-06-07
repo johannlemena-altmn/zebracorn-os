@@ -31,11 +31,6 @@ const RAIL_Q = {
   relache: "Pause méritée — un geste qui te fait du bien ?",
   libre:   "Profite. Reviens quand tu veux.",
 };
-const DEF_TASKS = [
-  "Avancer Zebracorn OS (30 min)",
-  "Lire 1 chapitre — Bihouix, L'Âge des low-tech",
-  "Capturer + traiter 1 source (ACTOR)",
-];
 const DEF_ROUTINES = [
   { key:'routine_0', nom:'Pas de tel 15 min au réveil',    moment:'Matin'  },
   { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
@@ -76,7 +71,7 @@ function useClock(){
 function Maintenant({inboxCount,onGoCapture}){
   const [mode,setMode]=useState('fort');
   const [intent,setIntent]=useState('');
-  const [tasks,setTasks]=useState([false,false,false]);
+  const [dayTasks,setDayTasks]=useState([]);
   const [routs,setRouts]=useState([false,false,false]);
   const [streaks,setStreaks]=useState([0,0,0]);
   const [week,setWeek]=useState([]);
@@ -87,7 +82,8 @@ function Maintenant({inboxCount,onGoCapture}){
   const load=useCallback(async()=>{
     setIntent(await getTodayIntention());
     setWeek(await getWeekData());
-    setTasks(await Promise.all(DEF_TASKS.map((_,i)=>getTaskCheck('task_'+i))));
+    const undone=await getTaches({fait:false});
+    setDayTasks([...undone.filter(t=>t.prio==='rouge'),...undone.filter(t=>t.prio==='bleu')].slice(0,3));
     setRouts(await Promise.all(DEF_ROUTINES.map(r=>getRoutineCheck(r.key))));
     setStreaks(await Promise.all(DEF_ROUTINES.map(r=>getStreak(r.key))));
     setCaps((await getInbox()).slice(0,4));
@@ -95,10 +91,10 @@ function Maintenant({inboxCount,onGoCapture}){
   useEffect(()=>{ load(); },[load]);
 
   async function blurIntent(){ await saveIntention(intent); setWeek(await getWeekData()); }
-  async function togTask(i){ const v=!tasks[i]; setTasks(tasks.map((x,j)=>j===i?v:x)); await toggleTaskCheck('task_'+i,v); }
+  async function togTask(id){ const t=dayTasks.find(x=>x.id===id); await toggleTacheDone(id,!t.fait); setDayTasks(dayTasks.map(x=>x.id===id?{...x,fait:!x.fait}:x)); }
   async function togRout(i){ const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x)); await toggleRoutineCheck(DEF_ROUTINES[i].key,v); const s=await getStreak(DEF_ROUTINES[i].key); setStreaks(p=>p.map((x,j)=>j===i?s:x)); }
 
-  const done=tasks.filter(Boolean).length;
+  const done=dayTasks.filter(t=>t.fait).length;
   const idone=week.filter(d=>d.done).length;
 
   return html`<div class="scroll">
@@ -125,8 +121,9 @@ function Maintenant({inboxCount,onGoCapture}){
     </div>
 
     <div class="sec">
-      <div class="sec-h"><span class="sec-t">3 tâches clés du jour</span><span class="sec-c">${done}/3</span></div>
-      ${DEF_TASKS.map((t,i)=>html`<div class=${'task'+(tasks[i]?' done':'')} onClick=${()=>togTask(i)} key=${i}><div class="box"/><span class="t-txt">${t}</span><span class="t-num">${i+1}</span></div>`)}
+      <div class="sec-h"><span class="sec-t">3 tâches clés du jour</span><span class="sec-c">${done}/${dayTasks.length||3}</span></div>
+      ${dayTasks.length===0?html`<div class="empty-state">Pose tes priorités dans « Semaine » →</div>`:''}
+      ${dayTasks.map((t,i)=>html`<div class=${'task'+(t.fait?' done':'')} onClick=${()=>togTask(t.id)} key=${t.id}><div class="box"/><span class="t-txt">${t.prio==='rouge'?'🔴':'🔵'} ${t.titre}</span><span class="t-num">${i+1}</span></div>`)}
     </div>
 
     <div class="sec">
@@ -311,6 +308,7 @@ function App(){
   </div>`;
 }
 
+await seedOnce();
 render(html`<${App}/>`, document.getElementById('root'));
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
