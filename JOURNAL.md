@@ -107,6 +107,14 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Nettoyage dead code : getTaskCheck / toggleTaskCheck
+- **Fait** : suppression des deux helpers `getTaskCheck` et `toggleTaskCheck` dans `db.js`.
+- **Pourquoi** : orphelins depuis la suppression des `DEF_TASKS` hardcodées (incrément 2c). Aucun appel dans `index.html` ni dans `sync.js`. La table `taskChecks` reste dans le schéma Dexie (données utilisateur préservées) et dans `SYNC_TABLES` (compatibilité export/import) — la migration de table est un scope distinct.
+- **DoD** : zéro erreur console, app rend normalement.
+- **Prochain** : incrément 4 — fiche-chantier (ouvrir un 🟢 → cocher ses étapes + éditer la prochaine étape).
+
+---
+
 ## Backlog / horizons (source : notes du 06/06 + scope)
 
 Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (suivi multi-jours).

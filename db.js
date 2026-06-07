@@ -73,19 +73,6 @@ async function getWeekData() {
   return result;
 }
 
-async function getTaskCheck(key) {
-  const rec = await db.taskChecks.get([key, today()]);
-  return !!rec;
-}
-
-async function toggleTaskCheck(key, fait) {
-  if (fait) {
-    await db.taskChecks.put({ key, date: today() });
-  } else {
-    await db.taskChecks.delete([key, today()]);
-  }
-}
-
 async function getRoutineCheck(key) {
   const rec = await db.routineChecks.get([key, today()]);
   return !!rec;
