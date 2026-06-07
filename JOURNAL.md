@@ -107,6 +107,13 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Incrément 6 : Capturer fichiers (image/PDF + share iOS)
+- **Fait** : nouveau type **📎 Fichier** dans Capturer. Zone de drop cliquable (`<input type="file" accept="image/*,application/pdf">`) — sur iOS ouvre nativement Photos · Fichiers · Scanner. Images compressées via Canvas (JPEG, qualité 0.82, max 1400px) avant stockage base64. PDFs stockés bruts jusqu'à **15 Mo** (avertissement au-delà avec suggestion Smallpdf). Inbox : miniature 56×56 pour images, icône 📄 pour PDFs. Bouton **↗ Partager** sur chaque fichier → `navigator.share({ files:[...] })` iOS = sélecteur d'apps natif incluant NotebookLM, Notes, Mail, AirDrop. Helper `shareFile` reconstruit le Blob depuis le dataUrl stocké.
+- **Pourquoi** : fermer la boucle "second cerveau" — toute trace (texte, lien, image, PDF) entre dans le même pipeline ACTOR. Le share natif iOS est le pont le plus frugal vers NotebookLM sans API tierce.
+- **DoD** : testé preview — zone fichier s'affiche avec type Fichier, autres types ne régressent pas (textarea + bouton Capter OK), zéro erreur console.
+- **Décisions** : pas de drag-and-drop en v1 (scope inutile sur mobile) ; blob URL pour la préview composer (temp, révoqué après compression) ; `navigator.share` indisponible sur desktop → message d'alerte propre.
+- **Prochain** : backlog — lier captures ↔ chantiers depuis inbox (#5) ; ou échéances datées 🔴/🔵 (#6b).
+
 ## 2026-06-07 — Incrément 5 : AMWAP enrichi (modal slide-up + mémoire courte)
 - **Fait** : cliquer sur la routine AMWAP (non cochée) ouvre une **modal slide-up** : 3 champs numérotés, bouton « Valider » (désactivé si champ 1 vide), animation ✓ + fermeture auto 650ms. À validation : sauvegarde en DB (`amwap` table v3) + routine cochée + streak mis à jour. **Recap « Hier »** : si des victoires existent pour la veille, une ligne mémo apparaît sous les routines (fondation mémoire cumulative).
 - **Pourquoi** : transformer une case à cocher passive en rituel actif avec feedback immédiat. L'entrée (3 points fixes) donne un cadre ; la fermeture automatique évite le vide après la validation. Le recap « Hier » crée une continuité narrative sans effort.

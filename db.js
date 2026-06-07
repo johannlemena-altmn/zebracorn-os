@@ -21,13 +21,15 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function addCapture(type, contenu, tag) {
+async function addCapture(type, contenu, tag, extra) {
+  // extra = { filename, dataUrl, mimeType } for file captures
   return db.captures.add({
     type,
     contenu,
     source: tag || null,
     date: new Date().toISOString(),
     statut: 'inbox',
+    ...(extra || {}),
   });
 }
 

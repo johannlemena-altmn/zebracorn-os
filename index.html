@@ -37,14 +37,17 @@ const DEF_ROUTINES = [
   { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
   { key:'routine_2', nom:'AMWAP — mes victoires du jour',   moment:'Soir'   },
 ];
-const T_ICONS = { note:'📝', lien:'🔗', pdf:'📄', video:'🎥' };
-const T_LBLS  = { note:'Note', lien:'Lien', pdf:'PDF', video:'Vidéo' };
+const T_ICONS = { note:'📝', lien:'🔗', pdf:'📄', video:'🎥', fichier:'📎' };
+const T_LBLS  = { note:'Note', lien:'Lien', pdf:'Réf.', video:'Vidéo', fichier:'Fichier' };
 const T_PH    = {
   note:'Note une idée brute, sans la juger…',
   lien:'Colle un lien (article, site)…',
-  pdf:'Ajoute un PDF / une référence…',
+  pdf:'Ajoute une référence (titre, ISBN…)…',
   video:"Colle l'URL d'une vidéo…",
+  fichier:'',
 };
+const MAX_PDF_MB = 15;
+const MAX_PDF = MAX_PDF_MB * 1024 * 1024;
 
 /* ── helpers ────────────────────────────────── */
 function fmtDate(d){ return `${DAYS[d.getDay()]}. ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
@@ -199,6 +202,32 @@ function Maintenant({inboxCount,onGoCapture}){
   </div>`;
 }
 
+/* ── File helpers ────────────────────────────── */
+async function compressImage(file,maxW=1400,q=0.82){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const ratio=Math.min(1,maxW/img.width);
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*ratio); cv.height=Math.round(img.height*ratio);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(url);
+      res(cv.toDataURL('image/jpeg',q));
+    };
+    img.onerror=rej; img.src=url;
+  });
+}
+async function readFileAsDataUrl(file){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file); });
+}
+async function shareFile(item){
+  if(!navigator.share){ alert('Partage non disponible — utilise Safari sur iPhone.'); return; }
+  const blob=await fetch(item.dataUrl).then(r=>r.blob());
+  const f=new File([blob],item.filename||'fichier',{type:item.mimeType});
+  try{ await navigator.share({files:[f],title:item.filename||'Fichier Zebracorn'}); }catch(e){ if(e.name!=='AbortError') alert('Erreur partage : '+e.message); }
+}
+
 /* ── Capture ─────────────────────────────────── */
 function Capture({onCapture}){
   const [type,setType]=useState('note');
@@ -207,6 +236,8 @@ function Capture({onCapture}){
   const [inbox,setInbox]=useState([]);
   const [done,setDone]=useState([]);
   const [saving,setSaving]=useState(false);
+  const [file,setFile]=useState(null);
+  const [fileWarn,setFileWarn]=useState('');
 
   const load=useCallback(async()=>{
     const[a,b]=await Promise.all([getInbox(),getDone()]);
@@ -214,7 +245,23 @@ function Capture({onCapture}){
   },[]);
   useEffect(()=>{ load(); },[load]);
 
+  function handleFile(e){
+    const f=e.target.files[0]; if(!f) return;
+    if(f.type==='application/pdf'&&f.size>MAX_PDF){ setFileWarn(`PDF trop lourd (${(f.size/1024/1024).toFixed(1)} Mo > ${MAX_PDF_MB} Mo). Compresse via Smallpdf, ou partage directement vers NotebookLM depuis Fichiers.`); setFile(null); return; }
+    setFileWarn(''); setFile(f);
+  }
   async function save(){
+    if(type==='fichier'){
+      if(!file||saving) return;
+      setSaving(true);
+      let dataUrl, mimeType=file.type, filename=file.name;
+      if(file.type.startsWith('image/')) dataUrl=await compressImage(file);
+      else dataUrl=await readFileAsDataUrl(file);
+      mimeType=file.type.startsWith('image/')?'image/jpeg':file.type;
+      await addCapture('fichier',filename,tag.trim(),{filename,dataUrl,mimeType});
+      setFile(null); setTag(''); setSaving(false);
+      await load(); if(onCapture)onCapture(); return;
+    }
     if(!content.trim()||saving)return;
     setSaving(true);
     await addCapture(type,content.trim(),tag.trim());
@@ -231,11 +278,21 @@ function Capture({onCapture}){
     <div class="greet">Capte en 1 geste. Le jugement vient après. ✶</div>
 
     <div class="composer">
-      <div class="types">${['note','lien','pdf','video'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>setType(t)} key=${t}>${T_LBLS[t]}</button>`)}</div>
-      <textarea value=${content} onInput=${e=>setContent(e.target.value)} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>
+      <div class="types" style="flex-wrap:wrap">${['note','lien','pdf','video','fichier'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>{setType(t);setFile(null);setFileWarn('');}} key=${t}>${T_ICONS[t]} ${T_LBLS[t]}</button>`)}</div>
+      ${type==='fichier'
+        ?html`<label class="file-drop">
+          <span class="fd-ic">${file?'✓':'📎'}</span>
+          <span class="fd-lbl">${file?file.name:'Choisir une image ou un PDF'}</span>
+          <span class="fd-hint">iOS : Photos · Fichiers · Scanner</span>
+          <input type="file" accept="image/*,application/pdf" style="display:none" onChange=${handleFile}/>
+        </label>
+        ${fileWarn?html`<div class="file-warn">⚠ ${fileWarn}</div>`:''}
+        ${file&&file.type.startsWith('image/')?html`<img src=${URL.createObjectURL(file)} style="width:100%;border-radius:8px;margin-top:8px;max-height:160px;object-fit:cover;"/>`:''}`
+        :html`<textarea value=${content} onInput=${e=>setContent(e.target.value)} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>`
+      }
       <div class="composer-b">
         <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
-        <button class="save-btn" onClick=${save} disabled=${saving}>${saving?'…':'Capter'}</button>
+        <button class="save-btn" onClick=${save} disabled=${saving||( type==='fichier'?!file:!content.trim() )}>${saving?'…':type==='fichier'?'Importer':'Capter'}</button>
       </div>
       <div class="hint">⌁ Aucune friction à l'entrée — la réflexion (ACTOR) se fait plus tard.</div>
     </div>
@@ -243,10 +300,20 @@ function Capture({onCapture}){
     <div class="sec-h"><span class="sec-t">À traiter</span><span class="sec-c">${inbox.length}</span></div>
     ${inbox.length===0?html`<div class="empty-state">Inbox vide — prête à capter ✶</div>`:''}
     ${inbox.map(item=>html`<div class="item" key=${item.id}>
-      <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
+      <div class="item-top">
+        ${item.type==='fichier'&&item.mimeType?.startsWith('image/')
+          ?html`<img class="item-thumb" src=${item.dataUrl} alt=${item.filename}/>`
+          :item.type==='fichier'
+          ?html`<div class="item-pdf">📄</div>`
+          :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
         <div style="flex:1;min-width:0"><div class="item-ti">${item.contenu.slice(0,100)}${item.contenu.length>100?'…':''}</div>
-        <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div></div></div>
-      <div class="item-b"><button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter · ACTOR</button><button class="btn" onClick=${()=>markLater(item.id)}>Plus tard</button></div>
+        <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div></div>
+      </div>
+      <div class="item-b">
+        <button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter · ACTOR</button>
+        <button class="btn" onClick=${()=>markLater(item.id)}>Plus tard</button>
+        ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${()=>shareFile(item)}>↗ Partager</button>`:''}
+      </div>
     </div>`)}
 
     ${done.length>0?html`<div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
