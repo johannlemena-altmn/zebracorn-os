@@ -5,6 +5,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Incrément 2b : onglet « La semaine » (UI backlog)
+- **Fait** : 3ᵉ onglet « Semaine » avec ajout rapide (input + pastilles 🔴🔵🟢) et
+  3 groupes : 🔴 *Cette échéance* / 🔵 *Cette semaine* (tâches cochables, suppr.)
+  + 🟢 *Chantiers* (cartes-progression, pas de case à cocher). CRUD branché sur
+  les helpers Dexie. Nav passée à 3 onglets (Maintenant · Semaine · Capturer).
+- **Pourquoi** : donner un lieu où poser les objectifs 🔴/🔵/🟢. Choix UX :
+  la couleur = l'urgence ; un chantier *progresse* (ne se coche pas) → renvoie du
+  progrès, pas de la culpabilité.
+- **Décision design (sobriété)** : la couleur passe par les **emojis** 🔴🔵🟢,
+  pas par de nouveaux tokens palette → zéro dérive du design system papier/encre/
+  terracotta. Chrome en neutres chauds existants.
+- **Bug corrigé (important)** : le service worker était **cache-first** → il
+  masquait les mises à jour CSS/JS (la carte chantier restait non stylée). Passé
+  en **network-first** (frais en ligne, cache seulement pour l'offline) +
+  cache bumpé v2. Piège qui aurait pollué tout le reste du projet.
+- **DoD** : testé preview — ajout des 3 types, persistance, rendu fidèle, CSS
+  frais confirmé. (Données de test laissées dans IndexedDB du preview seulement,
+  pas dans le repo ni sur Vercel.)
+- **Prochain** : 2c — lier le backlog au « Maintenant » (badges couleur + pioche
+  des 3 tâches du jour depuis 🔴/🔵).
+- **Jauge** : ≈ 4,5 € / 5 € (estimation — gros incrément UI + debug SW).
+
 ## 2026-06-07 — Incrément 2a : fondation données backlog
 - **Fait** : modèle `Chantier` (🟢 long terme, progression + prochaine étape) +
   `Étape` + `Tâche` one-shot (🔴/🔵) ajoutés à `db.js` (migration Dexie v2) avec
@@ -57,7 +79,7 @@ Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (su
 
 **Incréments produit à venir**
 1. ✅ Slice verticale (Maintenant + Capture persistée).
-2. 🚧 Onglet « La semaine » (3 groupes couleur, CRUD) — **2a fondation données ✅**, reste 2b (UI) + 2c (lier au Maintenant).
+2. 🚧 Onglet « La semaine » (3 groupes couleur, CRUD) — **2a données ✅ + 2b UI ✅**, reste 2c (lier au Maintenant).
 3. Badges couleur sur Maintenant + fiches-chantiers 🟢 (étapes + captures reliées).
 4. Moteur de composition auto des 3 tâches du jour (prio + variation anti-monotonie).
 5. Google Calendar (lecture events + prép auto). — le plus lourd, en dernier.

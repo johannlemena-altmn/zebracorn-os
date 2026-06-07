@@ -1,4 +1,4 @@
-const CACHE = 'zebracorn-v1';
+const CACHE = 'zebracorn-v2';
 const SHELL = ['/', '/index.html', '/styles.css', '/db.js'];
 
 self.addEventListener('install', e => {
@@ -13,8 +13,17 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// Network-first : toujours frais quand en ligne, cache seulement en secours offline.
+// (Le cache-first masquait les mises à jour CSS/JS — piège en dev ET en prod.)
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

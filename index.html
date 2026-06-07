@@ -211,6 +211,77 @@ function Capture({onCapture}){
   </div>`;
 }
 
+/* ── Semaine (backlog 3 couleurs) ─────────────── */
+
+const PRIO_PILLS = [['rouge','🔴','Échéance'],['bleu','🔵','Semaine'],['vert','🟢','Chantier']];
+
+function Semaine(){
+  const [taches,setTaches]   = useState([]);
+  const [chantiers,setChant] = useState([]);
+  const [titre,setTitre]     = useState('');
+  const [prio,setPrio]       = useState('rouge');
+
+  const load = useCallback(async()=>{
+    setTaches(await getTaches({fait:false}));
+    setChant(await getChantiers());
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function add(){
+    if(!titre.trim()) return;
+    if(prio==='vert') await addChantier({titre:titre.trim(), prio:'vert'});
+    else              await addTache({titre:titre.trim(), prio});
+    setTitre(''); await load();
+  }
+  async function togTache(id,fait){ await toggleTacheDone(id,fait); await load(); }
+  async function delTache(id){ await deleteTache(id); await load(); }
+  async function delChant(id){ await deleteChantier(id); await load(); }
+
+  const rouge = taches.filter(t=>t.prio==='rouge');
+  const bleu  = taches.filter(t=>t.prio==='bleu');
+  const now = new Date();
+
+  const groupeTaches = (arr, emoji, titreSec, sous) => html`<div class="sec">
+    <div class="sec-h"><span class="sec-t">${emoji} ${titreSec}</span><span class="sec-c">${arr.length}</span></div>
+    ${arr.length===0?html`<div class="empty-state">${sous}</div>`:''}
+    ${arr.map(t=>html`<div class=${'task'+(t.fait?' done':'')} key=${t.id}>
+      <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
+      <span class="t-txt">${t.titre}</span>
+      <span class="t-del" onClick=${()=>delTache(t.id)}>✕</span>
+    </div>`)}
+  </div>`;
+
+  return html`<div class="scroll">
+    <div class="hdr"><div class="brand">Zebracorn OS · Semaine</div><div class="date-lbl">${fmtDate(now)}</div></div>
+    <div class="h1">La semaine.</div>
+    <div class="greet">Pose tes objectifs. La couleur dit l'urgence.</div>
+
+    <div class="composer">
+      <div class="prio-pills">
+        ${PRIO_PILLS.map(([p,e,l])=>html`<button class=${'prio-pill'+(prio===p?' on':'')} onClick=${()=>setPrio(p)} key=${p}>${e} ${l}</button>`)}
+      </div>
+      <div class="composer-b">
+        <input class="taginp" style="flex:1" value=${titre} onInput=${e=>setTitre(e.target.value)} placeholder=${prio==='vert'?'Nouveau chantier long terme…':'Nouvelle tâche…'} onKeyDown=${e=>e.key==='Enter'&&add()}/>
+        <button class="save-btn" onClick=${add}>Poser</button>
+      </div>
+    </div>
+
+    ${groupeTaches(rouge,'🔴',"Cette échéance · d'ici demain","rien d'urgent ✶")}
+    ${groupeTaches(bleu,'🔵','Cette semaine · avant le week-end','rien à caser ✶')}
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">🟢 Chantiers · long terme</span><span class="sec-c">${chantiers.length}</span></div>
+      ${chantiers.length===0?html`<div class="empty-state">aucun chantier ✶</div>`:''}
+      ${chantiers.map(c=>html`<div class="chantier-card" key=${c.id}>
+        <div class="ch-top"><span class="ch-ti">${c.titre}</span><span class="t-del" onClick=${()=>delChant(c.id)}>✕</span></div>
+        <div class="ch-prog">${c.prochaine?('prochaine étape : '+c.prochaine):'à suivre — un geste à la fois'}</div>
+      </div>`)}
+    </div>
+
+    <div class="foot">Zebracorn OS · Semaine · v0.1</div>
+  </div>`;
+}
+
 /* ── App ─────────────────────────────────────── */
 function App(){
   const [tab,setTab]=useState('maintenant');
@@ -221,11 +292,16 @@ function App(){
   return html`<div class="phone">
     ${tab==='maintenant'
       ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')}/>`
+      : tab==='semaine'
+      ? html`<${Semaine}/>`
       : html`<${Capture} onCapture=${refresh}/>`
     }
     <nav class="tabnav">
       <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
         <span class="tico">🌱</span><span class="tlbl">Maintenant</span>
+      </button>
+      <button class=${tab==='semaine'?'on':''} onClick=${()=>setTab('semaine')}>
+        <span class="tico">▦</span><span class="tlbl">Semaine</span>
       </button>
       <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
