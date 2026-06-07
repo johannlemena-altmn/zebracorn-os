@@ -21,6 +21,7 @@
 import { h, render } from 'https://esm.sh/preact@10';
 import { useState, useEffect, useCallback } from 'https://esm.sh/preact@10/hooks';
 import htm from 'https://esm.sh/htm@3';
+import { getSyncConfig, saveSyncConfig, syncConfigured, lastSync, pushAll, pullAll } from './sync.js';
 const html = htm.bind(h);
 
 /* ── constantes ─────────────────────────────── */
@@ -279,6 +280,59 @@ function Semaine(){
   </div>`;
 }
 
+/* ── Réglages (sync cloud + sauvegarde JSON) ──── */
+
+function Reglages(){
+  const [cfg,setCfg]=useState(getSyncConfig());
+  const [msg,setMsg]=useState('');
+  const [busy,setBusy]=useState(false);
+  const last=lastSync();
+
+  const upd=(k,v)=>setCfg(c=>({...c,[k]:v}));
+  function save(){ saveSyncConfig(cfg.url.trim(),cfg.key.trim(),cfg.space.trim()); setMsg('Configuration enregistrée ✓'); }
+
+  async function doPush(){ setBusy(true); setMsg('Envoi vers le cloud…'); try{ await pushAll(); setMsg('Envoyé ✓ — tes autres appareils peuvent Tirer.'); }catch(e){ setMsg('⚠ '+e.message); } setBusy(false); }
+  async function doPull(){ if(!confirm('Tirer le cloud va REMPLACER les données de cet appareil. Continuer ?')) return; setBusy(true); setMsg('Réception…'); try{ await pullAll(); setMsg('Reçu ✓ — rechargement…'); setTimeout(()=>location.reload(),800); }catch(e){ setMsg('⚠ '+e.message); setBusy(false); } }
+
+  async function doExport(){ const dump=await exportAll(); const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='zebracorn-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); setMsg('Sauvegarde téléchargée ✓'); }
+  function doImport(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=async()=>{ if(!confirm('Importer va REMPLACER les données de cet appareil. Continuer ?')) return; try{ await importAll(JSON.parse(r.result)); setMsg('Importé ✓ — rechargement…'); setTimeout(()=>location.reload(),800);}catch(err){ setMsg('⚠ fichier invalide'); } }; r.readAsText(f); }
+
+  const now=new Date();
+  return html`<div class="scroll">
+    <div class="hdr"><div class="brand">Zebracorn OS · Réglages</div><div class="date-lbl">${fmtDate(now)}</div></div>
+    <div class="h1">Réglages.</div>
+    <div class="greet">Synchronise tes appareils. Tes données restent à toi.</div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Sync cloud · Supabase</span><span class="sec-c">${syncConfigured()?'configuré':'à configurer'}</span></div>
+      <div class="set-field"><div class="set-label">URL du projet</div><input class="taginp" value=${cfg.url} onInput=${e=>upd('url',e.target.value)} placeholder="https://xxxx.supabase.co"/></div>
+      <div class="set-field"><div class="set-label">Clé anon (publique)</div><input class="taginp" value=${cfg.key} onInput=${e=>upd('key',e.target.value)} placeholder="eyJ…"/></div>
+      <div class="set-field"><div class="set-label">Espace privé · ta clé secrète</div><input class="taginp" value=${cfg.space} onInput=${e=>upd('space',e.target.value)} placeholder="une phrase longue, connue de toi seul"/></div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onClick=${save}>Enregistrer la config</button>
+      <div class="btn-row">
+        <button class="btn pri" disabled=${busy||!syncConfigured()} onClick=${doPush}>↑ Pousser</button>
+        <button class="btn" disabled=${busy||!syncConfigured()} onClick=${doPull}>↓ Tirer</button>
+      </div>
+      <div class="set-note">Pousse depuis l'appareil à jour, Tire sur l'autre. Envoi : ${last.push?new Date(last.push).toLocaleString():'—'} · Réception : ${last.pull?new Date(last.pull).toLocaleString():'—'}</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Sauvegarde locale · JSON</span></div>
+      <div class="btn-row">
+        <button class="btn" onClick=${doExport}>⤓ Exporter</button>
+        <label class="btn" style="text-align:center;cursor:pointer">⤒ Importer<input type="file" accept="application/json" style="display:none" onChange=${doImport}/></label>
+      </div>
+      <div class="set-note">Filet de sécurité hors-ligne : un fichier à garder ou transférer à la main.</div>
+    </div>
+
+    ${msg?html`<div class="set-msg">${msg}</div>`:''}
+
+    <div class="set-note" style="margin-top:1rem">⚠ Sécurité v1 : ta clé secrète d'espace protège tes données — choisis-la longue et unique. La clé anon Supabase est publique par nature. Pas de chiffrement bout-en-bout en v1.</div>
+
+    <div class="foot">Zebracorn OS · Réglages · v0.1</div>
+  </div>`;
+}
+
 /* ── App ─────────────────────────────────────── */
 function App(){
   const [tab,setTab]=useState('maintenant');
@@ -291,6 +345,8 @@ function App(){
       ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')}/>`
       : tab==='semaine'
       ? html`<${Semaine}/>`
+      : tab==='reglages'
+      ? html`<${Reglages}/>`
       : html`<${Capture} onCapture=${refresh}/>`
     }
     <nav class="tabnav">
@@ -303,6 +359,9 @@ function App(){
       <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
         <span class="tlbl">Capturer</span>
+      </button>
+      <button class=${tab==='reglages'?'on':''} onClick=${()=>setTab('reglages')}>
+        <span class="tico">⚙</span><span class="tlbl">Réglages</span>
       </button>
     </nav>
   </div>`;

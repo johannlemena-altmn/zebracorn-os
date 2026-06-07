@@ -5,6 +5,25 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-07 — Sync cloud (Supabase) + export/import + icônes PWA
+- **Fait** :
+  - **Sync cloud** optionnelle via **Supabase côté client** (`sync.js`, SDK en
+    lazy-import → app légère par défaut) : 1 ligne par table, last-write-wins,
+    identifiée par un `space_id` secret. **4ᵉ onglet « Réglages » ⚙** : config +
+    boutons **Pousser/Tirer** (explicites, pas d'auto-écrasement). Setup → README.
+  - **Export/Import JSON** (`db.js`) — filet de sécurité offline.
+  - **Icônes PWA** (`icons/icon-192|512.png`, terracotta) → install iPhone propre.
+  - `window.db` exposé pour que le module `sync.js` accède à l'instance Dexie.
+- **Pourquoi** : permettre de synchroniser tél ↔ ordi pour tester dès demain.
+  App statique → Supabase client = **zéro backend**, reste compatible Vercel statique.
+- **DoD vérifié (sans son compte)** : app rend, 4 onglets OK, Réglages fidèle au
+  design, **export/import round-trip 8→0→8 OK**, zéro erreur console.
+- **⏳ NON vérifié par l'IA** : le round-trip **CLOUD** (nécessite le compte
+  Supabase de Johann) → **à tester par lui** via le setup README (SQL + clés).
+- **Décision** : sync **explicite** en v1 (boutons) — pas d'auto-sync, pour éviter
+  l'écrasement silencieux tant que la confiance n'est pas établie. Auto-sync =
+  refinement futur (pull-on-open + push-on-hide, avec garde anti-perte).
+
 ## 2026-06-07 — Incrément 2c + seed : Maintenant ↔ backlog + amorçage
 - **Fait** : les « 3 tâches clés du jour » de Maintenant sont désormais **piochées
   dans le backlog** (🔴 d'abord, puis 🔵), avec pastille couleur ; cocher une tâche
@@ -95,13 +114,15 @@ Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (su
 **Incréments produit à venir**
 1. ✅ Slice verticale (Maintenant + Capture persistée).
 2. ✅ Onglet « La semaine » (3 couleurs, CRUD) + Maintenant pioche le backlog + seed.
-3. Icônes PWA (manifest → `/icons/*` manquants) pour l'install iPhone propre. [petit]
+3. ✅ Icônes PWA + sync cloud Supabase + export/import JSON.
 4. Fiche-chantier : ouvrir un 🟢 → cocher ses étapes + éditer la prochaine étape. [moyen]
 5. Lier captures ↔ chantiers (mémoire cumulative) depuis l'inbox. [moyen]
-6. Échéances datées sur 🔴/🔵 + tri + nettoyage dead code (`taskChecks`). [petit-moyen]
-7. Traitement ACTOR sur une capture + « Le Filtre » (résumé IA, clé API). [gros, cœur jugement]
-8. Google Calendar (events du jour + prép auto). [gros, en dernier]
-9. Moteur de variation anti-monotonie (rotation des angles). [moyen]
+6. Échéances datées sur 🔴/🔵 + tri + **nettoyage dead code** (`taskChecks`, helpers `getTaskCheck`/`toggleTaskCheck` inutilisés). [petit-moyen]
+7. **Auto-sync** (pull-on-open + push-on-hide, avec garde anti-perte) — une fois la sync manuelle validée. [moyen]
+8. Traitement ACTOR sur une capture + « Le Filtre » (résumé IA, clé API). [gros, cœur jugement]
+9. Google Calendar (events du jour + prép auto). [gros, en dernier]
+10. Moteur de variation anti-monotonie (rotation des angles). [moyen]
+11. Icônes : remplacer le carré terracotta plat par un vrai logo (Z / zèbre). [petit]
 
 **Objectifs réels à saisir dans l'app (incrément 2)** : répondre à Léo, répondre
 à Laura, réviser finance (test), Talents for the Planet (chantier), liste de

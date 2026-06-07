@@ -1,4 +1,5 @@
 const db = new Dexie('ZebracornOS');
+window.db = db; // exposé pour le module sync.js (un const top-level n'est pas sur window)
 
 db.version(1).stores({
   captures:      '++id, type, date, statut',
@@ -212,4 +213,24 @@ async function seedOnce() {
   await ch('Format de contenu depuis un signal faible', 'rouvrir 1 vieux dossier à réactiver');
 
   localStorage.setItem('zebracorn_seed_v1', 'done');
+}
+
+// ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
+
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches'];
+
+async function exportAll() {
+  const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };
+  for (const t of SYNC_TABLES) dump[t] = await db.table(t).toArray();
+  return dump;
+}
+
+async function importAll(dump) {
+  await db.transaction('rw', SYNC_TABLES.map(t => db.table(t)), async () => {
+    for (const t of SYNC_TABLES) {
+      if (!Array.isArray(dump[t])) continue;
+      await db.table(t).clear();
+      if (dump[t].length) await db.table(t).bulkPut(dump[t]);
+    }
+  });
 }

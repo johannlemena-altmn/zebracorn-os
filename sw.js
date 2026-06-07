@@ -1,5 +1,5 @@
 const CACHE = 'zebracorn-v2';
-const SHELL = ['/', '/index.html', '/styles.css', '/db.js'];
+const SHELL = ['/', '/index.html', '/styles.css', '/db.js', '/sync.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
