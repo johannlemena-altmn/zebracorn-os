@@ -224,6 +224,7 @@ function Maintenant({inboxCount,onGoCapture}){
   const [revue,setRevue]=useState(getRevue);
   const [revueOpen,setRevueOpen]=useState(()=>new Date().getDay()===5&&!getRevue().done);
   const [gcalEvts,setGcalEvts]=useState(null);
+  const [livreEnCours,setLivreEnCours]=useState(null);
   const typed=useTypewriter(selQ);
   const now=useClock();
 
@@ -237,8 +238,9 @@ function Maintenant({inboxCount,onGoCapture}){
     setCaps((await getInbox()).slice(0,4));
     const yest=new Date(); yest.setDate(yest.getDate()-1);
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
-    setCap(getCap());
+    setCap(await getCap());
     setHsCount(await getHorsScopeMois());
+    setLivreEnCours(await getLivreEnCours());
     loadGcalEvents().then(setGcalEvts).catch(()=>{});
   },[]);
   useEffect(()=>{ load(); },[load]);
@@ -286,7 +288,7 @@ function Maintenant({inboxCount,onGoCapture}){
         <span class="gcal-time">${fmtGcalTime(e.dtstart)}</span>
         <span class="gcal-ti">${e.summary}</span>
       </div>`)}
-    </div>`:''}
+    </div>`:gcalEvts!==null&&gcalEvts.length===0?html`<div class="hint" style="margin-bottom:.8rem">◇ Agenda Google · aucun événement aujourd'hui</div>`:''}
 
     <div class="track">
       <div class="kpi"><div class="kpi-n">${streaks.length?Math.max(...streaks):0}<small> j</small></div><div class="kpi-l">Meilleure série</div></div>
@@ -334,7 +336,14 @@ function Maintenant({inboxCount,onGoCapture}){
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>
-      <div class="read"><div class="read-ic">📖</div><div><div class="read-t">Lecture avant le coucher</div><div class="read-s">Objectif : 20 pages · au lieu du tel après 22 h</div></div></div>
+      <div class="read">
+        <div class="read-ic">📖</div>
+        <div style="flex:1">
+          <div class="read-t">${livreEnCours?livreEnCours.titre:'Lecture avant le coucher'}</div>
+          <div class="read-s">${livreEnCours?(livreEnCours.pages?`${livreEnCours.pagesLues||0}/${livreEnCours.pages} p. · continuer ce soir`:'En cours · continuer ce soir'):'Objectif : 20 pages · au lieu du tel après 22 h'}</div>
+          ${livreEnCours&&livreEnCours.pages?html`<div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style=${'width:'+Math.round((livreEnCours.pagesLues||0)/livreEnCours.pages*100)+'%;background:var(--ac2)'}/></div>`:''}
+        </div>
+      </div>
     </div>
 
     <div class="quote">« La liberté n'est pas un libre arbitre héroïque ; c'est une liberté praticable. »<small>Ressurgi de — Pilier Spinoza</small></div>
@@ -389,6 +398,8 @@ function Capture({onCapture}){
   const [fileWarn,setFileWarn]=useState('');
   const [linkCh,setLinkCh]=useState(null);
   const [chList,setChList]=useState([]);
+  const [livreList,setLivreList]=useState([]);
+  const [linkLivre,setLinkLivre]=useState(null);
   const [annotId,setAnnotId]=useState(null);
   const [annotTxt,setAnnotTxt]=useState('');
   const [confirmDelId,setConfirmDelId]=useState(null);
@@ -407,6 +418,7 @@ function Capture({onCapture}){
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{ getChantiers().then(setChList); },[]);
   useEffect(()=>{ getQuestions().then(setQuestions); },[]);
+  useEffect(()=>{ getLivres().then(ls=>setLivreList(ls.filter(l=>l.statut!=='lu'))); },[]);
 
   function handleFile(e){
     const f=e.target.files[0]; if(!f) return;
@@ -421,14 +433,14 @@ function Capture({onCapture}){
       if(file.type.startsWith('image/')) dataUrl=await compressImage(file);
       else dataUrl=await readFileAsDataUrl(file);
       mimeType=file.type.startsWith('image/')?'image/jpeg':file.type;
-      await addCapture('fichier',filename,tag.trim(),{filename,dataUrl,mimeType,...(linkCh?{chantierId:linkCh}:{})});
-      setFile(null); setTag(''); setLinkCh(null); setSaving(false);
+      await addCapture('fichier',filename,tag.trim(),{filename,dataUrl,mimeType,...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
+      setFile(null); setTag(''); setLinkCh(null); setLinkLivre(null); setSaving(false);
       await load(); if(onCapture)onCapture(); return;
     }
     if(!content.trim()||saving)return;
     setSaving(true);
-    await addCapture(type,content.trim(),tag.trim(),linkCh?{chantierId:linkCh}:null);
-    setContent(''); setTag(''); setLinkCh(null); setSaving(false);
+    await addCapture(type,content.trim(),tag.trim(),{...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
+    setContent(''); setTag(''); setLinkCh(null); setLinkLivre(null); setSaving(false);
     await load(); if(onCapture)onCapture();
   }
   async function sauveNotes(id,val){
@@ -505,6 +517,10 @@ function Capture({onCapture}){
       ${chList.length>0?html`<div class="link-wrap">
         <span class="link-lbl">◎ Projet</span>
         ${chList.slice(0,5).map(c=>html`<button class=${'ch-pill'+(linkCh===c.id?' on':'')} onClick=${()=>setLinkCh(linkCh===c.id?null:c.id)} key=${c.id}>${c.titre.slice(0,22)}</button>`)}
+      </div>`:''}
+      ${livreList.length>0?html`<div class="link-wrap">
+        <span class="link-lbl">📚 Livre</span>
+        ${livreList.slice(0,4).map(l=>html`<button class=${'ch-pill'+(linkLivre===l.id?' on':'')} onClick=${()=>setLinkLivre(linkLivre===l.id?null:l.id)} key=${l.id}>${l.titre.slice(0,22)}</button>`)}
       </div>`:''}
       <div class="composer-b">
         <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
@@ -746,6 +762,116 @@ function FicheChantier({id,onBack}){
   </div>`;
 }
 
+/* ── Fiche-livre ──────────────────────────────── */
+function FicheLivre({id,onBack}){
+  const [livre,setLivre]=useState(null);
+  const [caps,setCaps]=useState([]);
+  const [questions,setQuestions]=useState([]);
+  const [qPickerOpen,setQPickerOpen]=useState(false);
+  const [intentionDraft,setIntentionDraft]=useState('');
+  const [notesDraft,setNotesDraft]=useState('');
+
+  const load=useCallback(async()=>{
+    const l=await db.livres.get(id);
+    setLivre(l);
+    if(l){ setIntentionDraft(l.intention||''); setNotesDraft(l.notes||''); }
+    setCaps(await getCapturesByLivre(id));
+    setQuestions(await getQuestions());
+  },[id]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function upd(patch){ await updateLivre(id,patch); setLivre(prev=>({...prev,...patch})); }
+
+  if(!livre) return html`<div class="scroll"><div class="greet">Chargement…</div></div>`;
+  const pct=livre.pages?Math.round((livre.pagesLues||0)/livre.pages*100):0;
+  const linkedQ=questions.find(q=>q.id===livre.questionId);
+  const now=new Date();
+
+  return html`<div class="scroll">
+    <div class="hdr">
+      <button class="back-btn" onClick=${onBack}>← Bibliothèque</button>
+      <div class="date-lbl">📚 Livre</div>
+    </div>
+    <div class="h1">${livre.titre}</div>
+    <div class="greet">${livre.auteur||'Auteur à compléter'}</div>
+
+    <div class="prio-pills" style="margin-bottom:1.1rem">
+      ${[['a-lire','📚','À lire'],['en-cours','📖','En cours'],['lu','✓','Lu']].map(([s,e,l])=>html`
+        <button class=${'prio-pill'+(livre.statut===s?' on':'')} onClick=${()=>upd({statut:s})} key=${s}>${e} ${l}</button>
+      `)}
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Progression · pages</span></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input class="taginp" type="number" style="width:72px;text-align:center"
+          value=${livre.pagesLues||0}
+          onInput=${e=>upd({pagesLues:Math.max(0,+e.target.value||0)})}
+          placeholder="0"/>
+        <span style="color:var(--ink3);font-size:13px">/</span>
+        <input class="taginp" type="number" style="width:72px;text-align:center"
+          value=${livre.pages||''}
+          onInput=${e=>upd({pages:+e.target.value||null})}
+          placeholder="? p."/>
+        <span style="color:var(--ink3);font-size:13px">pages</span>
+        ${livre.pages?html`<span style="font-family:var(--fm);font-size:10px;color:var(--ac2);margin-left:auto">${pct} %</span>`:''}
+      </div>
+      ${livre.pages?html`<div class="prog-bar"><div class="prog-fill" style=${'width:'+pct+'%;background:var(--ac2)'}/></div>`:''}
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Intention · pourquoi ce livre</span></div>
+      <textarea class="notes-ta" rows=2 value=${intentionDraft}
+        onInput=${e=>setIntentionDraft(e.target.value)}
+        onBlur=${()=>upd({intention:intentionDraft})}
+        placeholder="Ce que tu cherches dans ce livre…"/>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Notes de lecture</span></div>
+      <textarea class="notes-ta" rows=4 value=${notesDraft}
+        onInput=${e=>setNotesDraft(e.target.value)}
+        onBlur=${()=>upd({notes:notesDraft})}
+        placeholder="Idées, citations, désaccords, questions que ça soulève…"/>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h">
+        <span class="sec-t">❓ Question liée</span>
+        <button class="btn" style="font-size:10px;padding:4px 10px"
+          onClick=${()=>livre.questionId?upd({questionId:null}):setQPickerOpen(o=>!o)}>
+          ${livre.questionId?'✕ Dissocier':'+ Lier'}
+        </button>
+      </div>
+      ${linkedQ
+        ?html`<div class="q-linked-badge">${linkedQ.intitule}</div>`
+        :html`<div class="hint" style="font-size:10px;margin:0">Quelle question ce livre aide-t-il à creuser ?</div>`}
+      ${qPickerOpen?html`<div class="picker-list" style="margin-top:6px">
+        ${questions.map(q=>html`<div class="picker-item" key=${q.id}>
+          <span class="link-ti">${q.intitule.slice(0,60)}${q.intitule.length>60?'…':''}</span>
+          <button class=${'btn'+(livre.questionId===q.id?' pri':'')} style="font-size:10px;padding:4px 9px"
+            onClick=${async()=>{await upd({questionId:livre.questionId===q.id?null:q.id});setQPickerOpen(false);}}>
+            ${livre.questionId===q.id?'✓ Lié':'Lier'}
+          </button>
+        </div>`)}
+      </div>`:''}
+    </div>
+
+    ${caps.length>0?html`<div class="sec">
+      <div class="sec-h"><span class="sec-t">Captures liées</span><span class="sec-c">${caps.length}</span></div>
+      ${caps.map(c=>html`<div class="item-mini" key=${c.id}>
+        <span class="item-ic">${T_ICONS[c.type]||'📝'}</span>
+        <div style="flex:1;min-width:0">
+          <div class="item-ti" style="font-size:12px">${c.contenu.slice(0,70)}${c.contenu.length>70?'…':''}</div>
+          <div class="item-src">${relDate(c.date)}</div>
+        </div>
+      </div>`)}
+    </div>`:''}
+
+    <div class="foot">Zebracorn OS · Bibliothèque · ${fmtDate(now)}</div>
+  </div>`;
+}
+
 /* ── Semaine (backlog 3 couleurs) ─────────────── */
 
 const PRIO_PILLS = [['rouge','🔴','Échéance'],['bleu','🔵','Semaine'],['vert','🟢','Chantier']];
@@ -762,6 +888,9 @@ function Semaine(){
   const [qArchived,setQArchived]   = useState([]);
   const [qShowArch,setQShowArch]   = useState(false);
   const [qCounts,setQCounts]       = useState({});
+  const [livres,setLivres]         = useState([]);
+  const [ficheLivreId,setFicheLivreId] = useState(null);
+  const [newLivre,setNewLivre]     = useState('');
 
   const load = useCallback(async()=>{
     setTaches(await getTaches({fait:false}));
@@ -772,6 +901,7 @@ function Semaine(){
     const counts={};
     for(const c of allCaps) if(c.questionId) counts[c.questionId]=(counts[c.questionId]||0)+1;
     setQCounts(counts);
+    setLivres(await getLivres());
   },[]);
   useEffect(()=>{ load(); },[load]);
 
@@ -790,6 +920,7 @@ function Semaine(){
   async function restoreQ(id){ await restoreQuestion(id); await load(); }
 
   if(ficheId!==null) return html`<${FicheChantier} id=${ficheId} onBack=${()=>{setFicheId(null);load();}}/>`;
+  if(ficheLivreId!==null) return html`<${FicheLivre} id=${ficheLivreId} onBack=${()=>{setFicheLivreId(null);load();}}/>`;
 
   const rouge = sortByEch(taches.filter(t=>t.prio==='rouge'));
   const bleu  = sortByEch(taches.filter(t=>t.prio==='bleu'));
@@ -875,6 +1006,28 @@ function Semaine(){
       </div>`:''}
     </div>
 
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">📚 Bibliothèque</span><span class="sec-c">${livres.length}</span></div>
+      ${livres.length===0?html`<div class="empty-state">aucun livre — ajoute le premier ↓</div>`:''}
+      ${livres.map(l=>html`<div class="livre-card" onClick=${()=>setFicheLivreId(l.id)} key=${l.id}>
+        <div class="ch-top">
+          <span class="ch-ti">${l.titre}</span>
+          <span class="livre-statut" style=${'color:'+(l.statut==='lu'?'var(--ok)':l.statut==='en-cours'?'var(--ac2)':'var(--ink3)')}>
+            ${l.statut==='lu'?'✓ Lu':l.statut==='en-cours'?'📖 En cours':'📚 À lire'}
+          </span>
+        </div>
+        ${l.auteur?html`<div class="ch-prog" style="font-style:italic;color:var(--ink3)">${l.auteur}</div>`:''}
+        ${l.statut==='en-cours'&&l.pages?html`<div class="ch-prog">${l.pagesLues||0}/${l.pages} p. · ${Math.round((l.pagesLues||0)/l.pages*100)} %</div>`:''}
+        ${l.intention?html`<div class="ch-prog" style="font-style:italic">${l.intention.slice(0,55)}${l.intention.length>55?'…':''}</div>`:''}
+      </div>`)}
+      <div class="composer-b" style="margin-top:8px">
+        <input class="taginp" style="flex:1" value=${newLivre} onInput=${e=>setNewLivre(e.target.value)}
+          placeholder="Ajouter un livre…"
+          onKeyDown=${async e=>{if(e.key==='Enter'&&newLivre.trim()){await addLivre({titre:newLivre.trim()});setNewLivre('');await load();}}}/>
+        <button class="save-btn" onClick=${async()=>{if(!newLivre.trim())return;await addLivre({titre:newLivre.trim()});setNewLivre('');await load();}}>+</button>
+      </div>
+    </div>
+
     <div class="foot">Zebracorn OS · Semaine · v0.1</div>
   </div>`;
 }
@@ -885,11 +1038,12 @@ function Reglages(){
   const [cfg,setCfg]=useState(getSyncConfig());
   const [msg,setMsg]=useState('');
   const [busy,setBusy]=useState(false);
-  const [cap,setCap]=useState(getCap());
+  const [cap,setCap]=useState({intention:'',objectifs:'',nonNeg:'',objectifsMois:''});
   const [stats,setStats]=useState(null);
   const [gcalUrl,setGcalUrl]=useState(()=>localStorage.getItem('zc_gcal_url')||'');
+  const [gcalTest,setGcalTest]=useState('');
   const last=lastSync();
-  useEffect(()=>{ getStats().then(setStats); },[]);
+  useEffect(()=>{ getStats().then(setStats); getCap().then(setCap); },[]);
 
   const upd=(k,v)=>setCfg(c=>({...c,[k]:v}));
   function save(){ saveSyncConfig(cfg.url.trim(),cfg.key.trim(),cfg.space.trim()); setMsg('Configuration enregistrée ✓'); }
@@ -904,7 +1058,7 @@ function Reglages(){
     const all=await db.captures.toArray();
     const chans=await db.chantiers.toArray();
     const items=all.filter(c=>c.statut==='traité'||c.notes).sort((a,b)=>a.date<b.date?-1:1);
-    const capData=getCap();
+    const capData=await getCap();
     const date=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
     const moisStr=new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     const moisISO=new Date().toISOString().slice(0,7);
@@ -942,6 +1096,28 @@ function Reglages(){
       if(c.source) md+=`\n*Source : ${c.source}*\n`;
       md+=`\n*${new Date(c.date).toLocaleDateString('fr-FR')}* · statut : ${c.statut}\n\n---\n\n`;
     }
+    // ── Bibliothèque ──────────────────────────────────────────────────────
+    const lvsAll=await db.livres.toArray();
+    if(lvsAll.length>0){
+      const lvs=[...lvsAll].sort((a,b)=>{const o={'en-cours':0,'lu':1,'a-lire':2};return(o[a.statut]??2)-(o[b.statut]??2);});
+      md+=`---\n\n## 📚 Bibliothèque\n\n`;
+      for(const l of lvs){
+        const ico=l.statut==='lu'?'✓':l.statut==='en-cours'?'📖':'📚';
+        md+=`### ${ico} ${l.titre}${l.auteur?' — *'+l.auteur+'*':''}\n`;
+        md+=`> Statut : **${l.statut==='lu'?'Lu':l.statut==='en-cours'?'En cours':'À lire'}**`;
+        if(l.pages) md+=` · ${l.pagesLues||0}/${l.pages} pages (${Math.round((l.pagesLues||0)/l.pages*100)} %)`;
+        md+='\n';
+        if(l.intention) md+=`\n**Intention :** ${l.intention}\n`;
+        if(l.notes) md+=`\n**Notes :** ${l.notes}\n`;
+        const livreCaps=all.filter(c=>c.livreId===l.id&&(c.statut==='traité'||c.notes));
+        if(livreCaps.length){
+          md+=`\n**Captures liées :**\n`;
+          for(const c of livreCaps) md+=`- ${c.contenu.slice(0,100)}${c.notes?' *('+c.notes.slice(0,50)+')*':''}\n`;
+        }
+        md+='\n---\n\n';
+      }
+    }
+
     const fname=`zebracorn-corpus-${new Date().toISOString().slice(0,10)}.md`;
     const blob=new Blob([md],{type:'text/plain'});
     if(navigator.share){
@@ -975,8 +1151,8 @@ function Reglages(){
         <div class="set-label">Objectifs du mois de ${new Date().toLocaleDateString('fr-FR',{month:'long'})} <span style="color:var(--ink3)">(2–3 max)</span></div>
         <textarea class="cmp-inp" rows=3 value=${cap.objectifsMois||''} onInput=${e=>setCap(c=>({...c,objectifsMois:e.target.value}))} placeholder=${"Finir la partie 1 du mémoire\nPostuler chez X\n…"}/>
       </div>
-      <button class="save-btn" style="width:100%;margin-top:4px" onClick=${()=>{saveCap(cap);setMsg('Cap 2026 enregistré ✓');}}>Enregistrer le cap</button>
-      <div class="set-note">Cap annuel + objectifs du mois — visibles dans Maintenant et inclus dans l'export NLM.</div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onClick=${async()=>{await saveCap(cap);setMsg('Cap 2026 enregistré ✓ — syncé avec Supabase');}}>Enregistrer le cap</button>
+      <div class="set-note">Cap annuel + objectifs du mois — visibles dans Maintenant, syncés via Supabase, inclus dans l'export NLM.</div>
     </div>
 
     <div class="sec">
@@ -1024,8 +1200,24 @@ function Reglages(){
         <div class="set-label">URL iCal secrète</div>
         <input class="taginp" style="width:100%;font-size:11px" value=${gcalUrl} onInput=${e=>setGcalUrl(e.target.value)} placeholder="https://calendar.google.com/calendar/ical/…"/>
       </div>
-      <button class="save-btn" style="width:100%;margin-top:4px" onClick=${()=>{localStorage.setItem('zc_gcal_url',gcalUrl.trim());setMsg('Google Calendar configuré ✓');}}>Enregistrer</button>
-      <div class="set-note">Google Calendar → ton agenda → ⚙ Paramètres → « Adresse secrète au format iCal » · Read-only, sans OAuth.</div>
+      <div class="btn-row" style="margin-top:4px">
+        <button class="save-btn" style="flex:2" onClick=${()=>{localStorage.setItem('zc_gcal_url',gcalUrl.trim());setGcalTest('');setMsg('Google Calendar configuré ✓');}}>Enregistrer</button>
+        <button class="btn" style="flex:1" onClick=${async()=>{
+          setGcalTest('⏳ Test…');
+          try{
+            const url=gcalUrl.trim()||localStorage.getItem('zc_gcal_url');
+            if(!url){setGcalTest('⚠ Aucune URL configurée');return;}
+            const r=await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
+            if(!r.ok){setGcalTest(`⚠ Erreur HTTP ${r.status}`);return;}
+            const text=await r.text();
+            const evts=parseIcal(unfoldIcal(text));
+            const today=filterToday(evts);
+            setGcalTest(`✓ ${evts.length} événements total · ${today.length} aujourd'hui${today.length?(' : '+today.map(e=>e.summary).join(', ')):''}`);}
+          catch(e){setGcalTest('⚠ '+e.message);}
+        }}>Tester</button>
+      </div>
+      ${gcalTest?html`<div class="set-note" style="margin-top:6px;color:${gcalTest.startsWith('✓')?'var(--ok)':'var(--ac)'}">${gcalTest}</div>`:''}
+      <div class="set-note">Google Calendar → ton agenda → ⚙ Paramètres → « Adresse secrète au format iCal » · Read-only, sans OAuth. Si un événement ne s'affiche pas, vérifie qu'il est bien dans CE calendrier (l'URL est par calendrier, pas globale).</div>
     </div>
 
     <div class="sec">
@@ -1097,6 +1289,7 @@ if(syncConfigured()&&(lastSync().push||lastSync().pull)){
 await seedOnce();
 await seedOnce_v2();
 await seedQuestionsOnce();
+await seedLivresOnce();
 render(html`<${App}/>`, document.getElementById('root'));
 
 if('serviceWorker' in navigator){

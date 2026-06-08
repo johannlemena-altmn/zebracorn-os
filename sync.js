@@ -6,7 +6,7 @@
 // Le SDK Supabase n'est chargé QUE si la sync est configurée (lazy import) →
 // l'app reste légère par défaut.
 
-const TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap'];
+const TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings'];
 const ROW = 'zebracorn_sync';
 
 let _createClient = null;

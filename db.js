@@ -298,6 +298,16 @@ db.version(4).stores({
   questions: '++id, chantierId, statut',
 });
 
+// v5 — Bibliothèque légère
+db.version(5).stores({
+  livres: '++id, statut',
+});
+
+// v6 — Settings clé/valeur (cap annuel, préférences) — syncable via Supabase
+db.version(6).stores({
+  settings: 'key',
+});
+
 // ── AMWAP (mes victoires du jour) ──────────────────────────────────────────
 
 async function saveAmwap(v1, v2, v3) {
@@ -313,7 +323,7 @@ async function getAmwap(dateStr) {
 
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };
@@ -332,13 +342,25 @@ async function importAll(dump) {
 }
 
 // ── Cap annuel (North Star) ────────────────────────────────────────────────
+// Stocké dans IndexedDB (settings) pour être syncé via Supabase.
+// Migre automatiquement depuis localStorage si nécessaire.
 
-function getCap() {
-  try { return JSON.parse(localStorage.getItem('zebracorn_cap') || 'null') || { intention: '', objectifs: '', nonNeg: '', objectifsMois: '' }; }
-  catch { return { intention: '', objectifs: '', nonNeg: '', objectifsMois: '' }; }
+const CAP_EMPTY = { intention: '', objectifs: '', nonNeg: '', objectifsMois: '' };
+
+async function getCap() {
+  try {
+    const row = await db.settings.get('cap');
+    if (row) return row.value;
+    // Migration depuis localStorage
+    const local = localStorage.getItem('zebracorn_cap');
+    const val = local ? (JSON.parse(local) || CAP_EMPTY) : CAP_EMPTY;
+    await db.settings.put({ key: 'cap', value: val });
+    return val;
+  } catch { return CAP_EMPTY; }
 }
-function saveCap(cap) {
-  localStorage.setItem('zebracorn_cap', JSON.stringify(cap));
+
+async function saveCap(cap) {
+  await db.settings.put({ key: 'cap', value: cap });
 }
 
 async function toggleHorsScope(id, val) {
@@ -385,4 +407,48 @@ async function seedQuestionsOnce() {
   await addQuestion({ intitule: "Qu'est-ce qui fait qu'une ressource devient vraiment utile ?", intention: "Éviter d'accumuler sans comprendre — le filtre entre capter et agir." });
   await addQuestion({ intitule: 'Comment documenter une transformation sans perdre son élan ?', intention: "Garder la trace du chemin sans que l'outil devienne le projet lui-même." });
   localStorage.setItem('zebracorn_seed_q1', 'done');
+}
+
+// ── Bibliothèque légère ────────────────────────────────────────────────────
+
+async function addLivre({ titre, auteur = '', intention = '', pages = null }) {
+  return db.livres.add({
+    titre, auteur, intention, pages, pagesLues: 0, notes: '',
+    questionId: null, statut: 'a-lire', createdAt: new Date().toISOString(),
+  });
+}
+
+async function getLivres() {
+  const all = await db.livres.toArray();
+  const order = { 'en-cours': 0, 'a-lire': 1, 'lu': 2 };
+  return all.sort((a, b) => (order[a.statut] ?? 1) - (order[b.statut] ?? 1));
+}
+
+async function getLivreEnCours() {
+  const livres = await db.livres.where('statut').equals('en-cours').toArray();
+  return livres[0] || null;
+}
+
+async function updateLivre(id, patch) {
+  return db.livres.update(id, patch);
+}
+
+async function deleteLivre(id) {
+  return db.livres.delete(id);
+}
+
+async function getCapturesByLivre(livreId) {
+  const all = await db.captures.filter(c => c.livreId === livreId).toArray();
+  return all.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+async function seedLivresOnce() {
+  if (localStorage.getItem('zebracorn_seed_livres_v1')) return;
+  const existing = await db.livres.count();
+  if (existing > 0) { localStorage.setItem('zebracorn_seed_livres_v1', 'done'); return; }
+  await addLivre({
+    titre: 'Bienvenue en 2055',
+    intention: 'Fil conducteur pour le mémoire M2 — vision systémique de la transition.',
+  });
+  localStorage.setItem('zebracorn_seed_livres_v1', 'done');
 }
