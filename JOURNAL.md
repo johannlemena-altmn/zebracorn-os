@@ -5,6 +5,47 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 19 : Share Target iOS + handler URL entrant
+
+- **Fait** : L'app peut maintenant recevoir du contenu depuis le Share Sheet iOS (et depuis le raccourci Shortcuts).
+  - `manifest.webmanifest` : ajout `share_target` GET avec params `text`/`url`/`title`.
+  - Handler URL au démarrage (App) : lit `?url=` (→ capture `lien` avec titre en source) ou `?text=` (→ capture `note`), bascule sur l'onglet Capture, nettoie l'URL.
+  - Workflow : partager un lien ou un texte depuis n'importe quelle app iOS → "Zebracorn OS" dans le Share Sheet → capture ajoutée instantanément, prête pour ACTOR.
+
+- **Pourquoi** : Le raccourci Shortcuts précédent ouvrait dans Safari en ignorant les params. Le Share Target enregistre la PWA comme destination native dans le Share Sheet iOS — ouvre en standalone (pas Safari) quand la PWA est installée sur l'écran d'accueil.
+
+- **DoD** : Testé en preview — `?url=https://notebooklm.google.com&title=NotebookLM+test` crée capture `🔗 LIEN` avec titre source + bouton `↗ Ouvrir` + bouton `⊙ ACTOR`. `?text=` crée capture note. Basculement onglet Capture OK.
+
+- **Prérequis iOS** : PWA doit être installée (Safari → Partager → "Ajouter à l'écran d'accueil") pour apparaître dans le Share Sheet. Une fois installée, rouvrir depuis l'écran d'accueil pour recharger le nouveau manifest.
+
+- **Prochain** : Tests NotebookLM → ACTOR sur captures réelles. Éventuellement : `share_target` POST pour partager des fichiers (audio NotebookLM).
+
+---
+
+## 2026-06-09 — Incrément 18 : Interface ACTOR · Raccourci ?text=
+
+- **Fait** :
+  - Bouton `⊙ ACTOR` sur chaque item inbox → accordéon 5 sections (A/C/T/O/R). Section T : grille 2×2 F/I/C/V + question socratique pré-remplie. Section O : textarea proéminente (bordure terracotta 2px). Section R : dropdown type d'action + Sauvegarder. Persistance via `actorAnalysis` champ libre Dexie. Indicateur `⊙` terracotta sur les cartes analysées.
+  - Handler `?text=` au démarrage : le raccourci Shortcuts "presse-papiers → `?text=`" ajoute la capture silencieusement et bascule sur l'onglet Capture.
+
+- **Pourquoi** : ACTOR = méta-outil du second cerveau. Différé de la capture, il transforme la note brute en position + action. L'indicateur `⊙` permet de distinguer d'un coup d'œil les captures déjà travaillées.
+
+- **DoD** : Testé en preview — capture `?text=Test raccourci coller ACTOR` ajoutée automatiquement à l'inbox, bouton ACTOR fonctionnel sur tous les items, indicateur `⊙` visible sur carte avec analyse existante.
+
+---
+
+## 2026-06-09 — Incrément 17 : Notes tap-to-expand sur les tâches
+
+- **Fait** : Les tâches dans la vue Maintenant (et Semaine) sont maintenant cliquables sur le titre/numéro. Un tap ouvre un textarea "Note ou checklist..." directement dans la carte, fond transparent, police cohérente avec le design system. Sauvegarde on-blur dans Dexie (champ `notes` arbitraire, sans migration de schéma). Rechargement → notes restituées. Cas d'usage immédiat : tâche "Talents for the Planet" pré-remplie avec le checklist du salon T4TP (matin conférences / après-midi stands IDEX+Ortec+Valobat+Systra / suivi post-salon Entourage+CEC).
+
+- **Pourquoi** : Johann va au salon T4TP aujourd'hui et avait besoin d'accéder à son checklist depuis l'app mobile sans ouvrir un autre document. Pattern le plus sobre : expand in-place, pas de modal ni nouvelle vue.
+
+- **DoD** : Testé navigateur — expand/collapse OK, sauvegarde DB confirmée, persistance après reload vérifiée.
+
+- **Prochain** : Même pattern pour les tâches de la vue Semaine (déjà implémenté côté code, à vérifier en preview). Possibilité future : rendre les `[ ]` de la textarea cliquables comme vraie checklist.
+
+---
+
 ## 2026-06-08 — Incrément 16 : Module Nutrition — onglet Sport
 
 - **Fait** : Nouvel onglet 🥗 Sport avec 3 sous-vues dans un fichier `nutrition.js` autonome.

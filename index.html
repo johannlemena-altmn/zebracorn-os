@@ -1346,8 +1346,12 @@ function App(){
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
   useEffect(()=>{ refresh(); },[refresh]);
   useEffect(()=>{
-    const txt=new URLSearchParams(window.location.search).get('text');
-    if(txt&&txt.trim()){
+    const p=new URLSearchParams(window.location.search);
+    const txt=p.get('text'), url=p.get('url'), title=p.get('title');
+    if(url&&url.trim()){
+      addCapture('lien',url.trim(),title?.trim()||'',{}).then(()=>{ refresh(); setTab('capture'); });
+      history.replaceState(null,'',location.pathname);
+    } else if(txt&&txt.trim()){
       addCapture('note',txt.trim(),'',{}).then(()=>{ refresh(); setTab('capture'); });
       history.replaceState(null,'',location.pathname);
     }
