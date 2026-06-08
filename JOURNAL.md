@@ -5,6 +5,33 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 14 : Auto-pull · Revue hebdo · Capture→Question · Google Calendar
+
+- **Fait** :
+  - **F — Auto-pull silencieux** : au démarrage, si la sync Supabase est configurée ET qu'un sync précédent existe (push ou pull), `pullAll()` est appelé avant le render. Données fraîches sans intervention. Guard anti-perte : si jamais rien n'a été synchonisé avant, pas de pull (évite l'écrasement surprise sur un appareil vierge).
+  - **G — Revue hebdo guidée** : bloc collapsible dans Maintenant, 3 questions (avancée / résistance / intention semaine suivante). S'ouvre automatiquement le vendredi si pas encore close. Sauvegarde localStorage par clé ISO-semaine → persiste entre sessions. Bouton « Clore la semaine ✓ » + possibilité de rouvrir.
+  - **Capture → Question vivante** : section « ❓ Question vivante » dans l'expand inbox. Picker de toutes les questions actives, badge de la question liée, bouton Dissocier. `linkCaptureToQuestion(captureId, qId)` dans `db.js`. Compteur de captures dans Semaine étendu aux captures inbox (pas seulement les traités).
+  - **Google Calendar (iCal proxy)** : `api/ical.js` — Vercel serverless function (~17 lignes) qui proxyfie l'URL iCal secrète de Google Calendar (CORS). Parser iCal minimal inline (`unfoldIcal`, `parseIcal`, `filterToday`, `fmtGcalTime`). Bloc « ◇ Aujourd'hui » dans Maintenant (doré, 6 événements max, temps local). Champ config dans Réglages. **Read-only, sans OAuth, sans re-auth.**
+
+- **Pourquoi** :
+  - Auto-pull = ferme la boucle multi-appareil sans friction (iPhone + Mac).
+  - Revue hebdo = le rituel vendredi était un angle mort : sans structure, il n'arrive pas.
+  - Capture→Question = manquait pour fermer la boucle PKM (capter → relier à une réflexion vivante).
+  - Google Calendar = voir le planning du jour depuis Maintenant évite le switch d'app le matin.
+  - Choix iCal vs OAuth : l'URL secrète Google est stable, longue durée, aucun token à renouveler. La Vercel function proxy résout le CORS en ~17 lignes sans backend. Option OAuth PKCE (access_token 1h) reste une piste si Johann veut écrire des événements depuis l'app.
+
+- **DoD** : preview validé (zéro erreur console), q-link-section présente et fonctionnelle, revue box 3 questions 3 textareas, gcal section dans Réglages avec champ iCal. Push `270951d` → Vercel auto-deploy.
+
+- **Setup Johann pour Google Calendar** :
+  1. Google Calendar (web) → ⚙ Paramètres → ton agenda → descendre jusqu'à « Adresse secrète au format iCal »
+  2. Copier l'URL (`https://calendar.google.com/calendar/ical/…`)
+  3. Coller dans Réglages Zebracorn OS → « Google Calendar » → Enregistrer
+  4. Recharger Maintenant → bloc « ◇ Aujourd'hui » apparaît si des événements du jour existent
+
+- **Prochain** : H (lier tâche → objectif annuel) ou I (Le Filtre IA) — voir roadmap ci-dessous.
+
+---
+
 ## 2026-06-08 — Incrément 11 : Cap annuel North Star + hors-scope journal
 
 - **Fait** :
@@ -337,25 +364,58 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
-## Backlog / horizons (source : notes du 06/06 + scope)
+## Roadmap — état au 2026-06-08 (post-incrément 14)
 
-Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (suivi multi-jours).
+### État de l'app
 
-**Incréments produit à venir**
-1. ✅ Slice verticale (Maintenant + Capture persistée).
-2. ✅ Onglet « La semaine » (3 couleurs, CRUD) + Maintenant pioche le backlog + seed.
-3. ✅ Icônes PWA + sync cloud Supabase + export/import JSON.
-4. ✅ Fiche-chantier : ouvrir un 🟢 → cocher ses étapes + éditer la prochaine étape.
-5. ✅ Lier captures ↔ chantiers : chips optionnelles au moment de la capture + section sur la fiche.
-6. Échéances datées sur 🔴/🔵 + tri + **nettoyage dead code** (`taskChecks`, helpers `getTaskCheck`/`toggleTaskCheck` inutilisés). [petit-moyen]
-7. **Auto-sync** (pull-on-open + push-on-hide, avec garde anti-perte) — une fois la sync manuelle validée. [moyen]
-8. Traitement ACTOR sur une capture + « Le Filtre » (résumé IA, clé API). [gros, cœur jugement]
-9. Google Calendar (events du jour + prép auto). [gros, en dernier]
-10. Moteur de variation anti-monotonie (rotation des angles). [moyen]
-11. Icônes : remplacer le carré terracotta plat par un vrai logo (Z / zèbre). [petit]
+| Onglet | Fonctionnalités |
+|--------|----------------|
+| **Maintenant** | Rail captif · intention · tracker 7j · 3 tâches · routines+streak · AMWAP · Cap 2026 + objectifs du mois · **Agenda du jour (Google Calendar)** · **Revue hebdo guidée (vendredi)** |
+| **Capturer** | Note/lien/PDF/fichier · horsScope · revue hors-scope mensuelle · liens entre captures · annotation ACTOR · **Rattacher à une question vivante** |
+| **Semaine** | Backlog 🔴🔵🟢 + échéances · fiche-chantier (étapes + progression) · ❓ Questions vivantes (archiver/rouvrir) |
+| **Réglages** | Cap 2026 · **Google Calendar (iCal URL)** · sync Supabase · export corpus .md · stats+badges · backup JSON |
 
-**Objectifs réels à saisir dans l'app (incrément 2)** : répondre à Léo, répondre
-à Laura, réviser finance (test), Talents for the Planet (chantier), liste de
-courses, organiser sport+cooking, ressources prisme, livres low-tech, prix
-hédonique (chantier), projet médiation scientifique / Bobroff (chantier),
-réactiver vieux dossiers → format de contenu (chantier).
+### Sync
+- Push-on-hide : ✅ (depuis incrément 4+5)
+- **Pull-on-open** : ✅ (incrément 14 — guard : ne pull que si sync déjà établie)
+
+---
+
+### Backlog restant (priorité décroissante)
+
+#### H — Lier une tâche à un objectif annuel [moyen]
+- **Quoi** : dans Semaine, chaque tâche 🔴/🔵 peut être rattachée à un grand objectif du Cap 2026.
+- **Pourquoi** : fermer la boucle planif→cap. Voir d'un coup d'œil si la semaine sert le cap ou dérive.
+- **Effort** : moyen — ui picker similaire à capture→question, pas de nouveau modèle DB (objectif = texte libre du Cap).
+- **Quand** : priorité si Johann veut renforcer la discipline stratégique hebdomadaire.
+
+#### I — Le Filtre IA [complexe, ≥ 1 session entière]
+- **Quoi** : classer automatiquement une capture (pertinence cap, type d'action suggérée, question associée).
+- **Pourquoi** : réduire la friction ACTOR sur les captures brutes → jugement assisté, pas automatisé.
+- **Effort** : gros — nécessite API Claude (clé Anthropic), Vercel function pour ne pas exposer la clé, prompt engineering, gestion erreurs/timeout. Stack : `api/filter.js` (Vercel) → `@anthropic-ai/sdk`.
+- **Décision** : à faire quand l'inbox déborde (~20+ captures) et que le tri manuel devient une corvée.
+- **Prérequis** : clé API Anthropic configurée dans les env vars Vercel.
+
+#### J — Écrire dans Google Calendar depuis Maintenant [moyen-complexe]
+- **Quoi** : créer un événement ou un rappel depuis l'app (ex : poser l'intention du lendemain comme bloc calendrier).
+- **Pourquoi** : actuellement read-only. Pour Johann : externaliser la planif depuis l'app sans ouvrir Google Calendar.
+- **Effort** : moyen-complexe — nécessite OAuth PKCE (client_id Google, domaine autorisé) + token management. La Vercel function pour refresh token est recommandée (client_secret côté serveur).
+- **Décision** : pas prioritaire tant que le read-only suffit au besoin du matin.
+
+#### K — Export corpus enrichi (questions vivantes incluses) [petit]
+- **Quoi** : l'export `.md` inclut déjà cap + hors-scope. Ajouter les questions vivantes + les captures rattachées à chaque question, comme sections dédiées.
+- **Pourquoi** : NotebookLM bénéficierait d'un corpus qui trace explicitement la connexion capture → question → réflexion.
+- **Effort** : petit (~30 lignes dans `doCorpus()`).
+
+---
+
+### Matrice de décision pour la semaine
+
+| Feature | Valeur | Effort | Quand faire |
+|---------|--------|--------|-------------|
+| H (tâche→objectif) | ★★★ | Moyen | Prochaine session si cap défini |
+| I (Filtre IA) | ★★★★ | Gros | Quand inbox déborde |
+| J (écrire Calendar) | ★★ | Moyen-complexe | Plus tard |
+| K (export questions) | ★★ | Petit | Peut être fait en 20 min |
+
+**Recommandation immédiate** : K d'abord (20 min, valeur directe pour NLM), puis H si Johann veut renforcer la discipline cap cette semaine.
