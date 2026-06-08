@@ -344,3 +344,17 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .nutri-stock-qte{font-family:var(--fm);font-size:8.5px;color:var(--ink3);flex:1;letter-spacing:.02em;}
 .nutri-stock-add{background:none;border:none;font-size:15px;cursor:pointer;padding:2px 4px;border-radius:6px;line-height:1;transition:.15s;}
 .nutri-stock-add:active{background:var(--bg3);}
+
+/* Score chips (Nutri-Score / Éco-Score) */
+.nutri-score-chip{display:inline-flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:8px;font-weight:700;color:#fff;border-radius:4px;padding:2px 5px;letter-spacing:.04em;min-width:16px;}
+/* Aliment picker */
+.nutri-picker-wrap{position:relative;margin-bottom:8px;}
+.nutri-picker-list{position:absolute;left:0;right:0;top:calc(100% + 3px);background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);z-index:20;max-height:230px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.14);}
+.nutri-picker-item{display:flex;align-items:center;gap:7px;padding:9px 11px;cursor:pointer;border-bottom:1px solid var(--border);}
+.nutri-picker-item:last-child{border-bottom:none;}
+.nutri-picker-item:active{background:var(--bg2);}
+.nutri-picker-emoji{font-size:17px;flex-shrink:0;}
+.nutri-picker-nom{flex:1;font-size:12px;line-height:1.3;color:var(--ink);}
+/* Inline edit */
+.nutri-edit-inp{font-family:var(--fm);font-size:11px;border:1.5px solid var(--ac2);border-radius:5px;padding:3px 6px;background:var(--bg);color:var(--ink);text-align:right;outline:none;}
+.nutri-edit-hint{color:var(--ink3);opacity:.55;font-size:9px;}

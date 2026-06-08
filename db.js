@@ -485,6 +485,10 @@ async function clearCoursesFaites() {
   await Promise.all(faites.map(c => db.courses.delete(c.id)));
 }
 
+async function updateCourse(id, patch) {
+  return db.courses.update(id, patch);
+}
+
 function getMacrosObjectif() {
   try { return JSON.parse(localStorage.getItem('zc_macros_obj') || 'null') || { kcal: 2200, prot: 150, gluc: 250, lip: 70 }; }
   catch { return { kcal: 2200, prot: 150, gluc: 250, lip: 70 }; }

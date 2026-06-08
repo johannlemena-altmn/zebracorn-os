@@ -3,56 +3,61 @@ import { useState, useEffect, useCallback } from 'https://esm.sh/preact@10/hooks
 import htm from 'https://esm.sh/htm@3';
 const html = htm.bind(h);
 
-/* ── Base alimentaire locale (~30 aliments, flexitarien) ── */
+/*
+  Scores par aliment :
+  nutri  : Nutri-Score A-E (Hercberg et al. 2017, algorithme officiel simplifié)
+  eco    : Éco-Score A-E (Agribalyse ADEME + Open Food Facts, Poore & Nemecek 2018)
+  nova   : 1=non transformé, 2=ingrédient culinaire, 3=transformé, 4=ultra-transformé
+  ghg    : g CO2e / portion (source Agribalyse 3.1)
+*/
 export const ALIMENTS = [
   // Protéines animales
-  { nom: 'Poulet émincé (100g)', kcal: 165, prot: 31, gluc: 0,  lip: 3.6, cat: 'proteines', prixUnit: 0.9,  emoji: '🍗' },
-  { nom: 'Œufs (x2)',            kcal: 144, prot: 12, gluc: 1,  lip: 10,  cat: 'proteines', prixUnit: 0.4,  emoji: '🥚' },
-  { nom: 'Thon boîte (140g)',    kcal: 132, prot: 29, gluc: 0,  lip: 1,   cat: 'proteines', prixUnit: 1.2,  emoji: '🐟' },
-  { nom: 'Yaourt grec (200g)',   kcal: 190, prot: 17, gluc: 6,  lip: 10,  cat: 'proteines', prixUnit: 0.7,  emoji: '🥛' },
-  { nom: 'Fromage blanc (200g)', kcal: 130, prot: 14, gluc: 6,  lip: 4,   cat: 'proteines', prixUnit: 0.5,  emoji: '🧀' },
-  { nom: 'Saumon (130g)',        kcal: 251, prot: 25, gluc: 0,  lip: 16,  cat: 'proteines', prixUnit: 2.5,  emoji: '🐟' },
+  { nom: 'Poulet émincé (100g)', kcal: 165, prot: 31, gluc: 0,  lip: 3.6, cat: 'proteines', prixUnit: 0.9,  emoji: '🍗', nutri:'B', eco:'C', nova:1, ghg:450 },
+  { nom: 'Œufs (x2)',            kcal: 144, prot: 12, gluc: 1,  lip: 10,  cat: 'proteines', prixUnit: 0.4,  emoji: '🥚', nutri:'B', eco:'C', nova:1, ghg:400 },
+  { nom: 'Thon boîte (140g)',    kcal: 132, prot: 29, gluc: 0,  lip: 1,   cat: 'proteines', prixUnit: 1.2,  emoji: '🐟', nutri:'A', eco:'C', nova:3, ghg:600 },
+  { nom: 'Yaourt grec (200g)',   kcal: 190, prot: 17, gluc: 6,  lip: 10,  cat: 'proteines', prixUnit: 0.7,  emoji: '🥛', nutri:'B', eco:'C', nova:3, ghg:650 },
+  { nom: 'Fromage blanc (200g)', kcal: 130, prot: 14, gluc: 6,  lip: 4,   cat: 'proteines', prixUnit: 0.5,  emoji: '🧀', nutri:'B', eco:'C', nova:3, ghg:400 },
+  { nom: 'Saumon (130g)',        kcal: 251, prot: 25, gluc: 0,  lip: 16,  cat: 'proteines', prixUnit: 2.5,  emoji: '🐟', nutri:'A', eco:'B', nova:1, ghg:500 },
   // Protéines végétales
-  { nom: 'Lentilles cuites (200g)', kcal: 230, prot: 18, gluc: 40, lip: 0.8, cat: 'proteines', prixUnit: 0.3, emoji: '🫘' },
-  { nom: 'Tofu ferme (150g)',    kcal: 120, prot: 13, gluc: 3,  lip: 7,   cat: 'proteines', prixUnit: 0.8,  emoji: '🧱' },
-  { nom: 'Haricots rouges (200g)', kcal: 210, prot: 14, gluc: 38, lip: 0.5, cat: 'proteines', prixUnit: 0.3, emoji: '🫘' },
-  { nom: 'Pois chiches (200g)', kcal: 240, prot: 15, gluc: 40, lip: 4,   cat: 'proteines', prixUnit: 0.4,  emoji: '🫘' },
+  { nom: 'Lentilles cuites (200g)', kcal: 230, prot: 18, gluc: 40, lip: 0.8, cat: 'proteines', prixUnit: 0.3, emoji: '🫘', nutri:'A', eco:'A', nova:1, ghg:80 },
+  { nom: 'Tofu ferme (150g)',    kcal: 120, prot: 13, gluc: 3,  lip: 7,   cat: 'proteines', prixUnit: 0.8,  emoji: '🧱', nutri:'B', eco:'A', nova:3, ghg:200 },
+  { nom: 'Haricots rouges (200g)', kcal: 210, prot: 14, gluc: 38, lip: 0.5, cat: 'proteines', prixUnit: 0.3, emoji: '🫘', nutri:'A', eco:'A', nova:3, ghg:150 },
+  { nom: 'Pois chiches (200g)',  kcal: 240, prot: 15, gluc: 40, lip: 4,   cat: 'proteines', prixUnit: 0.4,  emoji: '🫘', nutri:'A', eco:'A', nova:3, ghg:100 },
   // Féculents
-  { nom: 'Pâtes (80g sec)',      kcal: 287, prot: 10, gluc: 58, lip: 1.4, cat: 'feculent', prixUnit: 0.15,  emoji: '🍝' },
-  { nom: 'Riz (80g sec)',        kcal: 288, prot: 6,  gluc: 64, lip: 0.6, cat: 'feculent', prixUnit: 0.12,  emoji: '🍚' },
-  { nom: 'Flocons d\'avoine (80g)', kcal: 302, prot: 11, gluc: 55, lip: 5, cat: 'feculent', prixUnit: 0.2, emoji: '🥣' },
-  { nom: 'Pain complet (100g)',  kcal: 247, prot: 9,  gluc: 45, lip: 3,   cat: 'feculent', prixUnit: 0.25,  emoji: '🍞' },
-  { nom: 'Pommes de terre (200g)', kcal: 154, prot: 4, gluc: 34, lip: 0.2, cat: 'feculent', prixUnit: 0.2, emoji: '🥔' },
-  { nom: 'Quinoa (80g sec)',     kcal: 288, prot: 11, gluc: 53, lip: 4,   cat: 'feculent', prixUnit: 0.6,   emoji: '🌾' },
+  { nom: 'Pâtes (80g sec)',      kcal: 287, prot: 10, gluc: 58, lip: 1.4, cat: 'feculent',  prixUnit: 0.15, emoji: '🍝', nutri:'B', eco:'B', nova:3, ghg:180 },
+  { nom: 'Riz (80g sec)',        kcal: 288, prot: 6,  gluc: 64, lip: 0.6, cat: 'feculent',  prixUnit: 0.12, emoji: '🍚', nutri:'C', eco:'B', nova:1, ghg:280 },
+  { nom: 'Flocons d\'avoine (80g)', kcal: 302, prot: 11, gluc: 55, lip: 5, cat: 'feculent', prixUnit: 0.2,  emoji: '🥣', nutri:'B', eco:'A', nova:1, ghg:100 },
+  { nom: 'Pain au levain (100g)',kcal: 247, prot: 9,  gluc: 45, lip: 3,   cat: 'feculent',  prixUnit: 0.3,  emoji: '🍞', nutri:'B', eco:'B', nova:3, ghg:130 },
+  { nom: 'Pommes de terre (200g)', kcal: 154, prot: 4, gluc: 34, lip: 0.2, cat: 'feculent', prixUnit: 0.2,  emoji: '🥔', nutri:'B', eco:'A', nova:1, ghg:80  },
+  { nom: 'Quinoa (80g sec)',     kcal: 288, prot: 11, gluc: 53, lip: 4,   cat: 'feculent',  prixUnit: 0.6,  emoji: '🌾', nutri:'A', eco:'B', nova:1, ghg:300 },
+  { nom: 'Patate douce (200g)', kcal: 172, prot: 3.2,gluc: 40, lip: 0.2, cat: 'feculent',  prixUnit: 0.6,  emoji: '🍠', nutri:'A', eco:'A', nova:1, ghg:80  },
   // Légumes
-  { nom: 'Épinards (150g)',      kcal: 35,  prot: 4,  gluc: 1,  lip: 0.5, cat: 'legumes', prixUnit: 0.5,   emoji: '🥬' },
-  { nom: 'Courgettes (200g)',    kcal: 34,  prot: 2.5,gluc: 4,  lip: 0.3, cat: 'legumes', prixUnit: 0.4,   emoji: '🥒' },
-  { nom: 'Carottes (150g)',      kcal: 62,  prot: 1.5,gluc: 13, lip: 0.3, cat: 'legumes', prixUnit: 0.2,   emoji: '🥕' },
-  { nom: 'Champignons (150g)',   kcal: 33,  prot: 4.5,gluc: 3,  lip: 0.3, cat: 'legumes', prixUnit: 0.6,   emoji: '🍄' },
-  { nom: 'Brocoli (200g)',       kcal: 68,  prot: 6,  gluc: 8,  lip: 0.6, cat: 'legumes', prixUnit: 0.5,   emoji: '🥦' },
-  { nom: 'Tomates (200g)',       kcal: 36,  prot: 2,  gluc: 6,  lip: 0.4, cat: 'legumes', prixUnit: 0.4,   emoji: '🍅' },
+  { nom: 'Épinards (150g)',      kcal: 35,  prot: 4,  gluc: 1,  lip: 0.5, cat: 'legumes',   prixUnit: 0.5,  emoji: '🥬', nutri:'A', eco:'A', nova:1, ghg:90  },
+  { nom: 'Courgettes (200g)',    kcal: 34,  prot: 2.5,gluc: 4,  lip: 0.3, cat: 'legumes',   prixUnit: 0.4,  emoji: '🥒', nutri:'A', eco:'A', nova:1, ghg:70  },
+  { nom: 'Carottes (150g)',      kcal: 62,  prot: 1.5,gluc: 13, lip: 0.3, cat: 'legumes',   prixUnit: 0.2,  emoji: '🥕', nutri:'A', eco:'A', nova:1, ghg:60  },
+  { nom: 'Champignons (150g)',   kcal: 33,  prot: 4.5,gluc: 3,  lip: 0.3, cat: 'legumes',   prixUnit: 0.6,  emoji: '🍄', nutri:'A', eco:'A', nova:1, ghg:90  },
+  { nom: 'Brocoli (200g)',       kcal: 68,  prot: 6,  gluc: 8,  lip: 0.6, cat: 'legumes',   prixUnit: 0.5,  emoji: '🥦', nutri:'A', eco:'A', nova:1, ghg:100 },
+  { nom: 'Tomates (200g)',       kcal: 36,  prot: 2,  gluc: 6,  lip: 0.4, cat: 'legumes',   prixUnit: 0.4,  emoji: '🍅', nutri:'A', eco:'A', nova:1, ghg:100 },
   // Fruits
-  { nom: 'Banane',               kcal: 107, prot: 1.3,gluc: 27, lip: 0.3, cat: 'fruits',  prixUnit: 0.25,  emoji: '🍌' },
-  { nom: 'Pomme',                kcal: 78,  prot: 0.4,gluc: 20, lip: 0.2, cat: 'fruits',  prixUnit: 0.3,   emoji: '🍎' },
-  { nom: 'Orange',               kcal: 84,  prot: 1.7,gluc: 19, lip: 0.2, cat: 'fruits',  prixUnit: 0.4,   emoji: '🍊' },
-  // Autres
-  { nom: 'Huile d\'olive (1 CS)',kcal: 119, prot: 0,  gluc: 0,  lip: 14,  cat: 'autres',  prixUnit: 0.15,  emoji: '🫒' },
-  { nom: 'Lait (250ml)',         kcal: 115, prot: 8,  gluc: 12, lip: 5,   cat: 'autres',  prixUnit: 0.3,   emoji: '🥛' },
-  { nom: 'Noix (30g)',           kcal: 196, prot: 4.5,gluc: 4,  lip: 19,  cat: 'autres',  prixUnit: 0.5,   emoji: '🥜' },
-  { nom: 'Chocolat noir (30g)',  kcal: 174, prot: 2.5,gluc: 13, lip: 13,  cat: 'autres',  prixUnit: 0.4,   emoji: '🍫' },
-  { nom: 'Parmesan (30g)',       kcal: 117, prot: 10, gluc: 0,  lip: 8,   cat: 'autres',  prixUnit: 0.6,   emoji: '🧀' },
-  // Aliments doux pour l'intestin
-  { nom: 'Lentilles corail (150g cuit)', kcal: 170, prot: 13, gluc: 30, lip: 0.5, cat: 'proteines', prixUnit: 0.25, emoji: '🫘' },
-  { nom: 'Kéfir (200ml)',        kcal: 92,  prot: 6,  gluc: 10, lip: 3,   cat: 'proteines', prixUnit: 0.6,  emoji: '🥛' },
-  { nom: 'Graines de lin (1 CS)',kcal: 55,  prot: 1.9,gluc: 3,  lip: 4.3, cat: 'autres',  prixUnit: 0.2,   emoji: '🌱' },
-  { nom: 'Gingembre frais',      kcal: 10,  prot: 0.2,gluc: 2,  lip: 0.1, cat: 'autres',  prixUnit: 0.3,   emoji: '🫚' },
-  { nom: 'Patate douce (200g)',  kcal: 172, prot: 3.2,gluc: 40, lip: 0.2, cat: 'feculent', prixUnit: 0.6,  emoji: '🍠' },
-  // Alternatives protéinées végétales
-  { nom: 'Soja texturé PST (100g réhyd.)', kcal: 145, prot: 26, gluc: 9, lip: 1.2, cat: 'proteines', prixUnit: 0.4, emoji: '🌿' },
-  { nom: 'Tempeh (150g)',        kcal: 195, prot: 20, gluc: 8,  lip: 10,  cat: 'proteines', prixUnit: 1.5,  emoji: '🫘' },
-  { nom: 'Sardines boîte (100g)',kcal: 208, prot: 25, gluc: 0,  lip: 12,  cat: 'proteines', prixUnit: 0.9,  emoji: '🐟' },
-  { nom: 'Spiruline (1 CS = 5g)',kcal: 18,  prot: 3.5,gluc: 1,  lip: 0.4, cat: 'autres',  prixUnit: 0.3,   emoji: '💚' },
-  { nom: 'Graines de courge (30g)',kcal: 163,prot: 8.5,gluc: 5, lip: 13,  cat: 'autres',  prixUnit: 0.4,   emoji: '🥜' },
+  { nom: 'Banane',               kcal: 107, prot: 1.3,gluc: 27, lip: 0.3, cat: 'fruits',    prixUnit: 0.25, emoji: '🍌', nutri:'B', eco:'B', nova:1, ghg:350 },
+  { nom: 'Pomme',                kcal: 78,  prot: 0.4,gluc: 20, lip: 0.2, cat: 'fruits',    prixUnit: 0.3,  emoji: '🍎', nutri:'A', eco:'A', nova:1, ghg:120 },
+  { nom: 'Orange',               kcal: 84,  prot: 1.7,gluc: 19, lip: 0.2, cat: 'fruits',    prixUnit: 0.4,  emoji: '🍊', nutri:'A', eco:'B', nova:1, ghg:200 },
+  // Autres / condiments
+  { nom: 'Huile d\'olive (1 CS)',kcal: 119, prot: 0,  gluc: 0,  lip: 14,  cat: 'autres',    prixUnit: 0.15, emoji: '🫒', nutri:'C', eco:'B', nova:2, ghg:500 },
+  { nom: 'Noix (30g)',           kcal: 196, prot: 4.5,gluc: 4,  lip: 19,  cat: 'autres',    prixUnit: 0.5,  emoji: '🥜', nutri:'B', eco:'B', nova:1, ghg:300 },
+  { nom: 'Chocolat noir (30g)',  kcal: 174, prot: 2.5,gluc: 13, lip: 13,  cat: 'autres',    prixUnit: 0.4,  emoji: '🍫', nutri:'C', eco:'D', nova:3, ghg:2200},
+  { nom: 'Parmesan (30g)',       kcal: 117, prot: 10, gluc: 0,  lip: 8,   cat: 'autres',    prixUnit: 0.6,  emoji: '🧀', nutri:'C', eco:'D', nova:3, ghg:1400},
+  // Gut-friendly
+  { nom: 'Lentilles corail (150g cuit)', kcal: 170, prot: 13, gluc: 30, lip: 0.5, cat: 'proteines', prixUnit: 0.25, emoji: '🫘', nutri:'A', eco:'A', nova:1, ghg:90  },
+  { nom: 'Kéfir (200ml)',        kcal: 92,  prot: 6,  gluc: 10, lip: 3,   cat: 'proteines', prixUnit: 0.6,  emoji: '🥛', nutri:'A', eco:'C', nova:3, ghg:600 },
+  { nom: 'Graines de lin (1 CS)',kcal: 55,  prot: 1.9,gluc: 3,  lip: 4.3, cat: 'autres',    prixUnit: 0.2,  emoji: '🌱', nutri:'A', eco:'A', nova:1, ghg:150 },
+  { nom: 'Gingembre frais',      kcal: 10,  prot: 0.2,gluc: 2,  lip: 0.1, cat: 'autres',    prixUnit: 0.3,  emoji: '🫚', nutri:'A', eco:'A', nova:1, ghg:80  },
+  // Protéines végétales alternatives
+  { nom: 'Soja texturé PST (100g réhyd.)', kcal: 145, prot: 26, gluc: 9, lip: 1.2, cat: 'proteines', prixUnit: 0.4, emoji: '🌿', nutri:'A', eco:'A', nova:3, ghg:200 },
+  { nom: 'Tempeh (150g)',        kcal: 195, prot: 20, gluc: 8,  lip: 10,  cat: 'proteines', prixUnit: 1.5,  emoji: '🫘', nutri:'A', eco:'A', nova:3, ghg:250 },
+  { nom: 'Sardines boîte (100g)',kcal: 208, prot: 25, gluc: 0,  lip: 12,  cat: 'proteines', prixUnit: 0.9,  emoji: '🐟', nutri:'A', eco:'B', nova:3, ghg:300 },
+  { nom: 'Spiruline (1 CS = 5g)',kcal: 18,  prot: 3.5,gluc: 1,  lip: 0.4, cat: 'autres',    prixUnit: 0.3,  emoji: '💚', nutri:'A', eco:'A', nova:3, ghg:100 },
+  { nom: 'Graines de courge (30g)',kcal: 163,prot: 8.5,gluc: 5, lip: 13,  cat: 'autres',    prixUnit: 0.4,  emoji: '🥜', nutri:'A', eco:'A', nova:1, ghg:200 },
 ];
 
 /* ── Recettes suggestions ce soir ── */
@@ -200,6 +205,13 @@ function fmtJour(dateStr) {
   return `${DAYS_FR[d.getDay()]} ${d.getDate()}`;
 }
 
+/* ── ScoreChip ─────────────────────────────────────────────────────────── */
+function ScoreChip({ score, type }) {
+  if (!score) return null;
+  const bg = { A:'#3f7d5a', B:'#7ab648', C:'#e8a020', D:'#e07020', E:'#c2552f' };
+  return html`<span class="nutri-score-chip" style=${'background:' + (bg[score]||'#999')} title=${type}>${score}</span>`;
+}
+
 /* ── CoursesView ─────────────────────────────────────────────────────────── */
 function CoursesView() {
   const [items, setItems] = useState([]);
@@ -211,8 +223,34 @@ function CoursesView() {
   const [showRecettes, setShowRecettes] = useState(true);
   const [recetteOpen, setRecetteOpen] = useState(null);
   const [stockEtat, setStockEtat] = useState(getStockEtat);
+  const [editCell, setEditCell] = useState(null);
+  const [pickerQ, setPickerQ] = useState('');
+
+  const pickerResults = pickerQ.length >= 2
+    ? ALIMENTS.filter(a => a.nom.toLowerCase().includes(pickerQ.toLowerCase())).slice(0, 6)
+    : [];
 
   const load = useCallback(async () => { setItems(await getCourses()); }, []);
+
+  function selectAliment(a) {
+    setNewNom(a.nom); setNewPrix(String(a.prixUnit)); setNewCat(a.cat);
+    setPickerQ('');
+  }
+
+  function startEdit(id, field, val) {
+    setEditCell({ id, field, val: String(val || '') });
+  }
+
+  async function commitEdit(cell) {
+    const c = cell || editCell;
+    if (!c) return;
+    const patch = c.field === 'prix' ? { prix: parseFloat(c.val) || 0 }
+                : c.field === 'qte'  ? { qte: c.val }
+                : { nom: c.val.trim() };
+    setEditCell(null);
+    await updateCourse(c.id, patch);
+    setItems(await getCourses());
+  }
 
   function toggleStockItem(nom) {
     const e = { ...stockEtat, [nom]: !stockEtat[nom] };
@@ -280,9 +318,22 @@ function CoursesView() {
     </div>
 
     ${showAdd ? html`<div class="nutri-add-form">
+      <div class="nutri-picker-wrap">
+        <input class="taginp" style="width:100%" placeholder="🔍 Chercher un aliment (PST, sardines…)"
+          value=${pickerQ} onInput=${e => setPickerQ(e.target.value)} autoFocus/>
+        ${pickerResults.length > 0 ? html`<div class="nutri-picker-list">
+          ${pickerResults.map((a, i) => html`<div key=${i} class="nutri-picker-item"
+            onMouseDown=${() => selectAliment(a)}>
+            <span class="nutri-picker-emoji">${a.emoji}</span>
+            <span class="nutri-picker-nom">${a.nom}</span>
+            <${ScoreChip} score=${a.nutri} type="Nutri-Score"/>
+            <${ScoreChip} score=${a.eco} type="Éco-Score"/>
+          </div>`)}
+        </div>` : ''}
+      </div>
       <input class="taginp" style="width:100%;margin-bottom:7px" placeholder="Nom de l'article…"
         value=${newNom} onInput=${e => setNewNom(e.target.value)}
-        onKeyDown=${e => e.key === 'Enter' && ajouter()} autoFocus/>
+        onKeyDown=${e => e.key === 'Enter' && ajouter()}/>
       <div style="display:flex;gap:6px;margin-bottom:7px">
         <input class="taginp" style="flex:1" placeholder="Qté (ex: 500g, x3)" value=${newQte} onInput=${e => setNewQte(e.target.value)}/>
         <input class="taginp" style="width:80px" placeholder="Prix €" type="number" step="0.1" min="0"
@@ -304,17 +355,41 @@ function CoursesView() {
       <div class="nutri-cat-hdr">${g.meta.emoji} ${g.meta.label}
         <span class="nutri-cat-count">${g.items.filter(i => !i.fait).length}/${g.items.length}</span>
       </div>
-      ${g.items.map(item => html`<div key=${item.id} class=${'nutri-course-item' + (item.fait ? ' done' : '')}>
-        <div class="nutri-course-check" onClick=${() => toggle(item.id, !item.fait)}>
-          ${item.fait ? html`<span class="nutri-check-ic done">✓</span>` : html`<span class="nutri-check-ic"/>` }
-        </div>
-        <div class="nutri-course-info" onClick=${() => toggle(item.id, !item.fait)}>
-          <span class="nutri-course-nom">${item.nom}</span>
-          ${item.qte ? html`<span class="nutri-course-qte">${item.qte}</span>` : ''}
-        </div>
-        <span class="nutri-course-prix">${item.prix > 0 ? item.prix.toFixed(2) + ' €' : ''}</span>
-        <button class="del-btn" onClick=${() => del(item.id)}>×</button>
-      </div>`)}
+      ${g.items.map(item => {
+        const eprix = editCell?.id === item.id && editCell.field === 'prix';
+        const eqte  = editCell?.id === item.id && editCell.field === 'qte';
+        return html`<div key=${item.id} class=${'nutri-course-item' + (item.fait ? ' done' : '')}>
+          <div class="nutri-course-check" onClick=${() => toggle(item.id, !item.fait)}>
+            ${item.fait ? html`<span class="nutri-check-ic done">✓</span>` : html`<span class="nutri-check-ic"/>`}
+          </div>
+          <div class="nutri-course-info" onClick=${() => !editCell && toggle(item.id, !item.fait)}>
+            <span class="nutri-course-nom">${item.nom}</span>
+            ${eqte
+              ? html`<input class="nutri-edit-inp" style="width:90px;font-size:10px"
+                  value=${editCell.val}
+                  onInput=${e => setEditCell(p => ({ ...p, val: e.target.value }))}
+                  onBlur=${() => commitEdit(editCell)}
+                  onKeyDown=${e => { if (e.key==='Enter') commitEdit(editCell); if (e.key==='Escape') setEditCell(null); }}
+                  onClick=${e => e.stopPropagation()} autoFocus/>`
+              : item.qte ? html`<span class="nutri-course-qte"
+                  onClick=${e => { e.stopPropagation(); startEdit(item.id, 'qte', item.qte); }}>
+                  ${item.qte} <span class="nutri-edit-hint">✎</span>
+                </span>` : ''}
+          </div>
+          ${eprix
+            ? html`<input class="nutri-edit-inp" type="number" step="0.1" min="0"
+                value=${editCell.val}
+                onInput=${e => setEditCell(p => ({ ...p, val: e.target.value }))}
+                onBlur=${() => commitEdit(editCell)}
+                onKeyDown=${e => { if (e.key==='Enter') commitEdit(editCell); if (e.key==='Escape') setEditCell(null); }}
+                autoFocus/>`
+            : html`<span class="nutri-course-prix" style="cursor:pointer"
+                onClick=${() => startEdit(item.id, 'prix', item.prix)}>
+                ${item.prix > 0 ? item.prix.toFixed(2) + ' €' : html`<span class="nutri-edit-hint">+ €</span>`}
+              </span>`}
+          <button class="del-btn" onClick=${() => del(item.id)}>×</button>
+        </div>`;
+      })}
     </div>`)}
 
     <div class="nutri-stock-box">
