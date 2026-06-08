@@ -267,3 +267,70 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 /* ── Le Filtre v0 — annotation inline ── */
 .annot-form{padding:8px 0 2px;display:flex;flex-direction:column;gap:6px;}
 .annot-badge{font-family:var(--fm);font-size:9px;color:var(--ok);letter-spacing:.04em;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:2px solid var(--ok);padding:2px 7px;}
+
+/* ── Nutrition ── */
+.nutri-budget-box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ok);border-radius:var(--r);padding:12px 13px;margin-bottom:1.1rem;}
+.nutri-budget-top{display:flex;align-items:baseline;gap:6px;}
+.nutri-budget-lbl{font-family:var(--fm);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);flex:1;}
+.nutri-budget-val{font-family:var(--fs);font-size:24px;font-weight:500;line-height:1;}
+.nutri-budget-obj{font-family:var(--fm);font-size:10px;color:var(--ink3);}
+.nutri-hint{font-family:var(--fm);font-size:9px;color:var(--ink3);margin-top:5px;letter-spacing:.02em;}
+
+.nutri-add-form{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:1.1rem;}
+.nutri-cat-group{margin-bottom:1.1rem;}
+.nutri-cat-hdr{font-family:var(--fm);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.nutri-cat-count{margin-left:auto;font-size:9px;color:var(--ac2);}
+.nutri-course-item{display:flex;align-items:center;gap:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 11px;margin-bottom:6px;transition:.15s;}
+.nutri-course-item.done{opacity:.5;}
+.nutri-course-item.done .nutri-course-nom{text-decoration:line-through;color:var(--ink3);}
+.nutri-check-ic{display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:2px solid var(--border2);flex-shrink:0;font-size:12px;font-weight:700;color:#fff;cursor:pointer;}
+.nutri-check-ic.done{background:var(--ok);border-color:var(--ok);}
+.nutri-course-info{flex:1;cursor:pointer;min-width:0;}
+.nutri-course-nom{font-size:14px;display:block;line-height:1.25;}
+.nutri-course-qte{font-family:var(--fm);font-size:9px;color:var(--ink3);letter-spacing:.02em;}
+.nutri-course-prix{font-family:var(--fm);font-size:11px;color:var(--ac2);font-weight:600;white-space:nowrap;flex-shrink:0;}
+
+.nutri-section-hdr{font-family:var(--fm);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px;}
+.nutri-recette-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ac2);border-radius:var(--r);padding:12px 13px;cursor:pointer;transition:.15s;}
+.nutri-recette-card:active{opacity:.85;}
+.nutri-recette-top{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;}
+.nutri-recette-nom{font-size:14px;font-weight:600;flex:1;}
+.nutri-recette-badge{font-family:var(--fm);font-size:9px;background:var(--bg3);border-radius:10px;padding:3px 8px;color:var(--ink2);white-space:nowrap;}
+.nutri-recette-meta{font-family:var(--fm);font-size:10px;color:var(--ink3);display:flex;align-items:center;gap:4px;}
+.nutri-veggie-tag{font-size:12px;margin-left:2px;}
+.nutri-recette-detail{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
+.nutri-ingredients{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+
+.nutri-planning-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:8px;}
+.nutri-planning-table{border-collapse:collapse;width:max-content;min-width:100%;}
+.nutri-th-moment{width:30px;}
+.nutri-th-day{font-family:var(--fm);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);text-align:center;padding:6px 4px;min-width:60px;border-bottom:1px solid var(--border);}
+.nutri-th-day.today{color:var(--ac);font-weight:700;}
+.nutri-td-moment{font-size:16px;text-align:center;padding:6px 4px;vertical-align:middle;}
+.nutri-td-cell{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 4px;text-align:center;vertical-align:middle;cursor:pointer;min-height:44px;min-width:60px;position:relative;transition:.15s;}
+.nutri-td-cell:active{background:var(--bg3);}
+.nutri-td-cell.today{border-color:var(--ac2);}
+.nutri-cell-repas{display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;}
+.nutri-cell-nom{font-size:10px;line-height:1.3;text-align:center;color:var(--ink);max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nutri-cell-kcal{font-family:var(--fm);font-size:8px;color:var(--ink3);}
+.nutri-cell-del{position:absolute;top:-3px;right:-3px;font-size:11px;background:var(--bg3);border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink3);line-height:1;padding:0;}
+.nutri-cell-add{font-size:18px;color:var(--border2);line-height:1;}
+
+.nutri-kpi-row{display:flex;gap:7px;margin-bottom:1.1rem;}
+.nutri-kpi-row .kpi{flex:1;}
+.nutri-macro-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:1.1rem;display:flex;flex-direction:column;gap:12px;}
+.nutri-macro-row{}
+.nutri-macro-lbl{display:flex;align-items:baseline;gap:5px;margin-bottom:5px;font-family:var(--fm);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);}
+.nutri-macro-val{font-family:var(--fs);font-size:18px;font-weight:500;color:var(--ok);margin-left:auto;}
+.nutri-macro-val small{font-size:10px;font-family:var(--fb);}
+.nutri-macro-max{font-size:10px;color:var(--ink3);}
+.nutri-macro-status{font-family:var(--fm);font-size:8.5px;margin-top:4px;letter-spacing:.03em;}
+.nutri-status-ok{color:var(--ok);}
+.nutri-status-over{color:var(--ac);}
+.nutri-status-under{color:var(--ac2);}
+.nutri-streak-badge{background:rgba(194,85,47,.08);border:1px solid rgba(194,85,47,.25);border-radius:var(--r);padding:10px 13px;font-size:13px;color:var(--ink2);margin-bottom:1.1rem;}
+.nutri-obj-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1.1rem;}
+.nutri-repas-row{display:flex;align-items:center;gap:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;margin-bottom:6px;}
+.nutri-repas-moment{font-size:16px;flex-shrink:0;}
+.nutri-repas-nom{font-size:13px;flex:1;}
+.nutri-repas-kcal{font-family:var(--fm);font-size:9px;color:var(--ink3);white-space:nowrap;}

@@ -323,7 +323,7 @@ async function getAmwap(dateStr) {
 
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };
@@ -435,6 +435,81 @@ async function updateLivre(id, patch) {
 
 async function deleteLivre(id) {
   return db.livres.delete(id);
+}
+
+// ── v7 — Nutrition (repas + liste de courses) ──────────────────────────────
+db.version(7).stores({
+  repas:   '++id, date, moment',
+  courses: '++id, categorie, fait',
+});
+
+async function addRepas({ date, moment, nom, kcal = 0, prot = 0, gluc = 0, lip = 0, note = '' }) {
+  return db.repas.add({ date, moment, nom, kcal, prot, gluc, lip, note, cree: new Date().toISOString() });
+}
+
+async function getRepas(dateStr) {
+  return db.repas.filter(r => r.date === dateStr).toArray();
+}
+
+async function getRepasSemaine(lundi) {
+  const dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(lundi + 'T12:00:00');
+    d.setDate(d.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  return db.repas.filter(r => dates.includes(r.date)).toArray();
+}
+
+async function deleteRepas(id) {
+  return db.repas.delete(id);
+}
+
+async function addCourse({ nom, qte = '', prix = 0, categorie = 'autres' }) {
+  return db.courses.add({ nom, qte, prix: parseFloat(prix) || 0, categorie, fait: false, cree: new Date().toISOString() });
+}
+
+async function getCourses() {
+  return db.courses.toArray();
+}
+
+async function toggleCourse(id, fait) {
+  return db.courses.update(id, { fait });
+}
+
+async function deleteCourse(id) {
+  return db.courses.delete(id);
+}
+
+async function clearCoursesFaites() {
+  const faites = await db.courses.filter(c => c.fait).toArray();
+  await Promise.all(faites.map(c => db.courses.delete(c.id)));
+}
+
+function getMacrosObjectif() {
+  try { return JSON.parse(localStorage.getItem('zc_macros_obj') || 'null') || { kcal: 2200, prot: 150, gluc: 250, lip: 70 }; }
+  catch { return { kcal: 2200, prot: 150, gluc: 250, lip: 70 }; }
+}
+
+function saveMacrosObjectif(obj) {
+  localStorage.setItem('zc_macros_obj', JSON.stringify(obj));
+}
+
+function getNutriBadges() {
+  try { return JSON.parse(localStorage.getItem('zc_nutri_badges') || '{}'); }
+  catch { return {}; }
+}
+
+function setNutriBadge(id) {
+  const b = getNutriBadges();
+  if (!b[id]) { b[id] = new Date().toISOString(); localStorage.setItem('zc_nutri_badges', JSON.stringify(b)); }
+}
+
+function getNutriXP() {
+  return parseInt(localStorage.getItem('zc_nutri_xp') || '0', 10);
+}
+
+function addNutriXP(pts) {
+  localStorage.setItem('zc_nutri_xp', getNutriXP() + pts);
 }
 
 async function getCapturesByLivre(livreId) {
