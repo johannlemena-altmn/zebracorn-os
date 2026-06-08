@@ -238,12 +238,15 @@ function Capture({onCapture}){
   const [saving,setSaving]=useState(false);
   const [file,setFile]=useState(null);
   const [fileWarn,setFileWarn]=useState('');
+  const [linkCh,setLinkCh]=useState(null);
+  const [chList,setChList]=useState([]);
 
   const load=useCallback(async()=>{
     const[a,b]=await Promise.all([getInbox(),getDone()]);
     setInbox(a); setDone(b);
   },[]);
   useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{ getChantiers().then(setChList); },[]);
 
   function handleFile(e){
     const f=e.target.files[0]; if(!f) return;
@@ -258,14 +261,14 @@ function Capture({onCapture}){
       if(file.type.startsWith('image/')) dataUrl=await compressImage(file);
       else dataUrl=await readFileAsDataUrl(file);
       mimeType=file.type.startsWith('image/')?'image/jpeg':file.type;
-      await addCapture('fichier',filename,tag.trim(),{filename,dataUrl,mimeType});
-      setFile(null); setTag(''); setSaving(false);
+      await addCapture('fichier',filename,tag.trim(),{filename,dataUrl,mimeType,...(linkCh?{chantierId:linkCh}:{})});
+      setFile(null); setTag(''); setLinkCh(null); setSaving(false);
       await load(); if(onCapture)onCapture(); return;
     }
     if(!content.trim()||saving)return;
     setSaving(true);
-    await addCapture(type,content.trim(),tag.trim());
-    setContent(''); setTag(''); setSaving(false);
+    await addCapture(type,content.trim(),tag.trim(),linkCh?{chantierId:linkCh}:null);
+    setContent(''); setTag(''); setLinkCh(null); setSaving(false);
     await load(); if(onCapture)onCapture();
   }
   async function markDone(id){ await updateCaptureStatut(id,'traité'); await load(); if(onCapture)onCapture(); }
@@ -290,6 +293,10 @@ function Capture({onCapture}){
         ${file&&file.type.startsWith('image/')?html`<img src=${URL.createObjectURL(file)} style="width:100%;border-radius:8px;margin-top:8px;max-height:160px;object-fit:cover;"/>`:''}`
         :html`<textarea value=${content} onInput=${e=>setContent(e.target.value)} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>`
       }
+      ${chList.length>0?html`<div class="link-wrap">
+        <span class="link-lbl">◎ Projet</span>
+        ${chList.slice(0,5).map(c=>html`<button class=${'ch-pill'+(linkCh===c.id?' on':'')} onClick=${()=>setLinkCh(linkCh===c.id?null:c.id)} key=${c.id}>${c.titre.slice(0,22)}</button>`)}
+      </div>`:''}
       <div class="composer-b">
         <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
         <button class="save-btn" onClick=${save} disabled=${saving||( type==='fichier'?!file:!content.trim() )}>${saving?'…':type==='fichier'?'Importer':'Capter'}</button>
@@ -333,12 +340,14 @@ function FicheChantier({id,onBack}){
   const [etapes,setEtapes]=useState([]);
   const [prochaine,setProchaine]=useState('');
   const [nouvelleEtape,setNouvelleEtape]=useState('');
+  const [linkedCaps,setLinkedCaps]=useState([]);
 
   const load=useCallback(async()=>{
     const ch=await db.chantiers.get(id);
     const et=await getEtapes(id);
     setChantier(ch); setEtapes(et);
     if(ch) setProchaine(ch.prochaine||'');
+    setLinkedCaps(await getCapturesByChantier(id));
   },[id]);
   useEffect(()=>{ load(); },[load]);
 
@@ -389,6 +398,17 @@ function FicheChantier({id,onBack}){
       <input class="taginp" style="width:100%;box-sizing:border-box" value=${prochaine} onInput=${e=>setProchaine(e.target.value)} onBlur=${saveProchaine} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Le prochain geste concret…"/>
       <div class="hint">Sauvegardé à la perte de focus · reflété dans la liste Semaine.</div>
     </div>
+
+    ${linkedCaps.length>0?html`<div class="sec">
+      <div class="sec-h"><span class="sec-t">Captures liées</span><span class="sec-c">${linkedCaps.length}</span></div>
+      ${linkedCaps.map(c=>html`<div class="item-mini" key=${c.id}>
+        <span class="item-ic">${T_ICONS[c.type]||'📝'}</span>
+        <div style="flex:1;min-width:0">
+          <div class="item-ti" style="font-size:12px">${c.contenu.slice(0,60)}${c.contenu.length>60?'…':''}</div>
+          <div class="item-src">${relDate(c.date)}</div>
+        </div>
+      </div>`)}
+    </div>`:''}
 
     <div class="foot">Zebracorn OS · Chantier · ${fmtDate(now)}</div>
   </div>`;
@@ -556,6 +576,7 @@ function App(){
 }
 
 await seedOnce();
+await seedOnce_v2();
 render(html`<${App}/>`, document.getElementById('root'));
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');

@@ -5,6 +5,40 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Session orientation + Incrément 3 : captures liées aux chantiers
+
+- **Fait** :
+  - Session de réflexion d'orientation : reconnexion scientifique (SVT 19/20,
+    physique), critique du déficit épistémologique des écoles de management (IESEG)
+    face aux enjeux Regen, mémoire M2 comme colonne vertébrale possible (sujet
+    pressenti : l'épistémologie des transitions / pourquoi les acteurs sans sciences
+    dures sous-estiment les systèmes qu'ils veulent changer).
+  - `getCapturesByChantier(id)` helper (filter en mémoire, pas de migration).
+  - Capture → chips optionnelles « ◎ Projet » : lier une capture à un chantier
+    actif en 1 tap ; `chantierId` stocké dans le payload `extra`.
+  - Fiche-chantier → section « Captures liées » (ordre anti-chronologique).
+  - `seedOnce_v2()` : chantiers **Mémoire M2** + **Ressourcement scientifique**
+    et 2 tâches bleu orientation (filières enseignement, positionnement Regen).
+  - CSS : `.link-wrap`, `.ch-pill`, `.item-mini`.
+
+- **Pourquoi** : capture et chantiers étaient des silos — JTBD : ancrer une
+  ressource dans le projet qu'elle éclaire au moment de la capter. Fondation pour
+  Le Filtre futur. Seed v2 = ancrer l'orientation dans l'app.
+
+- **Décision** : pas de migration Dexie (chantierId via spread extra). Sélecteur
+  limité à 5 chantiers × 22 chars pour rester compact. Chips désélectables
+  (toggle).
+
+- **DoD** : patterns HTML/CSS vérifiés serveur local, seed protégé par flag
+  localStorage `zebracorn_seed_v2`.
+
+- **Prochain** : Le Filtre v0 (annotation manuelle des captures traitées) OU
+  sync Supabase validée sur l'iPhone.
+
+> **Contexte ~60 % rempli** · limites réelles → panneau d'usage Claude Code.
+
+---
+
 ## 2026-06-07 — Sync cloud (Supabase) + export/import + icônes PWA
 - **Fait** :
   - **Sync cloud** optionnelle via **Supabase côté client** (`sync.js`, SDK en
@@ -144,8 +178,8 @@ Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (su
 1. ✅ Slice verticale (Maintenant + Capture persistée).
 2. ✅ Onglet « La semaine » (3 couleurs, CRUD) + Maintenant pioche le backlog + seed.
 3. ✅ Icônes PWA + sync cloud Supabase + export/import JSON.
-4. Fiche-chantier : ouvrir un 🟢 → cocher ses étapes + éditer la prochaine étape. [moyen]
-5. Lier captures ↔ chantiers (mémoire cumulative) depuis l'inbox. [moyen]
+4. ✅ Fiche-chantier : ouvrir un 🟢 → cocher ses étapes + éditer la prochaine étape.
+5. ✅ Lier captures ↔ chantiers : chips optionnelles au moment de la capture + section sur la fiche.
 6. Échéances datées sur 🔴/🔵 + tri + **nettoyage dead code** (`taskChecks`, helpers `getTaskCheck`/`toggleTaskCheck` inutilisés). [petit-moyen]
 7. **Auto-sync** (pull-on-open + push-on-hide, avec garde anti-perte) — une fois la sync manuelle validée. [moyen]
 8. Traitement ACTOR sur une capture + « Le Filtre » (résumé IA, clé API). [gros, cœur jugement]

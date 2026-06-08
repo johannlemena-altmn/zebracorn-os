@@ -49,6 +49,11 @@ async function getInboxCount() {
   return db.captures.where('statut').equals('inbox').count();
 }
 
+async function getCapturesByChantier(chantierId) {
+  const all = await db.captures.filter(c => c.chantierId === chantierId).toArray();
+  return all.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
 async function saveIntention(texte) {
   const d = today();
   await db.intentions.where('date').startsWith(d).delete();
@@ -202,6 +207,23 @@ async function seedOnce() {
   await ch('Format de contenu depuis un signal faible', 'rouvrir 1 vieux dossier à réactiver');
 
   localStorage.setItem('zebracorn_seed_v1', 'done');
+}
+
+// Seed v2 — chantiers d'orientation issus de la conversation du 2026-06-08
+async function seedOnce_v2() {
+  if (localStorage.getItem('zebracorn_seed_v2')) return;
+
+  const ch = async (titre, prochaine) => {
+    const id = await addChantier({ titre, prio: 'vert' });
+    await updateChantier(id, { prochaine });
+  };
+  await ch('Mémoire M2 — vision systémique', 'lire Bienvenue en 2055 · noter le fil conducteur');
+  await ch('Ressourcement scientifique · SVT + physique', 'identifier 3 sources de remise à niveau');
+
+  await addTache({ titre: 'Explorer les filières enseignement (grande école / ingé)', prio: 'bleu' });
+  await addTache({ titre: 'Écrire 3 lignes sur mon positionnement Regen consultant', prio: 'bleu' });
+
+  localStorage.setItem('zebracorn_seed_v2', 'done');
 }
 
 // v3 — AMWAP : log de victoires quotidiennes
