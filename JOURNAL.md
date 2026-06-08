@@ -5,6 +5,35 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 6 : Le Filtre UX — Plus tard visible, Traités gérables
+
+- **Fait** :
+  - **Trou noir "Plus tard" corrigé** : `getLater()` ajouté dans `db.js`,
+    nouvelle section "Plus tard" dans Capturer (entre À traiter et Traités).
+    Chaque item : bouton "↑ Reprendre" (remet en inbox) + "Effacer" (2 taps).
+  - **Traités inaccessibles corrigé** : contenu affiché jusqu'à 200 caractères
+    (était 80), bouton × discret (2 taps pour confirmer, sans modal natif —
+    compatible iOS PWA), bouton "↩ Réouvrir" pour remettre en inbox.
+  - **Boutons renommés** : "Traiter · ACTOR" → "Traiter ✓", "Plus tard" → "↓ Plus tard".
+    La section visible rend le comportement de "↓ Plus tard" immédiatement clair.
+  - **deleteCapture(id)** ajouté dans `db.js`.
+  - CSS : `.del-btn`, `.danger-btn` (confirmation 2 taps sans texte natif).
+
+- **Pourquoi** : `statut='plus-tard'` n'était récupéré par aucune query —
+  les items tombaient dans un limbe de données. Les Traités étaient en lecture
+  seule : pas de suppression, pas de retour en inbox, contenu tronqué. Les deux
+  boutons semblaient "intuitifs" mais sans destination visible pour "Plus tard",
+  l'utilisateur ne comprenait pas l'outcome. Fix minimal : rendre les états
+  visibles plutôt que de réinventer l'UX.
+
+- **DoD** : code relu, structure Preact cohérente, pas de modal natif (iOS PWA
+  bloque `confirm()`), confirmDelId partagé entre les deux sections.
+
+- **Prochain** : tester sur iPhone (les 3 flows — Traiter, Plus tard, Effacer).
+  Ensuite : backlog item 6 (échéances datées 🔴/🔵) ou item 9 (variations rail captif).
+
+---
+
 ## 2026-06-08 — Incréments 4+5 : Le Filtre v0 + auto-sync + SW auto-reload
 
 - **Fait** :
