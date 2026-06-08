@@ -214,12 +214,23 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 /* ── Réglages ── */
 .set-field{margin-bottom:9px;}
 .set-field .taginp{width:100%;font-size:13px;}
+.cmp-inp{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:9px 12px;color:var(--ink);font-family:var(--fb);font-size:13px;outline:none;resize:none;line-height:1.5;}
+.cmp-inp:focus{border-color:var(--ac);}
 .set-label{font-family:var(--fm);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;}
 .btn-row{display:flex;gap:8px;margin-top:9px;}
 .btn-row .btn{flex:1;text-align:center;}
 .set-note{font-family:var(--fm);font-size:9px;line-height:1.5;color:var(--ink3);margin-top:8px;letter-spacing:.01em;}
 .set-msg{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ac);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-bottom:1rem;}
 .btn:disabled,.save-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Cap annuel ── */
+.cap-annuel{font-family:var(--fm);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ac);margin:-0.6rem 0 1.2rem;padding-left:1px;opacity:.9;}
+.cap-annuel em{font-style:italic;font-family:var(--fs);font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink2);font-weight:400;}
+
+/* ── Hors-scope toggle ── */
+.hs-btn{font-family:var(--fm);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;border-radius:12px;padding:4px 10px;border:1px solid var(--border2);background:transparent;color:var(--ink3);cursor:pointer;transition:.15s;}
+.hs-btn.on{background:rgba(194,85,47,.1);border-color:var(--ac);color:var(--ac);}
+.hs-btn:active{opacity:.75;}
 
 /* ── Le Filtre v0 — annotation inline ── */
 .annot-form{padding:8px 0 2px;display:flex;flex-direction:column;gap:6px;}

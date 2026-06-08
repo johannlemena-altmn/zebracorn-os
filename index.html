@@ -170,6 +170,8 @@ function Maintenant({inboxCount,onGoCapture}){
   const [caps,setCaps]=useState([]);
   const [amwapOpen,setAmwapOpen]=useState(false);
   const [amwapYest,setAmwapYest]=useState(null);
+  const [cap,setCap]=useState(getCap());
+  const [hsCount,setHsCount]=useState(0);
   const typed=useTypewriter(selQ);
   const now=useClock();
 
@@ -183,6 +185,8 @@ function Maintenant({inboxCount,onGoCapture}){
     setCaps((await getInbox()).slice(0,4));
     const yest=new Date(); yest.setDate(yest.getDate()-1);
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
+    setCap(getCap());
+    setHsCount(await getHorsScopeMois());
   },[]);
   useEffect(()=>{ load(); },[load]);
 
@@ -217,6 +221,7 @@ function Maintenant({inboxCount,onGoCapture}){
       <div class="rail-q">${typed}${typed.length<selQ.length?html`<span class="cursor"/>`:''}</div>
       <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention pour ce moment…"/>
     </div>
+    ${cap.intention?html`<div class="cap-annuel">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
 
     <div class="track">
       <div class="kpi"><div class="kpi-n">${streaks.length?Math.max(...streaks):0}<small> j</small></div><div class="kpi-l">Meilleure série</div></div>
@@ -250,6 +255,7 @@ function Maintenant({inboxCount,onGoCapture}){
     ${(caps.length>0||inboxCount>0)?html`<div class="sec">
       <div class="sec-h"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
       <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
+      ${hsCount>0?html`<div class="hint" style="margin-top:6px;color:var(--ac)">📍 ${hsCount} hors-scope ce mois</div>`:''}
     </div>`:''}
 
     <div class="foot">Zebracorn OS · v0.1 · ${fmtDate(now)}</div>
@@ -514,6 +520,9 @@ function Capture({onCapture}){
       </div>
       <div class="item-b">
         <button class="btn" style="font-size:11px;padding:5px 10px" onClick=${()=>remettreInbox(item.id)}>↩ Réouvrir</button>
+        <button class=${'hs-btn'+(item.horsScope?' on':'')} onClick=${async e=>{e.stopPropagation();await toggleHorsScope(item.id,!item.horsScope);await load();}}>
+          ${item.horsScope?'📍 hors-scope':'○ hors-scope ?'}
+        </button>
       </div>
     </div>`)}`:'' }
 
@@ -699,6 +708,7 @@ function Reglages(){
   const [cfg,setCfg]=useState(getSyncConfig());
   const [msg,setMsg]=useState('');
   const [busy,setBusy]=useState(false);
+  const [cap,setCap]=useState(getCap());
   const [stats,setStats]=useState(null);
   const last=lastSync();
   useEffect(()=>{ getStats().then(setStats); },[]);
@@ -742,6 +752,24 @@ function Reglages(){
     <div class="hdr"><div class="brand">Zebracorn OS · Réglages</div><div class="date-lbl">${fmtDate(now)}</div></div>
     <div class="h1">Réglages.</div>
     <div class="greet">Synchronise tes appareils. Tes données restent à toi.</div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Cap 2026 · North Star</span></div>
+      <div class="set-field">
+        <div class="set-label">Intention de l'année</div>
+        <textarea class="cmp-inp" rows=2 value=${cap.intention} onInput=${e=>setCap(c=>({...c,intention:e.target.value}))} placeholder="En une phrase — la posture que tu veux tenir…"/>
+      </div>
+      <div class="set-field">
+        <div class="set-label">Grands objectifs <span style="color:var(--ink3)">(un par ligne)</span></div>
+        <textarea class="cmp-inp" rows=4 value=${cap.objectifs} onInput=${e=>setCap(c=>({...c,objectifs:e.target.value}))} placeholder=${"Écrire le livre\nValider le concept X\n…"}/>
+      </div>
+      <div class="set-field">
+        <div class="set-label">Non-négociables</div>
+        <textarea class="cmp-inp" rows=2 value=${cap.nonNeg} onInput=${e=>setCap(c=>({...c,nonNeg:e.target.value}))} placeholder="Santé · famille · …"/>
+      </div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onClick=${()=>{saveCap(cap);setMsg('Cap 2026 enregistré ✓');}}>Enregistrer le cap</button>
+      <div class="set-note">Visible dans Maintenant chaque jour — ta boussole permanente.</div>
+    </div>
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Corpus</span>${stats?html`<span class="sec-c" style="color:var(--ink3)">${stats.total} captures</span>`:''}</div>

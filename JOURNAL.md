@@ -5,6 +5,26 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 11 : Cap annuel North Star + hors-scope journal
+
+- **Fait** :
+  - `getCap()` / `saveCap()` en `localStorage` — stable, pas de migration Dexie.
+  - `toggleHorsScope(id, val)` + `getHorsScopeMois()` dans `db.js`.
+  - Section **Cap 2026 · North Star** en tête des Réglages : intention (1 phrase), grands objectifs (un par ligne), non-négociables.
+  - `.cap-annuel` sous le rail dans Maintenant — visible uniquement si une intention est renseignée.
+  - Bouton `.hs-btn` dans Traités — toggle ○ hors-scope ? / 📍 hors-scope.
+  - Compteur mensuel hors-scope dans Maintenant (section inbox), en terracotta.
+  - `.cmp-inp` ajouté dans styles.css pour les textareas Réglages.
+
+- **Pourquoi** : boucle planif→cap→filtre — avoir le cap visible chaque jour évite de
+  dériver sur du bruit. Taguer « hors-scope » sur les traités trace ce qui a pollué
+  le backlog sans servir le cap annuel (signal précieux à la revue mensuelle).
+
+- **DoD** : diff propre (+59 lignes, 0 suppression) sur base origin/main. Push via
+  branche cap-deploy → main (fast-forward). Vercel auto-deploy.
+
+---
+
 ## 2026-06-08 — Incrément 10 : Gamification Corpus+Badges + Icône Z
 
 - **Fait** :

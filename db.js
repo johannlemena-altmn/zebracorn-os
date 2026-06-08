@@ -325,3 +325,23 @@ async function importAll(dump) {
     }
   });
 }
+
+// ── Cap annuel (North Star) ────────────────────────────────────────────────
+
+function getCap() {
+  try { return JSON.parse(localStorage.getItem('zebracorn_cap') || 'null') || { intention: '', objectifs: '', nonNeg: '' }; }
+  catch { return { intention: '', objectifs: '', nonNeg: '' }; }
+}
+function saveCap(cap) {
+  localStorage.setItem('zebracorn_cap', JSON.stringify(cap));
+}
+
+async function toggleHorsScope(id, val) {
+  return db.captures.update(id, { horsScope: val });
+}
+
+async function getHorsScopeMois() {
+  const mois = new Date().toISOString().slice(0, 7);
+  const traites = await db.captures.where('statut').equals('traité').toArray();
+  return traites.filter(c => c.horsScope && c.date.startsWith(mois)).length;
+}
