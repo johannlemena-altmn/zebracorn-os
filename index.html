@@ -56,6 +56,24 @@ function relDate(iso){
   const h=(Date.now()-new Date(iso))/3600000;
   return h<1?"à l'instant":h<24?`il y a ${Math.floor(h)} h`:h<48?'hier':`il y a ${Math.floor(h/24)} j`;
 }
+function fmtEch(ech){
+  if(!ech) return null;
+  const td=new Date().toISOString().slice(0,10);
+  const tm=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const d=new Date(ech+'T12:00:00');
+  if(ech<td)  return {label:'⚠ Retard',urgent:true};
+  if(ech===td) return {label:'⚠ Auj.',urgent:true};
+  if(ech===tm) return {label:'⚠ Demain',urgent:true};
+  return {label:`${DAYS[d.getDay()]} ${d.getDate()}`,urgent:false};
+}
+function sortByEch(arr){
+  return [...arr].sort((a,b)=>{
+    if(a.echeance&&b.echeance) return a.echeance<b.echeance?-1:1;
+    if(a.echeance) return -1;
+    if(b.echeance) return 1;
+    return 0;
+  });
+}
 function useTypewriter(text,speed=30){
   const [d,setD]=useState('');
   useEffect(()=>{
@@ -465,6 +483,8 @@ function Semaine(){
   const [titre,setTitre]     = useState('');
   const [prio,setPrio]       = useState('rouge');
   const [ficheId,setFicheId] = useState(null);
+  const [editEchId,setEditEchId] = useState(null);
+  const [editEchVal,setEditEchVal] = useState('');
 
   const load = useCallback(async()=>{
     setTaches(await getTaches({fait:false}));
@@ -481,21 +501,37 @@ function Semaine(){
   async function togTache(id,fait){ await toggleTacheDone(id,fait); await load(); }
   async function delTache(id){ await deleteTache(id); await load(); }
   async function delChant(id){ await deleteChantier(id); await load(); }
+  async function sauveEcheance(id,val){ await setTacheEcheance(id,val||null); setEditEchId(null); await load(); }
+  function ouvrirEch(t){ setEditEchId(t.id); setEditEchVal(t.echeance||''); }
 
   if(ficheId!==null) return html`<${FicheChantier} id=${ficheId} onBack=${()=>{setFicheId(null);load();}}/>`;
 
-  const rouge = taches.filter(t=>t.prio==='rouge');
-  const bleu  = taches.filter(t=>t.prio==='bleu');
+  const rouge = sortByEch(taches.filter(t=>t.prio==='rouge'));
+  const bleu  = sortByEch(taches.filter(t=>t.prio==='bleu'));
   const now = new Date();
 
   const groupeTaches = (arr, emoji, titreSec, sous) => html`<div class="sec">
     <div class="sec-h"><span class="sec-t">${emoji} ${titreSec}</span><span class="sec-c">${arr.length}</span></div>
     ${arr.length===0?html`<div class="empty-state">${sous}</div>`:''}
-    ${arr.map(t=>html`<div class=${'task'+(t.fait?' done':'')} key=${t.id}>
-      <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
-      <span class="t-txt">${t.titre}</span>
-      <span class="t-del" onClick=${()=>delTache(t.id)}>✕</span>
-    </div>`)}
+    ${arr.map(t=>{
+      const ei=fmtEch(t.echeance);
+      return html`<div class=${'task'+(t.fait?' done':'')} key=${t.id}>
+        <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
+        <span class="t-txt">${t.titre}</span>
+        ${editEchId===t.id
+          ?html`<input type="date" class="ech-inp" value=${editEchVal}
+              onInput=${e=>setEditEchVal(e.target.value)}
+              onChange=${e=>sauveEcheance(t.id,e.target.value)}
+              onBlur=${()=>setEditEchId(null)}
+              onKeyDown=${e=>e.key==='Enter'&&sauveEcheance(t.id,editEchVal)}
+              autofocus/>`
+          :html`<button class=${'ech-chip'+(ei?.urgent?' urgent':'')} onClick=${()=>ouvrirEch(t)}>
+              ${ei?ei.label:'+'}
+            </button>`
+        }
+        <span class="t-del" onClick=${()=>delTache(t.id)}>✕</span>
+      </div>`;
+    })}
   </div>`;
 
   return html`<div class="scroll">

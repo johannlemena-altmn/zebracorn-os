@@ -184,6 +184,10 @@ async function setTacheDate(id, date) {
   return db.taches.update(id, { date });
 }
 
+async function setTacheEcheance(id, echeance) {
+  return db.taches.update(id, { echeance: echeance || null });
+}
+
 async function deleteTache(id) {
   return db.taches.delete(id);
 }
