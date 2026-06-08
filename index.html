@@ -30,10 +30,30 @@ const html = htm.bind(h);
 const DAYS   = ['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
 const MONTHS = ['JANV','FÉVR','MARS','AVR','MAI','JUIN','JUIL','AOÛT','SEPT','OCT','NOV','DÉC'];
 const RAIL_Q = {
-  fort:    "Qu'est-ce que tu cherches, là, maintenant ?",
-  relache: "Pause méritée — un geste qui te fait du bien ?",
-  libre:   "Profite. Reviens quand tu veux.",
+  fort: [
+    "Qu'est-ce que tu cherches, là, maintenant ?",
+    "Si tu ne fais qu'une chose dans l'heure, ce serait quoi ?",
+    "Qu'est-ce qui bloque vraiment — et qu'est-ce que tu attends ?",
+    "Quel geste aujourd'hui rapproche le plus du résultat qui compte ?",
+  ],
+  relache: [
+    "Pause méritée — un geste qui te fait du bien ?",
+    "Qu'est-ce qui a bien marché aujourd'hui ?",
+    "Une chose que tu reportes depuis trop longtemps ?",
+    "Un truc que tu as appris récemment et qui t'a surpris ?",
+  ],
+  libre: [
+    "Profite. Reviens quand tu veux.",
+    "Qu'est-ce qui t'attire en ce moment, sans raison précise ?",
+    "Une curiosité à explorer — juste pour le plaisir ?",
+    "Rien à faire. Qu'est-ce qui émerge naturellement ?",
+  ],
 };
+function pickQ(mode){
+  const qs=RAIL_Q[mode];
+  const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/86400000);
+  return qs[doy%qs.length];
+}
 const DEF_ROUTINES = [
   { key:'routine_0', nom:'Pas de tel 15 min au réveil',    moment:'Matin'  },
   { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
@@ -140,6 +160,8 @@ function AmwapModal({onClose,onSave}){
 /* ── Maintenant ─────────────────────────────── */
 function Maintenant({inboxCount,onGoCapture}){
   const [mode,setMode]=useState('fort');
+  const [selQ,setSelQ]=useState(()=>pickQ('fort'));
+  function changeMode(m){ setMode(m); setSelQ(pickQ(m)); }
   const [intent,setIntent]=useState('');
   const [dayTasks,setDayTasks]=useState([]);
   const [routs,setRouts]=useState([false,false,false]);
@@ -148,7 +170,7 @@ function Maintenant({inboxCount,onGoCapture}){
   const [caps,setCaps]=useState([]);
   const [amwapOpen,setAmwapOpen]=useState(false);
   const [amwapYest,setAmwapYest]=useState(null);
-  const typed=useTypewriter(RAIL_Q[mode]);
+  const typed=useTypewriter(selQ);
   const now=useClock();
 
   const load=useCallback(async()=>{
@@ -187,12 +209,12 @@ function Maintenant({inboxCount,onGoCapture}){
     <div class="greet">Avant de scroller — une intention, un geste.</div>
 
     <div class="modes">
-      ${Object.keys(RAIL_Q).map(m=>html`<button class=${'mode'+(mode===m?' on':'')} onClick=${()=>setMode(m)}>${m==='fort'?'Intercept fort':m==='relache'?'Relâché':'Libre'}</button>`)}
+      ${Object.keys(RAIL_Q).map(m=>html`<button class=${'mode'+(mode===m?' on':'')} onClick=${()=>changeMode(m)} key=${m}>${m==='fort'?'Intercept fort':m==='relache'?'Relâché':'Libre'}</button>`)}
     </div>
 
     <div class="rail">
       <div class="rail-k">◇ Le rail · ${mode==='fort'?'matin/journée':mode==='relache'?'pause':'week-end'}</div>
-      <div class="rail-q">${typed}${typed.length<RAIL_Q[mode].length?html`<span class="cursor"/>`:''}</div>
+      <div class="rail-q">${typed}${typed.length<selQ.length?html`<span class="cursor"/>`:''}</div>
       <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention pour ce moment…"/>
     </div>
 
