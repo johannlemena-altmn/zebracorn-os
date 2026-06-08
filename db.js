@@ -373,6 +373,10 @@ async function restoreQuestion(id) {
   return db.questions.update(id, { statut: 'vivante' });
 }
 
+async function linkCaptureToQuestion(captureId, questionId) {
+  return db.captures.update(captureId, { questionId: questionId || null });
+}
+
 async function seedQuestionsOnce() {
   if (localStorage.getItem('zebracorn_seed_q1')) return;
   const existing = await getQuestions();

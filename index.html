@@ -83,6 +83,55 @@ const BADGES=[
   {id:'corpus', e:'🧠',label:'Corpus vivant',    check:s=>s.total>=100,   prog:s=>`${Math.min(s.total,100)}/100`},
 ];
 
+/* ── Revue hebdo ────────────────────────────── */
+const REVUE_QS=[
+  "Qu'est-ce qui a vraiment avancé cette semaine ?",
+  "Qu'est-ce qui a résisté — pourquoi, et qu'est-ce que ça révèle ?",
+  "Un mot ou une intention pour la semaine prochaine.",
+];
+function weekKey(){
+  const d=new Date(),jan1=new Date(d.getFullYear(),0,1);
+  const wn=Math.ceil((((d-jan1)/86400000)+jan1.getDay()+1)/7);
+  return `revue_${d.getFullYear()}_W${String(wn).padStart(2,'0')}`;
+}
+function getRevue(){ try{return JSON.parse(localStorage.getItem(weekKey())||'null')||{r1:'',r2:'',r3:'',done:false};}catch{return{r1:'',r2:'',r3:'',done:false};} }
+function saveRevue(data){ localStorage.setItem(weekKey(),JSON.stringify(data)); }
+
+/* ── Google Calendar iCal ───────────────────── */
+function unfoldIcal(t){ return t.replace(/\r\n[ \t]/g,'').replace(/\n[ \t]/g,''); }
+function parseIcal(text){
+  const evts=[];
+  for(const block of text.split('BEGIN:VEVENT').slice(1)){
+    const get=key=>{const m=block.match(new RegExp('^'+key+'[^\\r\\n]*:([^\\r\\n]+)','m'));return m?m[1].trim():'';};
+    const dtstart=(()=>{const m=block.match(/^DTSTART[^\r\n]*/m);return m?m[0].split(':').pop().trim():'';})();
+    const summary=get('SUMMARY').replace(/\\,/g,',').replace(/\\n/g,' ').replace(/\\/g,'');
+    if(summary) evts.push({dtstart,summary});
+  }
+  return evts;
+}
+function fmtGcalTime(dtstart){
+  if(!dtstart||!dtstart.includes('T')) return 'Journée';
+  const s=dtstart.replace(/Z$/,'');
+  if(dtstart.endsWith('Z')){
+    const d=new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T${s.slice(9,11)}:${s.slice(11,13)}:00Z`);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  return `${s.slice(9,11)}:${s.slice(11,13)}`;
+}
+function filterToday(evts){
+  const td=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  return evts.filter(e=>e.dtstart.startsWith(td));
+}
+async function loadGcalEvents(){
+  const url=localStorage.getItem('zc_gcal_url');
+  if(!url) return null;
+  const r=await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const text=await r.text();
+  const evts=filterToday(parseIcal(unfoldIcal(text)));
+  return evts.sort((a,b)=>a.dtstart<b.dtstart?-1:1);
+}
+
 /* ── helpers ────────────────────────────────── */
 function fmtDate(d){ return `${DAYS[d.getDay()]}. ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
 function fmtTime(d){ return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
@@ -172,6 +221,9 @@ function Maintenant({inboxCount,onGoCapture}){
   const [amwapYest,setAmwapYest]=useState(null);
   const [cap,setCap]=useState(getCap());
   const [hsCount,setHsCount]=useState(0);
+  const [revue,setRevue]=useState(getRevue);
+  const [revueOpen,setRevueOpen]=useState(()=>new Date().getDay()===5&&!getRevue().done);
+  const [gcalEvts,setGcalEvts]=useState(null);
   const typed=useTypewriter(selQ);
   const now=useClock();
 
@@ -187,6 +239,7 @@ function Maintenant({inboxCount,onGoCapture}){
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
     setCap(getCap());
     setHsCount(await getHorsScopeMois());
+    loadGcalEvents().then(setGcalEvts).catch(()=>{});
   },[]);
   useEffect(()=>{ load(); },[load]);
 
@@ -203,6 +256,9 @@ function Maintenant({inboxCount,onGoCapture}){
     await toggleRoutineCheck(DEF_ROUTINES[2].key,true);
     const s=await getStreak(DEF_ROUTINES[2].key); setStreaks(p=>p.map((x,j)=>j===2?s:x));
   }
+
+  function updRevue(k,v){ const r={...revue,[k]:v}; setRevue(r); saveRevue(r); }
+  function cloreRevue(){ const r={...revue,done:true}; setRevue(r); saveRevue(r); setRevueOpen(false); }
 
   const done=dayTasks.filter(t=>t.fait).length;
   const idone=week.filter(d=>d.done).length;
@@ -223,6 +279,14 @@ function Maintenant({inboxCount,onGoCapture}){
     </div>
     ${cap.intention?html`<div class="cap-annuel">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
     ${cap.objectifsMois?html`<div class="cap-annuel" style="margin-top:-0.8rem;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}${cap.objectifsMois.split('\n').filter(l=>l.trim()).length>1?' +…':''}</em></div>`:''}
+
+    ${gcalEvts?.length>0?html`<div class="gcal-block">
+      <div class="gcal-hdr">◇ Aujourd'hui</div>
+      ${gcalEvts.slice(0,6).map((e,i)=>html`<div class="gcal-ev" key=${i}>
+        <span class="gcal-time">${fmtGcalTime(e.dtstart)}</span>
+        <span class="gcal-ti">${e.summary}</span>
+      </div>`)}
+    </div>`:''}
 
     <div class="track">
       <div class="kpi"><div class="kpi-n">${streaks.length?Math.max(...streaks):0}<small> j</small></div><div class="kpi-l">Meilleure série</div></div>
@@ -245,6 +309,28 @@ function Maintenant({inboxCount,onGoCapture}){
     </div>
 
     ${amwapOpen?html`<${AmwapModal} onClose=${()=>setAmwapOpen(false)} onSave=${onAmwapSave}/>`:''}
+
+    <div class="sec">
+      <div class="sec-h" style="cursor:pointer" onClick=${()=>setRevueOpen(o=>!o)}>
+        <span class="sec-t" style=${new Date().getDay()===5&&!revue.done?'color:var(--ac)':''}>
+          ${new Date().getDay()===5?'⬡ Revue · vendredi':'Revue · semaine'}
+        </span>
+        <span class="sec-c">${revue.done?'✓ close':revueOpen?'▲':'▼'}</span>
+      </div>
+      ${revueOpen?html`<div class="revue-box">
+        ${REVUE_QS.map((q,i)=>html`<div key=${i}>
+          <div class="revue-q">${q}</div>
+          <textarea class="notes-ta" rows=2 value=${revue['r'+(i+1)]}
+            onInput=${e=>updRevue('r'+(i+1),e.target.value)}
+            onBlur=${e=>updRevue('r'+(i+1),e.target.value)}
+            placeholder="…"/>
+        </div>`)}
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="save-btn" style="flex:1" onClick=${cloreRevue} disabled=${!revue.r1.trim()}>Clore la semaine ✓</button>
+          ${revue.done?html`<button class="btn" style="flex:0 0 auto;font-size:11px" onClick=${()=>{const r={...revue,done:false};setRevue(r);saveRevue(r);}}>Rouvrir</button>`:''}
+        </div>
+      </div>`:''}
+    </div>
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>
@@ -311,6 +397,8 @@ function Capture({onCapture}){
   const [linkedCaps,setLinkedCaps]=useState([]);
   const [linkPickerId,setLinkPickerId]=useState(null);
   const [pickerCaps,setPickerCaps]=useState([]);
+  const [questions,setQuestions]=useState([]);
+  const [qPickerId,setQPickerId]=useState(null);
 
   const load=useCallback(async()=>{
     const[a,b,c]=await Promise.all([getInbox(),getDone(),getLater()]);
@@ -318,6 +406,7 @@ function Capture({onCapture}){
   },[]);
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{ getChantiers().then(setChList); },[]);
+  useEffect(()=>{ getQuestions().then(setQuestions); },[]);
 
   function handleFile(e){
     const f=e.target.files[0]; if(!f) return;
@@ -348,10 +437,10 @@ function Capture({onCapture}){
   }
   async function toggleExpand(id){
     if(expandId!==null&&expandId!==id&&expandNotes.trim()) await sauveNotes(expandId,expandNotes);
-    if(expandId===id){ setExpandId(null); setLinkedCaps([]); setLinkPickerId(null); return; }
+    if(expandId===id){ setExpandId(null); setLinkedCaps([]); setLinkPickerId(null); setQPickerId(null); return; }
     const item=inbox.find(x=>x.id===id);
     setExpandId(id); setExpandNotes(item?.notes||'');
-    setAnnotId(null); setLinkPickerId(null);
+    setAnnotId(null); setLinkPickerId(null); setQPickerId(null);
     if(item?.linkedIds?.length){
       const caps=await Promise.all(item.linkedIds.map(lid=>db.captures.get(lid)));
       setLinkedCaps(caps.filter(Boolean));
@@ -378,6 +467,11 @@ function Capture({onCapture}){
       const cur=x.linkedIds||[];
       return {...x,linkedIds:isLinked?cur.filter(i=>i!==targetId):[...cur,targetId]};
     }));
+  }
+  async function linkToQuestion(captureId,qId){
+    await linkCaptureToQuestion(captureId,qId||null);
+    setInbox(prev=>prev.map(x=>x.id===captureId?{...x,questionId:qId||null}:x));
+    if(!qId) setQPickerId(null);
   }
   async function markDone(id){
     const item=inbox.find(x=>x.id===id);
@@ -474,6 +568,26 @@ function Capture({onCapture}){
                 </button>
               </div>`;
             })}
+          </div>`:''}
+        </div>
+        <div class="q-link-section">
+          <div class="q-link-hdr">
+            <span class="sec-t">❓ Question vivante</span>
+            <button class="btn" style="font-size:10px;padding:4px 10px" onClick=${e=>{e.stopPropagation();item.questionId?linkToQuestion(item.id,null):setQPickerId(qPickerId===item.id?null:item.id);}}>
+              ${item.questionId?'✕ Dissocier':'+ Lier'}
+            </button>
+          </div>
+          ${item.questionId&&questions.find(q=>q.id===item.questionId)
+            ?html`<div class="q-linked-badge">${questions.find(q=>q.id===item.questionId).intitule}</div>`
+            :html`<div class="hint" style="font-size:10px;margin:0">Aucune — relie à une question vivante</div>`}
+          ${qPickerId===item.id?html`<div class="picker-list">
+            ${questions.map(q=>html`<div class="picker-item" key=${q.id}>
+              <span class="link-ti">${q.intitule.slice(0,60)}${q.intitule.length>60?'…':''}</span>
+              <button class=${'btn'+(item.questionId===q.id?' pri':'')} style="font-size:10px;padding:4px 9px"
+                onClick=${e=>{e.stopPropagation();linkToQuestion(item.id,item.questionId===q.id?null:q.id);}}>
+                ${item.questionId===q.id?'✓ Lié':'Lier'}
+              </button>
+            </div>`)}
           </div>`:''}
         </div>`:''}
         ${annotId===item.id
@@ -654,9 +768,9 @@ function Semaine(){
     setChant(await getChantiers());
     const qs=await getQuestions(); setQuestions(qs);
     setQArchived(await getArchivedQuestions());
-    const traites=await getDone();
+    const allCaps=await db.captures.toArray();
     const counts={};
-    for(const c of traites) if(c.questionId) counts[c.questionId]=(counts[c.questionId]||0)+1;
+    for(const c of allCaps) if(c.questionId) counts[c.questionId]=(counts[c.questionId]||0)+1;
     setQCounts(counts);
   },[]);
   useEffect(()=>{ load(); },[load]);
@@ -773,6 +887,7 @@ function Reglages(){
   const [busy,setBusy]=useState(false);
   const [cap,setCap]=useState(getCap());
   const [stats,setStats]=useState(null);
+  const [gcalUrl,setGcalUrl]=useState(()=>localStorage.getItem('zc_gcal_url')||'');
   const last=lastSync();
   useEffect(()=>{ getStats().then(setStats); },[]);
 
@@ -904,6 +1019,16 @@ function Reglages(){
     </div>
 
     <div class="sec">
+      <div class="sec-h"><span class="sec-t">Google Calendar</span><span class="sec-c">${gcalUrl?'configuré':'—'}</span></div>
+      <div class="set-field">
+        <div class="set-label">URL iCal secrète</div>
+        <input class="taginp" style="width:100%;font-size:11px" value=${gcalUrl} onInput=${e=>setGcalUrl(e.target.value)} placeholder="https://calendar.google.com/calendar/ical/…"/>
+      </div>
+      <button class="save-btn" style="width:100%;margin-top:4px" onClick=${()=>{localStorage.setItem('zc_gcal_url',gcalUrl.trim());setMsg('Google Calendar configuré ✓');}}>Enregistrer</button>
+      <div class="set-note">Google Calendar → ton agenda → ⚙ Paramètres → « Adresse secrète au format iCal » · Read-only, sans OAuth.</div>
+    </div>
+
+    <div class="sec">
       <div class="sec-h"><span class="sec-t">Corpus · NotebookLM</span></div>
       <button class="save-btn" style="width:100%" onClick=${doCorpus}>↗ Exporter le corpus (.md)</button>
       <div class="set-note">Génère un fichier Markdown de toutes tes captures traitées + notes · partage vers Fichiers ou NLM directement.</div>
@@ -966,6 +1091,9 @@ function App(){
   </div>`;
 }
 
+if(syncConfigured()&&(lastSync().push||lastSync().pull)){
+  try{ await pullAll(); }catch(e){}
+}
 await seedOnce();
 await seedOnce_v2();
 await seedQuestionsOnce();
