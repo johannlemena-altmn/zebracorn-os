@@ -5,6 +5,25 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 16 : Module Nutrition — onglet Sport
+
+- **Fait** : Nouvel onglet 🥗 Sport avec 3 sous-vues dans un fichier `nutrition.js` autonome.
+  - **Courses** : liste de courses par catégorie (Protéines / Féculents / Légumes / Fruits / Autres), budget en temps réel avec barre de progression (cible 35€/sem), génération liste de base flexitarienne en 1 clic, cases à cocher au supermarché (article barré = en panier), bouton « Vider panier », ajout libre d'article (nom + quantité + prix + catégorie).
+  - **Recettes ce soir** : 3 fiches dépliantes (Pâtes œuf-parmesan / Riz tofu-légumes / Omelette champignons-épinards) avec temps, kcal, protéines, budget, ingrédients et instructions.
+  - **Planning** : grille 7j × 3 moments (Matin/Midi/Soir), repas libres 🎉 (sorties, déj collègues — sans suivi), modal d'ajout avec nom + kcal + protéines approx.
+  - **Macros** : barres kcal / protéines / glucides / lipides vs objectifs configurables, streak protéines, badges gamification (Cuisinier / Semaine complète / Protéines ×7), XP par repas logué.
+  - **DB** : Dexie v7 → tables `repas` + `courses`, ajoutées à SYNC_TABLES pour backup JSON.
+
+- **Pourquoi** : Urgence ce soir : liste de courses + recettes. Module conçu migration-friendly (un seul fichier module ES, zéro couplage avec les organes Zebracorn) pour extraction future vers Reprise-Sport. Base alimentaire locale ~30 aliments, aucune API externe. Vision flexitarienne : légumineuses / tofu en alternatives à la viande.
+
+- **DoD** : Commit sur branche `claude/reprise-nutrition-module-Z2DKR`, push OK. À fusionner sur main pour déploiement Vercel.
+
+- **Note déploiement** : La branche est prête. Pour la mettre en prod sur Zebracorn OS (Vercel), merge sur `main`. Pour migrer vers Reprise-Sport plus tard : copier `nutrition.js` + la section v7 de `db.js`.
+
+- **Prochain** : Fusionner sur main pour test navigateur → valider persistance courses + planning → ajuster UX si besoin. Migration vers Reprise-Sport en session dédiée.
+
+---
+
 ## 2026-06-08 — Incrément 15 : Bibliothèque légère · Fix CAP sync · Fix sync.js · iCal debug
 
 - **Fait** :
