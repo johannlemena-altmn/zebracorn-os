@@ -391,11 +391,25 @@ async function shareFile(item){
   try{ await navigator.share({files:[f],title:item.filename||'Fichier Zebracorn'}); }catch(e){ if(e.name!=='AbortError') alert('Erreur partage : '+e.message); }
 }
 
+/* ── Share Target helper ─────────────────────── */
+function tagFromUrl(url){
+  if(!url) return '';
+  try{
+    const h=new URL(url).hostname;
+    if(h.includes('notebooklm')) return '#notebooklm';
+    if(h.includes('youtube')||h.includes('youtu.be')) return '#video';
+    if(h.includes('docs.google')) return '#gdoc';
+    if(h.includes('github')) return '#github';
+  }catch{}
+  return '';
+}
+
 /* ── Capture ─────────────────────────────────── */
-function Capture({onCapture}){
-  const [type,setType]=useState('note');
-  const [content,setContent]=useState('');
-  const [tag,setTag]=useState('');
+function Capture({onCapture, initContent='', initSource='', initType='note', initTag=''}){
+  const [type,setType]=useState(initType);
+  const [content,setContent]=useState(initContent);
+  const [tag,setTag]=useState(initTag);
+  const [sourceUrl,setSourceUrl]=useState(initSource);
   const [inbox,setInbox]=useState([]);
   const [done,setDone]=useState([]);
   const [later,setLater]=useState([]);
@@ -446,8 +460,8 @@ function Capture({onCapture}){
     }
     if(!content.trim()||saving)return;
     setSaving(true);
-    await addCapture(type,content.trim(),tag.trim(),{...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
-    setContent(''); setTag(''); setLinkCh(null); setLinkLivre(null); setSaving(false);
+    await addCapture(type,content.trim(),tag.trim(),{...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{}),...(sourceUrl?{sourceUrl}:{})});
+    setContent(''); setTag(''); setLinkCh(null); setLinkLivre(null); setSourceUrl(''); setSaving(false);
     await load(); if(onCapture)onCapture();
   }
   async function sauveNotes(id,val){
@@ -625,6 +639,7 @@ function Capture({onCapture}){
             <button class="btn pri" onClick=${e=>{e.stopPropagation();markDone(item.id);}}>Traiter ✓</button>
             <button class="btn" onClick=${e=>{e.stopPropagation();markLater(item.id);}}>↓ Plus tard</button>
             ${isURL?html`<a class="share-btn" href=${item.contenu} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Ouvrir</a>`:''}
+            ${item.sourceUrl&&!isURL?html`<a class="share-btn" href=${item.sourceUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Source</a>`:''}
             ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${e=>{e.stopPropagation();shareFile(item);}}>↗ Partager</button>`:''}
           </div>`}
       </div>`;
@@ -1257,7 +1272,14 @@ function Reglages(){
 
 /* ── App ─────────────────────────────────────── */
 function App(){
-  const [tab,setTab]=useState('maintenant');
+  const [shareInit]=useState(()=>{
+    const p=new URLSearchParams(location.search);
+    const text=p.get('text')||'', url=p.get('url')||'';
+    if(!text&&!url) return null;
+    history.replaceState({},'','/');
+    return { initContent:text||url, initType:text?'note':'lien', initTag:tagFromUrl(url), initSource:url };
+  });
+  const [tab,setTab]=useState(()=>shareInit?'capture':'maintenant');
   const [inboxCount,setCount]=useState(0);
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
   useEffect(()=>{ refresh(); },[refresh]);
@@ -1275,7 +1297,7 @@ function App(){
       ? html`<${Semaine}/>`
       : tab==='reglages'
       ? html`<${Reglages}/>`
-      : html`<${Capture} onCapture=${refresh}/>`
+      : html`<${Capture} onCapture=${refresh} initContent=${shareInit?.initContent||''} initSource=${shareInit?.initSource||''} initType=${shareInit?.initType||'note'} initTag=${shareInit?.initTag||''}/>`
     }
     <nav class="tabnav">
       <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>

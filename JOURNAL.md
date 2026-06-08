@@ -5,6 +5,27 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 16 : Share Target — capture depuis n'importe quelle app iOS
+
+- **Fait** :
+  - `manifest.webmanifest` : ajout `share_target` (GET, params text/url/title) — Zebracorn apparaît dans la liste "Partager avec…" iOS/Chrome une fois la PWA installée.
+  - `index.html` — 4 changements :
+    1. Helper `tagFromUrl(url)` : auto-tag `#notebooklm`, `#video`, `#gdoc`, `#github` selon le domaine source.
+    2. `Capture` accepte `initContent`, `initSource`, `initType`, `initTag` comme props initiales.
+    3. `save()` inclut `sourceUrl` dans les extras (champ séparé de `source`/tag, stocké dans IndexedDB).
+    4. Item étendu : bouton `↗ Source` si `item.sourceUrl` présent et contenu n'est pas déjà une URL.
+  - `App` : lit les URL params au démarrage (lazy useState), nettoie l'URL avec `history.replaceState`, initialise l'onglet sur Capture et pré-remplit le formulaire.
+
+- **Pourquoi** : flux NotebookLM → Zebracorn en 2 taps depuis l'iPhone. Le texte sélectionné dans une discussion NLM devient une capture `#notebooklm` avec l'URL source stockée pour retrouver le notebook d'origine. Préfigure le connect-the-dots (chaque capture = nœud avec source traçable).
+
+- **Arbitrage** : props explicites plutôt que spread HTM `...${{}}` — le spread double-accolade ne passait pas `initType` correctement dans Preact/HTM (type restait 'fichier' au lieu de 'note'). Props nommées = plus verbeux mais garanti.
+
+- **DoD** : testé navigateur — share simulé via `?text=...&url=https://notebooklm...` → tab Capture, type Note, textarea pré-rempli, tag #notebooklm, save → capture en IndexedDB avec `source:#notebooklm` + `sourceUrl`, bouton ↗ Source affiché sur l'item étendu.
+
+- **Prochain** : créer le Raccourci iPhone (share depuis Files.app + clipboard) + tester depuis l'iPhone réel avec la PWA installée. Ensuite : interface ACTOR (V1.1).
+
+---
+
 ## 2026-06-08 — Incrément 15 : Bibliothèque légère · Fix CAP sync · Fix sync.js · iCal debug
 
 - **Fait** :
