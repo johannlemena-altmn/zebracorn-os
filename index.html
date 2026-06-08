@@ -233,6 +233,8 @@ function Maintenant({inboxCount,onGoCapture}){
   const [revueOpen,setRevueOpen]=useState(()=>new Date().getDay()===5&&!getRevue().done);
   const [gcalEvts,setGcalEvts]=useState(null);
   const [livreEnCours,setLivreEnCours]=useState(null);
+  const [expandTaskId,setExpandTaskId]=useState(null);
+  const [expandNotes,setExpandNotes]=useState('');
   const typed=useTypewriter(selQ);
   const now=useClock();
 
@@ -255,6 +257,8 @@ function Maintenant({inboxCount,onGoCapture}){
 
   async function blurIntent(){ await saveIntention(intent); setWeek(await getWeekData()); }
   async function togTask(id){ const t=dayTasks.find(x=>x.id===id); await toggleTacheDone(id,!t.fait); setDayTasks(dayTasks.map(x=>x.id===id?{...x,fait:!x.fait}:x)); }
+  function toggleExpandTask(id,notes){ if(expandTaskId===id){setExpandTaskId(null);setExpandNotes('');}else{setExpandTaskId(id);setExpandNotes(notes||'');} }
+  async function sauveTaskNotes(id,val){ await setTacheNotes(id,val); setDayTasks(prev=>prev.map(t=>t.id===id?{...t,notes:val||null}:t)); }
   async function togRout(i){
     if(i===2&&!routs[2]){ setAmwapOpen(true); return; }
     const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x));
@@ -309,7 +313,12 @@ function Maintenant({inboxCount,onGoCapture}){
     <div class="sec">
       <div class="sec-h"><span class="sec-t">3 tâches clés du jour</span><span class="sec-c">${done}/${dayTasks.length||3}</span></div>
       ${dayTasks.length===0?html`<div class="empty-state">Pose tes priorités dans « Semaine » →</div>`:''}
-      ${dayTasks.map((t,i)=>html`<div class=${'task'+(t.fait?' done':'')} onClick=${()=>togTask(t.id)} key=${t.id}><div class="box"/><span class="t-txt">${t.prio==='rouge'?'🔴':'🔵'} ${t.titre}</span><span class="t-num">${i+1}</span></div>`)}
+      ${dayTasks.map((t,i)=>html`<div class=${'task'+(t.fait?' done':'')+(expandTaskId===t.id?' expanded':'')} key=${t.id}>
+        <div class="box" onClick=${()=>togTask(t.id)}/>
+        <span class="t-txt" onClick=${()=>toggleExpandTask(t.id,t.notes)}>${t.prio==='rouge'?'🔴':'🔵'} ${t.titre}</span>
+        <span class="t-num" onClick=${()=>toggleExpandTask(t.id,t.notes)}>${i+1}</span>
+        ${expandTaskId===t.id?html`<div class="task-notes"><textarea class="task-notes-ta" rows="4" value=${expandNotes} onInput=${e=>setExpandNotes(e.target.value)} onBlur=${()=>sauveTaskNotes(t.id,expandNotes)} placeholder="Note ou checklist…" autofocus/></div>`:null}
+      </div>`)}
     </div>
 
     <div class="sec">
@@ -961,6 +970,8 @@ function Semaine(){
   const [ficheId,setFicheId] = useState(null);
   const [editEchId,setEditEchId] = useState(null);
   const [editEchVal,setEditEchVal] = useState('');
+  const [expandTacheId,setExpandTacheId] = useState(null);
+  const [expandTacheNotes,setExpandTacheNotes] = useState('');
   const [questions,setQuestions]   = useState([]);
   const [qArchived,setQArchived]   = useState([]);
   const [qShowArch,setQShowArch]   = useState(false);
@@ -989,6 +1000,8 @@ function Semaine(){
     setTitre(''); await load();
   }
   async function togTache(id,fait){ await toggleTacheDone(id,fait); await load(); }
+  function toggleExpandTache(id,notes){ if(expandTacheId===id){setExpandTacheId(null);setExpandTacheNotes('');}else{setExpandTacheId(id);setExpandTacheNotes(notes||'');} }
+  async function sauveExpandNotes(id,val){ await setTacheNotes(id,val); setTaches(prev=>prev.map(t=>t.id===id?{...t,notes:val||null}:t)); }
   async function delTache(id){ await deleteTache(id); await load(); }
   async function delChant(id){ await deleteChantier(id); await load(); }
   async function sauveEcheance(id,val){ await setTacheEcheance(id,val||null); setEditEchId(null); await load(); }
@@ -1008,9 +1021,9 @@ function Semaine(){
     ${arr.length===0?html`<div class="empty-state">${sous}</div>`:''}
     ${arr.map(t=>{
       const ei=fmtEch(t.echeance);
-      return html`<div class=${'task'+(t.fait?' done':'')} key=${t.id}>
+      return html`<div class=${'task'+(t.fait?' done':'')+(expandTacheId===t.id?' expanded':'')} key=${t.id}>
         <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
-        <span class="t-txt">${t.titre}</span>
+        <span class="t-txt" onClick=${()=>toggleExpandTache(t.id,t.notes)}>${t.titre}</span>
         ${editEchId===t.id
           ?html`<input type="date" class="ech-inp" value=${editEchVal}
               onInput=${e=>setEditEchVal(e.target.value)}
@@ -1023,6 +1036,7 @@ function Semaine(){
             </button>`
         }
         <span class="t-del" onClick=${()=>delTache(t.id)}>✕</span>
+        ${expandTacheId===t.id?html`<div class="task-notes"><textarea class="task-notes-ta" rows="4" value=${expandTacheNotes} onInput=${e=>setExpandTacheNotes(e.target.value)} onBlur=${()=>sauveExpandNotes(t.id,expandTacheNotes)} placeholder="Note ou checklist…" autofocus/></div>`:null}
       </div>`;
     })}
   </div>`;
@@ -1331,6 +1345,13 @@ function App(){
   const [inboxCount,setCount]=useState(0);
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
   useEffect(()=>{ refresh(); },[refresh]);
+  useEffect(()=>{
+    const txt=new URLSearchParams(window.location.search).get('text');
+    if(txt&&txt.trim()){
+      addCapture('note',txt.trim(),'',{}).then(()=>{ refresh(); setTab('capture'); });
+      history.replaceState(null,'',location.pathname);
+    }
+  },[]);
   useEffect(()=>{
     if(!syncConfigured()) return;
     const fn=()=>{ if(document.hidden) pushAll().catch(()=>{}); };
