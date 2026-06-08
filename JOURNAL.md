@@ -5,6 +5,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 10 : Gamification Corpus+Badges + Icône Z
+
+- **Fait** :
+  - `getStats()` dans `db.js` : total captures, traitées, avec notes, avec liens, tâches faites, maxPct chantier.
+  - Section **Corpus** dans Réglages : 4 KPIs (stats-grid Fraunces) + 9 badges paliers.
+  - Badges : Première graine (1), Annotateur (note), Acteur (tâche), Cartographe (lien),
+    Mi-chantier (50%), Filtreur (10 traitées), Archiviste (50 cap.), Maître d'œuvre (chantier 100%), Corpus vivant (100 cap.).
+  - Locked = grayed+grayscale avec progression `X/N` si mesurable.
+  - `icons/icon.svg` : Z blanc/terracotta sur fond arrondi — favicon SVG + manifest.
+  - `<link rel="icon">` SVG + `<link rel="apple-touch-icon">` PNG dans `<head>`.
+
+- **Pourquoi** : voir le corpus grandir donne un retour concret sur l'investissement.
+  Les badges paliers créent des micro-victoires sur le parcours apprentissage/maîtrise.
+  L'icône Z remplace le carré plat — identité visuelle Zebracorn affirmée.
+
+- **DoD** : code relu in-context. Stats calculées à la volée (pas de migration DB).
+  Badges définis comme pure logique fonctionnelle sur stats.
+
+- **Prochain** : Le Filtre v1 (IA sur capture) ou Rotation rail captif. À valider.
+
+---
+
 ## 2026-06-08 — Incrément 9 : Liens entre captures (Obsidian-like)
 
 - **Fait** :
