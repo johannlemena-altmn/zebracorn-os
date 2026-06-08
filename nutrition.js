@@ -47,6 +47,12 @@ export const ALIMENTS = [
   { nom: 'Graines de lin (1 CS)',kcal: 55,  prot: 1.9,gluc: 3,  lip: 4.3, cat: 'autres',  prixUnit: 0.2,   emoji: '🌱' },
   { nom: 'Gingembre frais',      kcal: 10,  prot: 0.2,gluc: 2,  lip: 0.1, cat: 'autres',  prixUnit: 0.3,   emoji: '🫚' },
   { nom: 'Patate douce (200g)',  kcal: 172, prot: 3.2,gluc: 40, lip: 0.2, cat: 'feculent', prixUnit: 0.6,  emoji: '🍠' },
+  // Alternatives protéinées végétales
+  { nom: 'Soja texturé PST (100g réhyd.)', kcal: 145, prot: 26, gluc: 9, lip: 1.2, cat: 'proteines', prixUnit: 0.4, emoji: '🌿' },
+  { nom: 'Tempeh (150g)',        kcal: 195, prot: 20, gluc: 8,  lip: 10,  cat: 'proteines', prixUnit: 1.5,  emoji: '🫘' },
+  { nom: 'Sardines boîte (100g)',kcal: 208, prot: 25, gluc: 0,  lip: 12,  cat: 'proteines', prixUnit: 0.9,  emoji: '🐟' },
+  { nom: 'Spiruline (1 CS = 5g)',kcal: 18,  prot: 3.5,gluc: 1,  lip: 0.4, cat: 'autres',  prixUnit: 0.3,   emoji: '💚' },
+  { nom: 'Graines de courge (30g)',kcal: 163,prot: 8.5,gluc: 5, lip: 13,  cat: 'autres',  prixUnit: 0.4,   emoji: '🥜' },
 ];
 
 /* ── Recettes suggestions ce soir ── */
@@ -74,16 +80,24 @@ export const RECETTES_SOIR = [
   },
 ];
 
-/* ── Stock permanent (acheté en gros, jamais dans les courses hebdo) ── */
+/* ── Stock permanent (gros volumes / longue conservation) ── */
 export const STOCK_BASE = [
-  { nom: 'Riz blanc (18 kg)',      qte: '~1 mois à deux', note: 'Sac en cours' },
-  { nom: 'Pâtes',                  qte: 'grand format',   note: 'Stock en cours' },
-  { nom: 'Huile d\'olive',         qte: '1-2 L',          note: 'Réappro mensuel' },
-  { nom: 'Flocons d\'avoine',      qte: '1 kg',           note: 'Réappro mensuel' },
-  { nom: 'Graines de lin moulues', qte: '250 g',          note: 'Réappro mensuel' },
-  { nom: 'Sel, poivre, épices',    qte: 'placard',        note: 'Réappro rare' },
-  { nom: 'Sauce soja',             qte: 'bouteille',      note: 'Réappro rare' },
+  { nom: 'Riz blanc (sac)',        prix: 18.0, cat: 'feculent',  qte: '18 kg ~2 mois' },
+  { nom: 'Pâtes',                  prix: 3.0,  cat: 'feculent',  qte: 'grand format' },
+  { nom: 'Huile d\'olive',         prix: 7.0,  cat: 'autres',    qte: '1-2 L' },
+  { nom: 'Flocons d\'avoine',      prix: 2.5,  cat: 'feculent',  qte: '1 kg' },
+  { nom: 'Graines de lin moulues', prix: 2.0,  cat: 'autres',    qte: '250 g' },
+  { nom: 'Soja texturé PST',       prix: 4.0,  cat: 'proteines', qte: '500 g sec' },
+  { nom: 'Sel, poivre, épices',    prix: 5.0,  cat: 'autres',    qte: 'placard' },
+  { nom: 'Sauce soja',             prix: 2.5,  cat: 'autres',    qte: 'bouteille' },
+  { nom: 'Bicarbonate / vinaigre', prix: 2.0,  cat: 'autres',    qte: 'placard' },
 ];
+
+function getStockEtat() {
+  try { return JSON.parse(localStorage.getItem('zc_stock_etat') || '{}'); }
+  catch { return {}; }
+}
+function saveStockEtat(e) { localStorage.setItem('zc_stock_etat', JSON.stringify(e)); }
 
 /* ── 3 paniers hebdo rotatifs (~22-26€, féculents de stock exclus) ── */
 const COURSES_SEMAINES = [
@@ -196,8 +210,20 @@ function CoursesView() {
   const [newCat, setNewCat] = useState('proteines');
   const [showRecettes, setShowRecettes] = useState(true);
   const [recetteOpen, setRecetteOpen] = useState(null);
+  const [stockEtat, setStockEtat] = useState(getStockEtat);
 
   const load = useCallback(async () => { setItems(await getCourses()); }, []);
+
+  function toggleStockItem(nom) {
+    const e = { ...stockEtat, [nom]: !stockEtat[nom] };
+    saveStockEtat(e); setStockEtat(e);
+  }
+  async function addStockToCourses(item) {
+    const existing = await getCourses();
+    if (existing.some(c => c.nom.toLowerCase() === item.nom.toLowerCase())) return;
+    await addCourse({ nom: item.nom, qte: item.qte, prix: item.prix, categorie: item.cat });
+    await load();
+  }
   useEffect(() => { load(); }, [load]);
 
   const budget = items.reduce((s, i) => s + (i.fait ? 0 : (parseFloat(i.prix) || 0)), 0);
@@ -292,9 +318,17 @@ function CoursesView() {
     </div>`)}
 
     <div class="nutri-stock-box">
-      <div class="nutri-section-hdr" style="margin-bottom:7px">📦 Stock de base — pas à racheter</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">
-        ${STOCK_BASE.map((s, i) => html`<span key=${i} class="nutri-stock-chip" title=${s.note}>${s.nom}</span>`)}
+      <div class="nutri-section-hdr" style="margin-bottom:3px">📦 Stock de base</div>
+      <div class="hint" style="margin-bottom:8px">Coche ce que tu as déjà · 🛒 pour l'ajouter aux courses</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${STOCK_BASE.map((s, i) => html`<div key=${i} class="nutri-stock-row">
+          <span class=${'nutri-stock-chip' + (stockEtat[s.nom] ? ' ok' : ' needed')}
+            onClick=${() => toggleStockItem(s.nom)}>
+            ${stockEtat[s.nom] ? '✓' : '○'} ${s.nom}
+          </span>
+          <span class="nutri-stock-qte">${s.qte}</span>
+          ${!stockEtat[s.nom] ? html`<button class="nutri-stock-add" onClick=${() => addStockToCourses(s)} title="Ajouter aux courses">🛒</button>` : ''}
+        </div>`)}
       </div>
     </div>
 
