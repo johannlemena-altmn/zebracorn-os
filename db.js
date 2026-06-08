@@ -61,6 +61,10 @@ async function deleteCapture(id) {
   return db.captures.delete(id);
 }
 
+async function updateCaptureNotes(id, notes) {
+  return db.captures.update(id, { notes: notes || null });
+}
+
 async function getCapturesByChantier(chantierId) {
   const all = await db.captures.filter(c => c.chantierId === chantierId).toArray();
   return all.sort((a, b) => (a.date < b.date ? 1 : -1));
