@@ -165,6 +165,21 @@ function sortByEch(arr){
     return 0;
   });
 }
+function parseNotes(str){
+  if(!str) return [];
+  return str.split('\n').map(line=>{
+    if(/^\[ \]/.test(line)) return {type:'todo',done:false,text:line.slice(4)};
+    if(/^\[x\]/i.test(line)) return {type:'todo',done:true,text:line.slice(4)};
+    return {type:'text',text:line};
+  });
+}
+function toggleSubtaskLine(str,idx){
+  const lines=str.split('\n');
+  if(/^\[ \]/.test(lines[idx])) lines[idx]='[x]'+lines[idx].slice(3);
+  else if(/^\[x\]/i.test(lines[idx])) lines[idx]='[ ]'+lines[idx].slice(3);
+  return lines.join('\n');
+}
+
 function useTypewriter(text,speed=30){
   const [d,setD]=useState('');
   useEffect(()=>{
@@ -235,6 +250,7 @@ function Maintenant({inboxCount,onGoCapture}){
   const [livreEnCours,setLivreEnCours]=useState(null);
   const [expandTaskId,setExpandTaskId]=useState(null);
   const [expandNotes,setExpandNotes]=useState('');
+  const [editNotesId,setEditNotesId]=useState(null);
   const typed=useTypewriter(selQ);
   const now=useClock();
 
@@ -313,12 +329,40 @@ function Maintenant({inboxCount,onGoCapture}){
     <div class="sec">
       <div class="sec-h"><span class="sec-t">3 tâches clés du jour</span><span class="sec-c">${done}/${dayTasks.length||3}</span></div>
       ${dayTasks.length===0?html`<div class="empty-state">Pose tes priorités dans « Semaine » →</div>`:''}
-      ${dayTasks.map((t,i)=>html`<div class=${'task'+(t.fait?' done':'')+(expandTaskId===t.id?' expanded':'')} key=${t.id}>
-        <div class="box" onClick=${()=>togTask(t.id)}/>
-        <span class="t-txt" onClick=${()=>toggleExpandTask(t.id,t.notes)}>${t.prio==='rouge'?'🔴':'🔵'} ${t.titre}</span>
-        <span class="t-num" onClick=${()=>toggleExpandTask(t.id,t.notes)}>${i+1}</span>
-        ${expandTaskId===t.id?html`<div class="task-notes"><textarea class="task-notes-ta" rows="4" value=${expandNotes} onInput=${e=>setExpandNotes(e.target.value)} onBlur=${()=>sauveTaskNotes(t.id,expandNotes)} placeholder="Note ou checklist…" autofocus/></div>`:null}
-      </div>`)}
+      ${dayTasks.map((t,i)=>{
+        const isExp=expandTaskId===t.id;
+        const isEdit=editNotesId===t.id;
+        const parsed=parseNotes(t.notes);
+        const todos=parsed.filter(l=>l.type==='todo');
+        const doneC=todos.filter(l=>l.done).length;
+        return html`<div class=${'task'+(t.fait?' done':'')+(isExp?' expanded':'')} key=${t.id}>
+          <div class="box" onClick=${()=>togTask(t.id)}/>
+          <span class="t-txt" onClick=${()=>toggleExpandTask(t.id,t.notes)}>${t.prio==='rouge'?'🔴':'🔵'} ${t.titre}</span>
+          <span class="t-toggle" onClick=${()=>toggleExpandTask(t.id,t.notes)}>
+            ${todos.length?html`<span class="t-count">${doneC}/${todos.length}</span>`:''}
+            ${isExp?'▾':'▸'}
+          </span>
+          ${isExp?html`<div class="task-notes">
+            ${isEdit||!t.notes?html`
+              <textarea class="task-notes-ta" rows="5" value=${expandNotes}
+                onInput=${e=>setExpandNotes(e.target.value)}
+                onBlur=${async()=>{await sauveTaskNotes(t.id,expandNotes);setEditNotesId(null);}}
+                placeholder=${'[ ] sous-tâche\n[ ] autre tâche\n— ou note libre…'}
+                autofocus/>
+            `:html`
+              <div class="subtask-list">
+                ${parsed.map((line,idx)=>line.type==='todo'?html`
+                  <div class=${'subtask'+(line.done?' done':'')} onClick=${async e=>{e.stopPropagation();const n=toggleSubtaskLine(t.notes,idx);await sauveTaskNotes(t.id,n);setDayTasks(prev=>prev.map(x=>x.id===t.id?{...x,notes:n}:x));}} key=${idx}>
+                    <span class="st-cb">${line.done?'☑':'☐'}</span>
+                    <span class="st-txt">${line.text}</span>
+                  </div>
+                `:line.text?html`<div class="note-line" key=${idx}>${line.text}</div>`:null)}
+                <button class="edit-notes-btn" onClick=${e=>{e.stopPropagation();setEditNotesId(t.id);setExpandNotes(t.notes||'');}}>✎ éditer</button>
+              </div>
+            `}
+          </div>`:null}
+        </div>`;
+      })}
     </div>
 
     <div class="sec">
@@ -402,6 +446,8 @@ async function shareFile(item){
 }
 
 /* ── Capture ─────────────────────────────────── */
+const isAudioUrl=u=>/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(u||'');
+
 function Capture({onCapture}){
   const [type,setType]=useState('note');
   const [content,setContent]=useState('');
@@ -430,10 +476,11 @@ function Capture({onCapture}){
   const [actorId,setActorId]=useState(null);
   const [actorDraft,setActorDraft]=useState({});
   const [actorSection,setActorSection]=useState('A');
+  const [corpus,setCorpus]=useState([]);
 
   const load=useCallback(async()=>{
-    const[a,b,c]=await Promise.all([getInbox(),getDone(),getLater()]);
-    setInbox(a); setDone(b); setLater(c);
+    const[a,b,c,corp]=await Promise.all([getInbox(),getDone(),getLater(),getActorCorpus()]);
+    setInbox(a); setDone(b); setLater(c); setCorpus(corp);
   },[]);
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{ getChantiers().then(setChList); },[]);
@@ -514,8 +561,9 @@ function Capture({onCapture}){
   function ouvrirActor(item){
     if(actorId===item.id){setActorId(null);return;}
     const ex=item.actorAnalysis||{};
+    const isNew=!item.actorAnalysis;
     setActorDraft({
-      aim:ex.aim||'', compress:ex.compress||'',
+      aim:ex.aim||'', compress:ex.compress||(isNew?item.contenu.slice(0,500):''),
       faits:ex.test?.faits||'', interp:ex.test?.interp||'',
       croyances:ex.test?.croyances||'', valeurs:ex.test?.valeurs||'',
       question:ex.test?.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?",
@@ -532,6 +580,7 @@ function Capture({onCapture}){
     };
     await saveActorAnalysis(id,a);
     setInbox(prev=>prev.map(x=>x.id===id?{...x,actorAnalysis:a}:x));
+    setCorpus(await getActorCorpus());
     setActorId(null);
   }
   async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
@@ -604,6 +653,7 @@ function Capture({onCapture}){
             rows=3></textarea>
           ${expandNotes?html`<div class="hint" style="margin-top:4px">Sauvegardé à la perte de focus</div>`:''}
         </div>
+        ${item.type==='lien'&&isAudioUrl(item.contenu)?html`<div style="padding:10px 11px 2px"><audio controls style="width:100%;border-radius:8px;height:40px" src=${item.contenu}></audio></div>`:''}
         <div class="links-section">
           <div class="links-hdr">
             <span class="sec-t">Liens</span>
@@ -763,6 +813,29 @@ function Capture({onCapture}){
         </div>`:''}
       </div>`;
     })()}
+
+    ${corpus.length>0?html`
+      <div class="sec-h" style="margin-top:1.4rem">
+        <span class="sec-t">⊙ Corpus ACTOR</span>
+        <span class="sec-c">${corpus.length}</span>
+      </div>
+      ${corpus.map(item=>{
+        const a=item.actorAnalysis;
+        return html`<div class="corpus-card" key=${item.id}>
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <span style="font-size:13px;flex-shrink:0">${T_ICONS[item.type]||'📝'}</span>
+            <div style="flex:1;min-width:0">
+              <div class="item-ti" style="font-size:12px;color:var(--ink2)">${item.contenu.slice(0,90)}${item.contenu.length>90?'…':''}</div>
+              ${a.own?html`<div class="corpus-own">${a.own.slice(0,160)}${a.own.length>160?'…':''}</div>`:''}
+              <div class="corpus-meta">
+                ${a.run?.type?html`<span class="corpus-run">${a.run.type}</span>`:''}
+                <span class="corpus-date">${relDate(a.updatedAt)}</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      })}
+    `:''}
 
     <div class="foot">Zebracorn OS · Capture · v0.1</div>
   </div>`;
@@ -972,6 +1045,7 @@ function Semaine(){
   const [editEchVal,setEditEchVal] = useState('');
   const [expandTacheId,setExpandTacheId] = useState(null);
   const [expandTacheNotes,setExpandTacheNotes] = useState('');
+  const [editTacheId,setEditTacheId] = useState(null);
   const [questions,setQuestions]   = useState([]);
   const [qArchived,setQArchived]   = useState([]);
   const [qShowArch,setQShowArch]   = useState(false);
@@ -1021,7 +1095,12 @@ function Semaine(){
     ${arr.length===0?html`<div class="empty-state">${sous}</div>`:''}
     ${arr.map(t=>{
       const ei=fmtEch(t.echeance);
-      return html`<div class=${'task'+(t.fait?' done':'')+(expandTacheId===t.id?' expanded':'')} key=${t.id}>
+      const isExp=expandTacheId===t.id;
+      const isEdit=editTacheId===t.id;
+      const parsed=parseNotes(t.notes);
+      const todos=parsed.filter(l=>l.type==='todo');
+      const doneC=todos.filter(l=>l.done).length;
+      return html`<div class=${'task'+(t.fait?' done':'')+(isExp?' expanded':'')} key=${t.id}>
         <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
         <span class="t-txt" onClick=${()=>toggleExpandTache(t.id,t.notes)}>${t.titre}</span>
         ${editEchId===t.id
@@ -1035,8 +1114,30 @@ function Semaine(){
               ${ei?ei.label:'+'}
             </button>`
         }
+        <span class="t-toggle" onClick=${()=>toggleExpandTache(t.id,t.notes)}>
+          ${todos.length?html`<span class="t-count">${doneC}/${todos.length}</span>`:''}
+          ${isExp?'▾':'▸'}
+        </span>
         <span class="t-del" onClick=${()=>delTache(t.id)}>✕</span>
-        ${expandTacheId===t.id?html`<div class="task-notes"><textarea class="task-notes-ta" rows="4" value=${expandTacheNotes} onInput=${e=>setExpandTacheNotes(e.target.value)} onBlur=${()=>sauveExpandNotes(t.id,expandTacheNotes)} placeholder="Note ou checklist…" autofocus/></div>`:null}
+        ${isExp?html`<div class="task-notes">
+          ${isEdit||!t.notes?html`
+            <textarea class="task-notes-ta" rows="5" value=${expandTacheNotes}
+              onInput=${e=>setExpandTacheNotes(e.target.value)}
+              onBlur=${async()=>{await sauveExpandNotes(t.id,expandTacheNotes);setEditTacheId(null);}}
+              placeholder=${'[ ] sous-tâche\n[ ] autre tâche\n— ou note libre…'}
+              autofocus/>
+          `:html`
+            <div class="subtask-list">
+              ${parsed.map((line,idx)=>line.type==='todo'?html`
+                <div class=${'subtask'+(line.done?' done':'')} onClick=${async e=>{e.stopPropagation();const n=toggleSubtaskLine(t.notes,idx);await sauveExpandNotes(t.id,n);}} key=${idx}>
+                  <span class="st-cb">${line.done?'☑':'☐'}</span>
+                  <span class="st-txt">${line.text}</span>
+                </div>
+              `:line.text?html`<div class="note-line" key=${idx}>${line.text}</div>`:null)}
+              <button class="edit-notes-btn" onClick=${e=>{e.stopPropagation();setEditTacheId(t.id);setExpandTacheNotes(t.notes||'');}}>✎ éditer</button>
+            </div>
+          `}
+        </div>`:null}
       </div>`;
     })}
   </div>`;

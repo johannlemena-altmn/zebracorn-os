@@ -238,6 +238,10 @@ async function deleteTache(id) {
   return db.taches.delete(id);
 }
 
+async function setTacheNotes(id, notes) {
+  return db.taches.update(id, { notes: notes || null });
+}
+
 // ── Seed initial (une seule fois) : amorce la semaine de Johann ──────────
 // Flag localStorage → si Johann supprime des items, ils ne reviennent pas.
 
@@ -552,4 +556,11 @@ async function seedLivresOnce() {
 // ── ACTOR (analyse en 5 étapes) ───────────────────────────────────────────
 async function saveActorAnalysis(id, analysis) {
   return db.captures.update(id, { actorAnalysis: analysis });
+}
+
+async function getActorCorpus() {
+  const all = await db.captures.toArray();
+  return all
+    .filter(c => c.actorAnalysis)
+    .sort((a, b) => (a.actorAnalysis.updatedAt < b.actorAnalysis.updatedAt ? 1 : -1));
 }

@@ -5,6 +5,21 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 20 : Workflow NotebookLM fluide (ACTOR pré-rempli · audio · corpus)
+
+- **Fait** :
+  - **ACTOR pré-rempli** : ouverture sur une nouvelle capture → champ C (Compress) pré-rempli avec les 500 premiers caractères du contenu. Sur une analyse existante, les champs conservent ce qui avait été sauvegardé.
+  - **Audio player inline** : si un lien capturé pointe vers un fichier audio (`.mp3/.wav/.ogg/.m4a/.aac`), un `<audio controls>` s'affiche directement dans la section expand de la carte. Utile pour les podcasts NotebookLM partagés par URL.
+  - **Corpus ⊙ ACTOR** : section en bas de l'onglet Capture listant toutes les captures ayant une analyse ACTOR (tous statuts). Chaque carte affiche : contenu tronqué, OWN en italique Fraunces (la position prise), badge Run type, date. Se met à jour en temps réel après chaque `Sauvegarder ⊙`.
+
+- **Pourquoi** : Friction principale du workflow NotebookLM → ACTOR : l'utilisateur devait re-taper le contenu capturé dans le champ Compress. Éliminé. Le Corpus est le début du "connect-the-dots" : naviguer ses positions sans rouvrir chaque capture.
+
+- **DoD** : Testé preview — pre-fill compress confirmé (console log), corpus visible avec OWN + badge, 0 erreur console.
+
+- **Prochain** : Tests sur vraies captures NotebookLM. Éventuellement : clic sur carte corpus → rouvre ACTOR pour édition ; recherche/filtre dans le corpus.
+
+---
+
 ## 2026-06-09 — Incrément 19 : Share Target iOS + handler URL entrant
 
 - **Fait** : L'app peut maintenant recevoir du contenu depuis le Share Sheet iOS (et depuis le raccourci Shortcuts).
@@ -34,15 +49,22 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
-## 2026-06-09 — Incrément 17 : Notes tap-to-expand sur les tâches
+## 2026-06-09 — Incrément 17 : Sous-tâches interactives (tap-to-expand refondé)
 
-- **Fait** : Les tâches dans la vue Maintenant (et Semaine) sont maintenant cliquables sur le titre/numéro. Un tap ouvre un textarea "Note ou checklist..." directement dans la carte, fond transparent, police cohérente avec le design system. Sauvegarde on-blur dans Dexie (champ `notes` arbitraire, sans migration de schéma). Rechargement → notes restituées. Cas d'usage immédiat : tâche "Talents for the Planet" pré-remplie avec le checklist du salon T4TP (matin conférences / après-midi stands IDEX+Ortec+Valobat+Systra / suivi post-salon Entourage+CEC).
+- **Fait** : Notes de tâche entièrement refondues en sous-tâches interactives.
+  - Toggle `▸`/`▾` explicite à droite du titre (+ tap titre = même effet).
+  - Parsing `[ ]` / `[x]` → checkboxes cliquables dans le design system (☐/☑, couleur `--ok` quand coché, barré).
+  - Compteur `X/N` en terracotta visible en mode collapsed et en header.
+  - Lignes sans `[ ]` → texte grisé (notes libres, séparateurs).
+  - Bouton `✎ éditer` pour passer en mode textarea (édition du texte brut).
+  - Sauvegarde on-blur du textarea → retour en vue checkboxes.
+  - Sans notes : tap → textarea directement (pas de vue vide inutile).
+  - Implémenté dans Maintenant et Semaine.
+  - Helpers globaux `parseNotes()` + `toggleSubtaskLine()` partagés.
 
-- **Pourquoi** : Johann va au salon T4TP aujourd'hui et avait besoin d'accéder à son checklist depuis l'app mobile sans ouvrir un autre document. Pattern le plus sobre : expand in-place, pas de modal ni nouvelle vue.
+- **Pourquoi** : Textarea brut sur fond blanc cassait le design sombre et offrait zéro feedback sur la progression. Refonte motivée par cas d'usage T4TP aujourd'hui (7 sous-tâches stands/suivi). Parcours : collapsed → compteur → tap → cocher au fur et à mesure.
 
-- **DoD** : Testé navigateur — expand/collapse OK, sauvegarde DB confirmée, persistance après reload vérifiée.
-
-- **Prochain** : Même pattern pour les tâches de la vue Semaine (déjà implémenté côté code, à vérifier en preview). Possibilité future : rendre les `[ ]` de la textarea cliquables comme vraie checklist.
+- **DoD** : Testé navigateur — collapse/expand OK, checkbox toggle OK, compteur live OK, persistance DB confirmée après reload.
 
 ---
 

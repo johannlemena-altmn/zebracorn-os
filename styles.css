@@ -77,6 +77,23 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .task.done .t-txt{text-decoration:line-through;color:var(--ink3);}
 .t-txt{font-size:14px;flex:1;}
 .t-num{font-family:var(--fm);font-size:11px;color:var(--ink3);font-weight:600;}
+.t-toggle{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--ink3);cursor:pointer;padding:2px 4px;border-radius:4px;flex-shrink:0;user-select:none;}
+.t-toggle:active{background:var(--border);}
+.t-count{font-family:var(--fm);font-size:10px;color:var(--acc);font-weight:700;}
+.task.expanded{flex-wrap:wrap;align-items:flex-start;}
+.task.expanded .box{margin-top:2px;}
+.task-notes{width:100%;margin-top:6px;border-top:1px solid var(--border2);padding-top:6px;}
+.task-notes-ta{width:100%;background:transparent;border:none;color:var(--ink2);font-family:var(--fb);font-size:13px;resize:none;outline:none;line-height:1.55;padding:0;box-sizing:border-box;}
+.subtask-list{padding:2px 0 4px;}
+.subtask{display:flex;align-items:flex-start;gap:9px;padding:6px 4px;cursor:pointer;border-radius:5px;transition:.1s;}
+.subtask:active{background:var(--border);}
+.subtask.done .st-txt{text-decoration:line-through;color:var(--ink3);}
+.st-cb{font-size:17px;line-height:1.15;flex-shrink:0;color:var(--acc);}
+.subtask.done .st-cb{color:var(--ok);}
+.st-txt{font-size:13px;color:var(--ink2);line-height:1.45;padding-top:1px;}
+.note-line{font-size:12px;color:var(--ink3);padding:3px 4px;line-height:1.4;}
+.edit-notes-btn{background:none;border:1px solid var(--border2);color:var(--ink3);font-size:11px;padding:4px 9px;cursor:pointer;border-radius:4px;margin-top:6px;display:block;}
+.edit-notes-btn:active{color:var(--acc);border-color:var(--acc);}
 
 /* ── Routines ── */
 .rout{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;background:var(--bg2);cursor:pointer;transition:.15s;}
@@ -415,3 +432,9 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .actor-own-ta:focus{background:var(--bg);box-shadow:0 0 0 3px rgba(194,85,47,.12);}
 .actor-run-sel{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:20px;padding:8px 13px;font-family:var(--fb);font-size:12px;color:var(--ink);outline:none;-webkit-appearance:none;appearance:none;}
 .actor-save{width:100%;margin-top:4px;background:var(--ac);color:#fff;border:none;border-radius:20px;padding:11px;font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+/* Corpus ACTOR */
+.corpus-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ac);border-radius:var(--r);padding:11px 12px;margin-bottom:7px;}
+.corpus-own{font-family:var(--fs);font-style:italic;font-size:13px;color:var(--ink);line-height:1.45;margin:6px 0 5px;border-left:2px solid var(--ac);padding-left:8px;}
+.corpus-meta{display:flex;gap:8px;align-items:center;}
+.corpus-run{font-family:var(--fm);font-size:8px;color:var(--ac);background:rgba(194,85,47,.1);padding:2px 7px;border-radius:10px;}
+.corpus-date{font-family:var(--fm);font-size:9px;color:var(--ink3);}
