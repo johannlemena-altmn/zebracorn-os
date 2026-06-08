@@ -41,6 +41,12 @@ export const ALIMENTS = [
   { nom: 'Noix (30g)',           kcal: 196, prot: 4.5,gluc: 4,  lip: 19,  cat: 'autres',  prixUnit: 0.5,   emoji: '🥜' },
   { nom: 'Chocolat noir (30g)',  kcal: 174, prot: 2.5,gluc: 13, lip: 13,  cat: 'autres',  prixUnit: 0.4,   emoji: '🍫' },
   { nom: 'Parmesan (30g)',       kcal: 117, prot: 10, gluc: 0,  lip: 8,   cat: 'autres',  prixUnit: 0.6,   emoji: '🧀' },
+  // Aliments doux pour l'intestin
+  { nom: 'Lentilles corail (150g cuit)', kcal: 170, prot: 13, gluc: 30, lip: 0.5, cat: 'proteines', prixUnit: 0.25, emoji: '🫘' },
+  { nom: 'Kéfir (200ml)',        kcal: 92,  prot: 6,  gluc: 10, lip: 3,   cat: 'proteines', prixUnit: 0.6,  emoji: '🥛' },
+  { nom: 'Graines de lin (1 CS)',kcal: 55,  prot: 1.9,gluc: 3,  lip: 4.3, cat: 'autres',  prixUnit: 0.2,   emoji: '🌱' },
+  { nom: 'Gingembre frais',      kcal: 10,  prot: 0.2,gluc: 2,  lip: 0.1, cat: 'autres',  prixUnit: 0.3,   emoji: '🫚' },
+  { nom: 'Patate douce (200g)',  kcal: 172, prot: 3.2,gluc: 40, lip: 0.2, cat: 'feculent', prixUnit: 0.6,  emoji: '🍠' },
 ];
 
 /* ── Recettes suggestions ce soir ── */
@@ -68,34 +74,74 @@ export const RECETTES_SOIR = [
   },
 ];
 
-/* ── Liste de courses de base (semaine type, ~30€) ── */
-const COURSES_BASE = [
-  // Protéines
-  { nom: 'Poulet (500g)',          prix: 4.2,  cat: 'proteines', qte: '500g' },
-  { nom: 'Œufs (x12)',             prix: 2.8,  cat: 'proteines', qte: 'boîte x12' },
-  { nom: 'Tofu ferme (2 blocs)',   prix: 3.0,  cat: 'proteines', qte: '2×200g' },
-  { nom: 'Lentilles vertes',       prix: 1.2,  cat: 'proteines', qte: '500g' },
-  { nom: 'Pois chiches (boîte)',   prix: 0.8,  cat: 'proteines', qte: 'boîte 400g' },
-  { nom: 'Thon en boîte (x3)',     prix: 3.0,  cat: 'proteines', qte: 'x3 140g' },
-  { nom: 'Yaourt grec (x4)',       prix: 2.8,  cat: 'proteines', qte: 'x4 200g' },
-  // Féculents
-  { nom: 'Pâtes',                  prix: 1.2,  cat: 'feculent',  qte: '500g' },
-  { nom: 'Riz',                    prix: 1.0,  cat: 'feculent',  qte: '1kg' },
-  { nom: 'Flocons d\'avoine',      prix: 1.5,  cat: 'feculent',  qte: '500g' },
-  { nom: 'Pain complet',           prix: 1.8,  cat: 'feculent',  qte: 'miche' },
-  // Légumes
-  { nom: 'Courgettes (x3)',        prix: 1.5,  cat: 'legumes',   qte: 'x3' },
-  { nom: 'Champignons (barquette)',prix: 1.8,  cat: 'legumes',   qte: '250g' },
-  { nom: 'Épinards frais',         prix: 1.5,  cat: 'legumes',   qte: '250g' },
-  { nom: 'Carottes (sachet)',      prix: 0.9,  cat: 'legumes',   qte: '1kg' },
-  { nom: 'Tomates (grappe)',       prix: 1.6,  cat: 'legumes',   qte: '500g' },
-  // Fruits
-  { nom: 'Bananes (grappe)',       prix: 1.2,  cat: 'fruits',    qte: '~6' },
-  { nom: 'Pommes (sachet)',        prix: 2.0,  cat: 'fruits',    qte: '1kg' },
-  // Autres
-  { nom: 'Huile d\'olive',         prix: 3.5,  cat: 'autres',    qte: '500ml' },
-  { nom: 'Parmesan râpé',          prix: 1.8,  cat: 'autres',    qte: '100g' },
+/* ── 3 paniers hebdo rotatifs (~30€, gut-friendly) ── */
+const COURSES_SEMAINES = [
+  // Semaine A — poulet + lentilles corail + riz
+  [
+    { nom: 'Poulet (500g)',             prix: 4.2, cat: 'proteines', qte: '500g' },
+    { nom: 'Œufs (x12)',                prix: 2.8, cat: 'proteines', qte: 'boîte x12' },
+    { nom: 'Lentilles corail',          prix: 1.2, cat: 'proteines', qte: '500g' },
+    { nom: 'Yaourt grec (x4)',          prix: 2.8, cat: 'proteines', qte: 'x4 200g' },
+    { nom: 'Kéfir (bouteille)',         prix: 2.2, cat: 'proteines', qte: '500ml' },
+    { nom: 'Riz blanc',                 prix: 1.0, cat: 'feculent',  qte: '1kg' },
+    { nom: 'Flocons d\'avoine',         prix: 1.5, cat: 'feculent',  qte: '500g' },
+    { nom: 'Pain au levain',            prix: 2.2, cat: 'feculent',  qte: 'miche' },
+    { nom: 'Carottes (sachet)',         prix: 0.9, cat: 'legumes',   qte: '1kg' },
+    { nom: 'Courgettes (x3)',           prix: 1.5, cat: 'legumes',   qte: 'x3' },
+    { nom: 'Champignons (barquette)',   prix: 1.8, cat: 'legumes',   qte: '250g' },
+    { nom: 'Épinards frais',            prix: 1.5, cat: 'legumes',   qte: '250g' },
+    { nom: 'Bananes (grappe)',          prix: 1.2, cat: 'fruits',    qte: '~6' },
+    { nom: 'Pommes (sachet)',           prix: 2.0, cat: 'fruits',    qte: '1kg' },
+    { nom: 'Huile d\'olive',            prix: 3.5, cat: 'autres',    qte: '500ml' },
+    { nom: 'Graines de lin moulues',    prix: 1.5, cat: 'autres',    qte: '250g' },
+  ],
+  // Semaine B — tofu + pois chiches + patate douce
+  [
+    { nom: 'Tofu ferme (2 blocs)',      prix: 3.0, cat: 'proteines', qte: '2×200g' },
+    { nom: 'Œufs (x12)',                prix: 2.8, cat: 'proteines', qte: 'boîte x12' },
+    { nom: 'Pois chiches (boîte x2)',   prix: 1.6, cat: 'proteines', qte: '2×400g' },
+    { nom: 'Thon en boîte (x3)',        prix: 3.0, cat: 'proteines', qte: 'x3 140g' },
+    { nom: 'Fromage blanc (x4)',        prix: 2.0, cat: 'proteines', qte: 'x4 200g' },
+    { nom: 'Pâtes complètes',           prix: 1.3, cat: 'feculent',  qte: '500g' },
+    { nom: 'Patate douce (x3)',         prix: 2.1, cat: 'feculent',  qte: 'x3' },
+    { nom: 'Flocons d\'avoine',         prix: 1.5, cat: 'feculent',  qte: '500g' },
+    { nom: 'Tomates (grappe)',          prix: 1.6, cat: 'legumes',   qte: '500g' },
+    { nom: 'Courgettes (x3)',           prix: 1.5, cat: 'legumes',   qte: 'x3' },
+    { nom: 'Carottes (sachet)',         prix: 0.9, cat: 'legumes',   qte: '1kg' },
+    { nom: 'Brocoli (x1)',              prix: 1.2, cat: 'legumes',   qte: '~300g' },
+    { nom: 'Bananes (grappe)',          prix: 1.2, cat: 'fruits',    qte: '~6' },
+    { nom: 'Oranges (filet)',           prix: 2.0, cat: 'fruits',    qte: '~6' },
+    { nom: 'Huile d\'olive',            prix: 3.5, cat: 'autres',    qte: '500ml' },
+    { nom: 'Gingembre frais',           prix: 0.8, cat: 'autres',    qte: 'morceau' },
+  ],
+  // Semaine C — saumon + haricots rouges + quinoa
+  [
+    { nom: 'Saumon (2 pavés)',          prix: 5.0, cat: 'proteines', qte: '~260g' },
+    { nom: 'Œufs (x12)',                prix: 2.8, cat: 'proteines', qte: 'boîte x12' },
+    { nom: 'Haricots rouges (boîte x2)',prix: 1.4, cat: 'proteines', qte: '2×400g' },
+    { nom: 'Lentilles corail',          prix: 1.2, cat: 'proteines', qte: '500g' },
+    { nom: 'Yaourt grec (x4)',          prix: 2.8, cat: 'proteines', qte: 'x4 200g' },
+    { nom: 'Quinoa',                    prix: 2.2, cat: 'feculent',  qte: '500g' },
+    { nom: 'Riz blanc',                 prix: 1.0, cat: 'feculent',  qte: '1kg' },
+    { nom: 'Pain au levain',            prix: 2.2, cat: 'feculent',  qte: 'miche' },
+    { nom: 'Épinards frais',            prix: 1.5, cat: 'legumes',   qte: '250g' },
+    { nom: 'Champignons (barquette)',   prix: 1.8, cat: 'legumes',   qte: '250g' },
+    { nom: 'Carottes (sachet)',         prix: 0.9, cat: 'legumes',   qte: '1kg' },
+    { nom: 'Courgettes (x2)',           prix: 1.0, cat: 'legumes',   qte: 'x2' },
+    { nom: 'Bananes (grappe)',          prix: 1.2, cat: 'fruits',    qte: '~6' },
+    { nom: 'Pommes (sachet)',           prix: 2.0, cat: 'fruits',    qte: '1kg' },
+    { nom: 'Huile d\'olive',            prix: 3.5, cat: 'autres',    qte: '500ml' },
+    { nom: 'Graines de lin moulues',    prix: 1.5, cat: 'autres',    qte: '250g' },
+  ],
 ];
+
+function getISOWeek(d = new Date()) {
+  const date = new Date(d); date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const w1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - w1) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
+}
+const WEEK_LABELS = ['A', 'B', 'C'];
 
 /* ── Constantes ── */
 const CAT_META = {
@@ -106,11 +152,13 @@ const CAT_META = {
   autres:    { label: 'Autres',    emoji: '📦' },
 };
 const CAT_ORDER = ['proteines', 'feculent', 'legumes', 'fruits', 'autres'];
-const MOMENTS = [
-  { key: 'matin', label: 'Matin',  emoji: '🌅' },
-  { key: 'midi',  label: 'Midi',   emoji: '☀️' },
-  { key: 'soir',  label: 'Soir',   emoji: '🌙' },
+const MOMENTS_BASE = [
+  { key: 'matin',      label: 'Matin',     emoji: '🌅' },
+  { key: 'midi',       label: 'Midi',      emoji: '☀️' },
+  { key: 'soir',       label: 'Soir',      emoji: '🌙' },
 ];
+const MOMENT_COLLATION = { key: 'collation', label: 'Collation', emoji: '🥜' };
+const COLLATION_IDEAS = ['Banane + poignée de noix', 'Yaourt grec + miel', 'Flocons d\'avoine + lin + lait', 'Barre maison : avoine + beurre cacahuète + miel'];
 const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
 function getLundi(d = new Date()) {
@@ -153,10 +201,12 @@ function CoursesView() {
   const budgetPct = Math.min(100, Math.round(budget / 35 * 100));
   const budgetColor = budget <= 30 ? 'var(--ok)' : budget <= 40 ? 'var(--ac2)' : 'var(--ac)';
 
+  const weekIdx = getISOWeek() % 3;
   async function genererListe() {
     const existing = await getCourses();
     const existingNoms = existing.map(i => i.nom.toLowerCase());
-    const toAdd = COURSES_BASE.filter(c => !existingNoms.includes(c.nom.toLowerCase()));
+    const panier = COURSES_SEMAINES[weekIdx];
+    const toAdd = panier.filter(c => !existingNoms.includes(c.nom.toLowerCase()));
     await Promise.all(toAdd.map(c => addCourse(c)));
     await load();
   }
@@ -194,7 +244,7 @@ function CoursesView() {
     </div>
 
     <div style="display:flex;gap:7px;margin-bottom:1.1rem">
-      <button class="btn" style="flex:1" onClick=${genererListe}>⊕ Générer liste de base</button>
+      <button class="btn" style="flex:1" onClick=${genererListe}>⊕ Liste sem. ${WEEK_LABELS[weekIdx]}</button>
       ${faites > 0 ? html`<button class="btn" onClick=${clearFaites}>✓ Vider panier</button>` : ''}
       <button class=${'btn' + (showAdd ? ' pri' : '')} onClick=${() => setShowAdd(v => !v)}>+ Article</button>
     </div>
@@ -269,13 +319,17 @@ function CoursesView() {
 function PlanningView() {
   const [repasData, setRepasData] = useState([]);
   const [lundi] = useState(getLundi);
-  const [modal, setModal] = useState(null); // { date, moment }
+  const [modal, setModal] = useState(null);
   const [nom, setNom] = useState('');
   const [kcal, setKcal] = useState('');
   const [prot, setProt] = useState('');
   const [libre, setLibre] = useState(false);
+  const [showCollation, setShowCollation] = useState(false);
 
   const dates = getWeekDates(lundi);
+  const moments = showCollation
+    ? [MOMENTS_BASE[0], MOMENT_COLLATION, MOMENTS_BASE[1], MOMENTS_BASE[2]]
+    : MOMENTS_BASE;
 
   const load = useCallback(async () => {
     const all = await getRepasSemaine(lundi);
@@ -325,7 +379,7 @@ function PlanningView() {
           </tr>
         </thead>
         <tbody>
-          ${MOMENTS.map(m => html`<tr key=${m.key}>
+          ${moments.map(m => html`<tr key=${m.key} class=${m.key === 'collation' ? 'nutri-tr-collation' : ''}>
             <td class="nutri-td-moment">${m.emoji}</td>
             ${dates.map(d => {
               const r = getRepasCell(d, m.key);
@@ -344,13 +398,23 @@ function PlanningView() {
       </table>
     </div>
 
-    <div class="hint" style="margin-top:8px">Tape sur une cellule vide pour ajouter un repas · 🎉 = repas libre (sorti, déj collègues)</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:6px">
+      <button class=${'btn' + (showCollation ? ' pri' : '')} style="font-size:11px;padding:5px 11px"
+        onClick=${() => setShowCollation(v => !v)}>
+        🥜 ${showCollation ? 'Masquer collations' : 'Afficher collations'}
+      </button>
+      <span class="hint" style="margin:0">🎉 = repas libre</span>
+    </div>
+    ${showCollation ? html`<div class="nutri-collation-ideas">
+      <span class="sec-t">Idées collation ·</span>
+      ${COLLATION_IDEAS.map((idea, i) => html`<span key=${i} class="chip" style="font-size:11px">${idea}</span>`)}
+    </div>` : ''}
 
     ${modal ? html`<div class="modal-ov" onClick=${e => e.target === e.currentTarget && setModal(null)}>
       <div class="modal-sh">
         <div class="modal-hdl"/>
         <div class="sec-t" style="display:block;margin-bottom:1rem">
-          ${MOMENTS.find(m => m.key === modal.moment)?.emoji} ${fmtJour(modal.date)} · ${MOMENTS.find(m => m.key === modal.moment)?.label}
+          ${[...MOMENTS_BASE, MOMENT_COLLATION].find(m => m.key === modal.moment)?.emoji} ${fmtJour(modal.date)} · ${[...MOMENTS_BASE, MOMENT_COLLATION].find(m => m.key === modal.moment)?.label}
         </div>
 
         <div style="display:flex;gap:7px;margin-bottom:11px">
@@ -511,7 +575,7 @@ function MacrosView() {
     ${todayRepas.length > 0 ? html`<div style="margin-top:1.3rem">
       <div class="sec-h"><span class="sec-t">Repas du jour</span></div>
       ${todayRepas.map(r => html`<div key=${r.id} class="nutri-repas-row">
-        <span class="nutri-repas-moment">${MOMENTS.find(m => m.key === r.moment)?.emoji}</span>
+        <span class="nutri-repas-moment">${[...MOMENTS_BASE, MOMENT_COLLATION].find(m => m.key === r.moment)?.emoji}</span>
         <span class="nutri-repas-nom">${r.nom}</span>
         <span class="nutri-repas-kcal">${r.kcal ? r.kcal + ' kcal' : ''}</span>
       </div>`)}
