@@ -65,6 +65,23 @@ async function updateCaptureNotes(id, notes) {
   return db.captures.update(id, { notes: notes || null });
 }
 
+async function linkCaptures(idA, idB) {
+  const [a, b] = await Promise.all([db.captures.get(idA), db.captures.get(idB)]);
+  const la = a?.linkedIds || [], lb = b?.linkedIds || [];
+  await Promise.all([
+    la.includes(idB) ? null : db.captures.update(idA, { linkedIds: [...la, idB] }),
+    lb.includes(idA) ? null : db.captures.update(idB, { linkedIds: [...lb, idA] }),
+  ]);
+}
+
+async function unlinkCaptures(idA, idB) {
+  const [a, b] = await Promise.all([db.captures.get(idA), db.captures.get(idB)]);
+  await Promise.all([
+    db.captures.update(idA, { linkedIds: (a?.linkedIds||[]).filter(x=>x!==idB) }),
+    db.captures.update(idB, { linkedIds: (b?.linkedIds||[]).filter(x=>x!==idA) }),
+  ]);
+}
+
 async function getCapturesByChantier(chantierId) {
   const all = await db.captures.filter(c => c.chantierId === chantierId).toArray();
   return all.sort((a, b) => (a.date < b.date ? 1 : -1));

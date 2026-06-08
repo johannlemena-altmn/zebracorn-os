@@ -264,6 +264,9 @@ function Capture({onCapture}){
   const [confirmDelId,setConfirmDelId]=useState(null);
   const [expandId,setExpandId]=useState(null);
   const [expandNotes,setExpandNotes]=useState('');
+  const [linkedCaps,setLinkedCaps]=useState([]);
+  const [linkPickerId,setLinkPickerId]=useState(null);
+  const [pickerCaps,setPickerCaps]=useState([]);
 
   const load=useCallback(async()=>{
     const[a,b,c]=await Promise.all([getInbox(),getDone(),getLater()]);
@@ -301,10 +304,36 @@ function Capture({onCapture}){
   }
   async function toggleExpand(id){
     if(expandId!==null&&expandId!==id&&expandNotes.trim()) await sauveNotes(expandId,expandNotes);
-    if(expandId===id){ setExpandId(null); return; }
+    if(expandId===id){ setExpandId(null); setLinkedCaps([]); setLinkPickerId(null); return; }
     const item=inbox.find(x=>x.id===id);
     setExpandId(id); setExpandNotes(item?.notes||'');
-    setAnnotId(null);
+    setAnnotId(null); setLinkPickerId(null);
+    if(item?.linkedIds?.length){
+      const caps=await Promise.all(item.linkedIds.map(lid=>db.captures.get(lid)));
+      setLinkedCaps(caps.filter(Boolean));
+    } else { setLinkedCaps([]); }
+  }
+  async function ouvrirPicker(id){
+    if(linkPickerId===id){ setLinkPickerId(null); return; }
+    const all=await db.captures.toArray();
+    setPickerCaps(all.filter(c=>c.id!==id).sort((a,b)=>a.date<b.date?1:-1));
+    setLinkPickerId(id);
+  }
+  async function toggleLien(capId,targetId){
+    const cap=await db.captures.get(capId);
+    const isLinked=(cap?.linkedIds||[]).includes(targetId);
+    if(isLinked){
+      await unlinkCaptures(capId,targetId);
+      setLinkedCaps(prev=>prev.filter(c=>c.id!==targetId));
+    } else {
+      await linkCaptures(capId,targetId);
+      const nc=await db.captures.get(targetId); if(nc) setLinkedCaps(prev=>[...prev,nc]);
+    }
+    setInbox(prev=>prev.map(x=>{
+      if(x.id!==capId) return x;
+      const cur=x.linkedIds||[];
+      return {...x,linkedIds:isLinked?cur.filter(i=>i!==targetId):[...cur,targetId]};
+    }));
   }
   async function markDone(id){
     const item=inbox.find(x=>x.id===id);
@@ -361,7 +390,10 @@ function Capture({onCapture}){
             :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
           <div style="flex:1;min-width:0">
             <div class="item-ti">${isExpanded?item.contenu:(item.contenu.slice(0,100)+(item.contenu.length>100?'…':''))}</div>
-            <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div>
+            <div class="item-src">
+              ${item.source?item.source+' · ':''}${relDate(item.date)}
+              ${item.linkedIds?.length?html` · <span style="color:var(--bleu)">🔗 ${item.linkedIds.length}</span>`:''}
+            </div>
             ${isExpanded&&chName?html`<div style="margin-top:5px"><span class="ch-pill on" style="font-size:9px;padding:2px 8px">◎ ${chName.slice(0,28)}</span></div>`:''}
           </div>
           <span style="font-size:11px;color:var(--ink3);flex-shrink:0;margin-left:4px">${isExpanded?'↑':'↓'}</span>
@@ -373,6 +405,32 @@ function Capture({onCapture}){
             onBlur=${()=>sauveNotes(item.id,expandNotes)}
             rows=3></textarea>
           ${expandNotes?html`<div class="hint" style="margin-top:4px">Sauvegardé à la perte de focus</div>`:''}
+        </div>
+        <div class="links-section">
+          <div class="links-hdr">
+            <span class="sec-t">Liens</span>
+            <button class="btn" style="font-size:10px;padding:4px 10px" onClick=${e=>{e.stopPropagation();ouvrirPicker(item.id);}}>
+              ${linkPickerId===item.id?'↑ Fermer':'🔗 Lier'}
+            </button>
+          </div>
+          ${linkedCaps.length===0?html`<div class="hint" style="font-size:10px;margin:0">Aucun lien — relie des captures connexes</div>`:''}
+          ${linkedCaps.map(lc=>html`<div class="link-item" key=${lc.id}>
+            <span style="font-size:13px;flex-shrink:0">${T_ICONS[lc.type]||'📝'}</span>
+            <span class="link-ti">${lc.contenu.slice(0,65)}${lc.contenu.length>65?'…':''}</span>
+            <button class="del-btn" onClick=${e=>{e.stopPropagation();toggleLien(item.id,lc.id);}}>×</button>
+          </div>`)}
+          ${linkPickerId===item.id?html`<div class="picker-list">
+            ${pickerCaps.map(pc=>{
+              const already=linkedCaps.some(l=>l.id===pc.id);
+              return html`<div class="picker-item" key=${pc.id}>
+                <span style="font-size:12px;flex-shrink:0">${T_ICONS[pc.type]||'📝'}</span>
+                <span class="link-ti">${pc.contenu.slice(0,52)}${pc.contenu.length>52?'…':''}</span>
+                <button class=${'btn'+(already?' pri':'')} style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();toggleLien(item.id,pc.id);}}>
+                  ${already?'✓ Lié':'Lier'}
+                </button>
+              </div>`;
+            })}
+          </div>`:''}
         </div>`:''}
         ${annotId===item.id
           ?html`<div class="annot-form">
