@@ -5,6 +5,37 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 2 : Chantier/Tâche + onglet « La semaine »
+
+- **Fait** :
+  - Modèle de données `chantiers` (titre, couleur rouge/bleu/vert, statut) et `taches`
+    (chantierId FK, titre, fait 0/1) — Dexie version 2, migration automatique.
+  - Helpers : `addChantier`, `getChantiers`, `deleteChantier`, `addTache`, `getTaches`,
+    `toggleTache`, `deleteTache`.
+  - Onglet **« La Semaine »** (3ème tab, icône ◫) : 3 sections color-codées
+    🔴 Maintenant · J+1 / 🔵 Cette semaine / 🟢 Horizon · long terme.
+  - CRUD complet inline : ajouter/supprimer chantier, ajouter/supprimer/cocher tâche.
+    Chaque ChantierCard est pliable, compteur avancement (done/total).
+  - Token `--bleu: #3a6fa8` ajouté au design system (dark : `#5a8fc8`).
+  - SW bumped `zebracorn-v2` pour invalider le cache.
+
+- **Pourquoi** : ancrer l'app dans les vrais chantiers de Johann — réflexion
+  d'orientation (mémoire M2, ressourcement scientifique, positionnement Regen) et
+  objectifs opérationnels — plutôt que de rester sur des tâches hardcodées. La session
+  a aussi posé le cadre d'orientation : mémoire = colonne vertébrale, sujet à centrer
+  sur le déficit épistémologique des écoles de management face aux enjeux Regen.
+
+- **DoD** : onglet visible, CRUD persisté en IndexedDB, survit au reload, dark mode ✓.
+
+- **Décision notable** : couleur « bleu » comme nouvel axe sémantique (semaine courante)
+  en plus de terracotta (urgence) et vert (horizon). Jeton CSS `--bleu` propre, pas de
+  valeur en dur dans le JS.
+
+- **Prochain** : incrément 3 — seeder les vrais chantiers de Johann + connexion avec
+  l'écran Maintenant (les 3 tâches du jour piochent dans les chantiers actifs 🔴).
+
+- **Jauge** : ≈ 4,2 € / 5 € (cumul estimation session).
+
 ## 2026-06-07 — Skill « atelier-produit » + discipline de suivi
 - **Fait** : création du skill projet `.claude/skills/atelier-produit/` (posture
   PO/PM senior + UX/architecte frugal, boucle en 5 temps) et de ce JOURNAL.
@@ -45,7 +76,7 @@ Priorités : 🔴 pour J+1 · 🔵 à caser cette semaine · 🟢 long terme (su
 
 **Incréments produit à venir**
 1. ✅ Slice verticale (Maintenant + Capture persistée).
-2. Modèle `Chantier`/`Tache` + onglet « La semaine » (3 groupes couleur, CRUD).
+2. ✅ Modèle `Chantier`/`Tache` + onglet « La semaine » (3 groupes couleur, CRUD).
 3. Badges couleur sur Maintenant + fiches-chantiers 🟢 (étapes + captures reliées).
 4. Moteur de composition auto des 3 tâches du jour (prio + variation anti-monotonie).
 5. Google Calendar (lecture events + prép auto). — le plus lourd, en dernier.

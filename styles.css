@@ -6,7 +6,7 @@
   --bg:#faf8f3;--bg2:#f2eee5;--bg3:#e9e3d6;
   --ink:#24211c;--ink2:#5c574d;--ink3:#9a9384;
   --border:rgba(36,33,28,0.10);--border2:rgba(36,33,28,0.20);
-  --ac:#c2552f;--ac2:#8a6d2f;--ok:#3f7d5a;
+  --ac:#c2552f;--ac2:#8a6d2f;--ok:#3f7d5a;--bleu:#3a6fa8;
   --r:12px;--rl:18px;
   --fs:'Fraunces',Georgia,serif;
   --fb:'Inter',system-ui,sans-serif;
@@ -16,7 +16,7 @@
   --bg:#1a1813;--bg2:#221f18;--bg3:#2c2820;
   --ink:#f0ece2;--ink2:#b3ab9a;--ink3:#746d5d;
   --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
-  --ac:#e0764a;--ac2:#c2a35a;--ok:#4f9a70;
+  --ac:#e0764a;--ac2:#c2a35a;--ok:#4f9a70;--bleu:#5a8fc8;
 }}
 
 /* ── Shell ── */
@@ -136,3 +136,36 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .tico{font-size:20px;line-height:1;position:relative;}
 .tlbl{font-family:var(--fm);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;}
 .badge{position:absolute;top:-4px;right:-8px;background:var(--ac);color:#fff;font-family:var(--fm);font-size:8px;font-weight:600;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+
+/* ── Semaine ── */
+.sem-section{margin-bottom:1.5rem;}
+.sem-section-hdr{display:flex;align-items:center;gap:.5rem;font-family:var(--fm);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);padding:.4rem 0;border-bottom:1px solid var(--border);margin-bottom:.75rem;}
+.sem-count{margin-left:auto;font-family:var(--fm);font-size:9px;color:var(--ink3);}
+.sem-add{background:none;border:1px dashed var(--border2);border-radius:var(--r);color:var(--ink3);font-family:var(--fb);font-size:13px;padding:.45rem .8rem;cursor:pointer;width:100%;text-align:left;transition:.15s;}
+.sem-add:active{border-color:var(--ac);color:var(--ac);}
+.sem-add-row{display:flex;gap:.4rem;align-items:center;margin-top:.4rem;}
+.chantier-card{border-radius:var(--r);border:1px solid var(--border);border-left:3px solid var(--border2);margin-bottom:.5rem;background:var(--bg2);overflow:hidden;}
+.chantier-card.c-rouge{border-left-color:var(--ac);}
+.chantier-card.c-bleu{border-left-color:var(--bleu);}
+.chantier-card.c-vert{border-left-color:var(--ok);}
+.chantier-hdr{display:flex;align-items:center;gap:.5rem;padding:.65rem .8rem;cursor:pointer;}
+.chantier-titre{flex:1;font-size:14px;font-weight:500;font-family:var(--fb);color:var(--ink);}
+.chantier-meta{font-family:var(--fm);font-size:10px;color:var(--ink3);}
+.chantier-chevron{font-size:11px;color:var(--ink3);width:14px;text-align:center;}
+.chantier-del{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:14px;padding:0 .1rem;opacity:.4;transition:opacity .15s;line-height:1;}
+.chantier-del:active{opacity:1;}
+.chantier-body{padding:0 .8rem .7rem;display:flex;flex-direction:column;gap:.15rem;}
+.tache-row{display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border);}
+.tache-row:last-of-type{border-bottom:none;}
+.tache-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.tache-row.fait .tache-check{background:var(--ok);border-color:var(--ok);}
+.tache-row.fait .tache-check::after{content:"✓";color:#fff;font-size:10px;font-weight:700;}
+.tache-txt{flex:1;font-size:13px;font-family:var(--fb);color:var(--ink);}
+.tache-row.fait .tache-txt{text-decoration:line-through;color:var(--ink3);}
+.tache-del{background:none;border:none;color:var(--ink3);cursor:pointer;opacity:.3;font-size:13px;padding:0;transition:opacity .15s;line-height:1;}
+.tache-del:active{opacity:1;}
+.tache-add-row{display:flex;gap:.4rem;align-items:center;padding:.3rem 0;}
+.tache-inp{flex:1;border:none;border-bottom:1.5px solid var(--ac);background:transparent;font-size:13px;font-family:var(--fb);color:var(--ink);padding:.15rem 0;outline:none;}
+.tache-ok{background:var(--ac);color:#fff;border:none;border-radius:6px;padding:.2rem .55rem;font-size:13px;cursor:pointer;}
+.tache-add{background:none;border:1px dashed var(--border);border-radius:6px;color:var(--ink3);font-family:var(--fb);font-size:12px;padding:.28rem .6rem;cursor:pointer;margin-top:.2rem;width:100%;text-align:left;transition:.15s;}
+.tache-add:active{border-color:var(--ac);color:var(--ac);}

@@ -1,4 +1,4 @@
-const CACHE = 'zebracorn-v1';
+const CACHE = 'zebracorn-v2';
 const SHELL = ['/', '/index.html', '/styles.css', '/db.js'];
 
 self.addEventListener('install', e => {

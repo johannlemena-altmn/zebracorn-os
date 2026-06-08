@@ -49,6 +49,11 @@ const T_PH    = {
   pdf:'Ajoute un PDF / une référence…',
   video:"Colle l'URL d'une vidéo…",
 };
+const SECTIONS = [
+  { couleur:'rouge', emoji:'🔴', titre:'Maintenant · J+1' },
+  { couleur:'bleu',  emoji:'🔵', titre:'Cette semaine' },
+  { couleur:'vert',  emoji:'🟢', titre:'Horizon · long terme' },
+];
 
 /* ── helpers ────────────────────────────────── */
 function fmtDate(d){ return `${DAYS[d.getDay()]}. ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
@@ -211,6 +216,113 @@ function Capture({onCapture}){
   </div>`;
 }
 
+/* ── Semaine ─────────────────────────────────── */
+function TacheRow({tache,onToggle,onDelete}){
+  return html`<div class=${'tache-row'+(tache.fait?' fait':'')}>
+    <div class="tache-check" onClick=${()=>onToggle(tache.id,!tache.fait)}></div>
+    <span class="tache-txt">${tache.titre}</span>
+    <button class="tache-del" onClick=${()=>onDelete(tache.id)}>×</button>
+  </div>`;
+}
+
+function ChantierCard({chantier,onDelete}){
+  const [taches,setTaches]=useState([]);
+  const [open,setOpen]=useState(true);
+  const [newTxt,setNewTxt]=useState('');
+  const [adding,setAdding]=useState(false);
+
+  const load=useCallback(async()=>{ setTaches(await getTaches(chantier.id)); },[chantier.id]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function addT(){
+    if(!newTxt.trim())return;
+    await addTache(chantier.id,newTxt.trim());
+    setNewTxt(''); setAdding(false); await load();
+  }
+  async function togT(id,fait){ await toggleTache(id,fait); await load(); }
+  async function delT(id){ await deleteTache(id); await load(); }
+
+  const done=taches.filter(t=>t.fait).length;
+  return html`<div class=${'chantier-card c-'+chantier.couleur}>
+    <div class="chantier-hdr" onClick=${()=>setOpen(!open)}>
+      <span class="chantier-titre">${chantier.titre}</span>
+      <span class="chantier-meta">${done}/${taches.length}</span>
+      <span class="chantier-chevron">${open?'▾':'▸'}</span>
+      <button class="chantier-del" onClick=${e=>{e.stopPropagation();onDelete(chantier.id);}}>×</button>
+    </div>
+    ${open&&html`<div class="chantier-body">
+      ${taches.map(t=>html`<${TacheRow} key=${t.id} tache=${t} onToggle=${togT} onDelete=${delT}/>`)}
+      ${adding
+        ?html`<div class="tache-add-row">
+            <input class="tache-inp" autoFocus value=${newTxt}
+              onInput=${e=>setNewTxt(e.target.value)}
+              onKeyDown=${e=>{if(e.key==='Enter')addT();if(e.key==='Escape'){setAdding(false);setNewTxt('');}} }
+              placeholder="Nouvelle tâche…"/>
+            <button class="tache-ok" onClick=${addT}>+</button>
+          </div>`
+        :html`<button class="tache-add" onClick=${()=>setAdding(true)}>+ tâche</button>`
+      }
+    </div>`}
+  </div>`;
+}
+
+function SectionSemaine({couleur,emoji,titre,chantiers,onRefresh}){
+  const [newNom,setNewNom]=useState('');
+  const [addingC,setAddingC]=useState(false);
+
+  async function addC(){
+    if(!newNom.trim())return;
+    await addChantier(newNom.trim(),couleur);
+    setNewNom(''); setAddingC(false); onRefresh();
+  }
+  async function delC(id){ await deleteChantier(id); onRefresh(); }
+
+  return html`<div class="sem-section">
+    <div class="sem-section-hdr">
+      <span>${emoji} ${titre}</span>
+      <span class="sem-count">${chantiers.length}</span>
+    </div>
+    ${chantiers.map(c=>html`<${ChantierCard} key=${c.id} chantier=${c} onDelete=${delC}/>`)}
+    ${addingC
+      ?html`<div class="sem-add-row">
+          <input class="tache-inp" autoFocus value=${newNom}
+            onInput=${e=>setNewNom(e.target.value)}
+            onKeyDown=${e=>{if(e.key==='Enter')addC();if(e.key==='Escape'){setAddingC(false);setNewNom('');}} }
+            placeholder="Nom du chantier…"/>
+          <button class="tache-ok" onClick=${addC}>+</button>
+        </div>`
+      :html`<button class="sem-add" onClick=${()=>setAddingC(true)}>+ chantier</button>`
+    }
+  </div>`;
+}
+
+function SemaineTab(){
+  const [all,setAll]=useState({rouge:[],bleu:[],vert:[]});
+  const load=useCallback(async()=>{
+    const [rouge,bleu,vert]=await Promise.all([
+      getChantiers('rouge'),getChantiers('bleu'),getChantiers('vert')
+    ]);
+    setAll({rouge,bleu,vert});
+  },[]);
+  useEffect(()=>{ load(); },[load]);
+
+  const now=new Date();
+  return html`<div class="scroll">
+    <div class="hdr"><div class="brand">Zebracorn OS · Semaine</div><div class="date-lbl">${fmtDate(now)}</div></div>
+    <div class="h1">La semaine.</div>
+    <div class="greet">Tes chantiers, par horizon de temps.</div>
+    ${SECTIONS.map(s=>html`<${SectionSemaine}
+      key=${s.couleur}
+      couleur=${s.couleur}
+      emoji=${s.emoji}
+      titre=${s.titre}
+      chantiers=${all[s.couleur]}
+      onRefresh=${load}
+    />`)}
+    <div class="foot">Zebracorn OS · v0.2</div>
+  </div>`;
+}
+
 /* ── App ─────────────────────────────────────── */
 function App(){
   const [tab,setTab]=useState('maintenant');
@@ -221,11 +333,16 @@ function App(){
   return html`<div class="phone">
     ${tab==='maintenant'
       ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')}/>`
+      : tab==='semaine'
+      ? html`<${SemaineTab}/>`
       : html`<${Capture} onCapture=${refresh}/>`
     }
     <nav class="tabnav">
       <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
         <span class="tico">🌱</span><span class="tlbl">Maintenant</span>
+      </button>
+      <button class=${tab==='semaine'?'on':''} onClick=${()=>setTab('semaine')}>
+        <span class="tico">◫</span><span class="tlbl">Semaine</span>
       </button>
       <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>

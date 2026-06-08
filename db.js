@@ -7,6 +7,11 @@ db.version(1).stores({
   routineChecks: '[key+date]',
 });
 
+db.version(2).stores({
+  chantiers: '++id, titre, couleur, statut',
+  taches:    '++id, chantierId, titre, fait',
+});
+
 // ── helpers ──────────────────────────────────────────────
 
 function today() {
@@ -107,4 +112,38 @@ async function getStreak(key) {
     // i===0 (today) not done yet is OK, continue checking yesterday
   }
   return streak;
+}
+
+// ── chantiers & taches ────────────────────────────────────
+
+async function addChantier(titre, couleur) {
+  return db.chantiers.add({ titre, couleur, statut: 'actif' });
+}
+
+async function getChantiers(couleur) {
+  return db.chantiers
+    .where('couleur').equals(couleur)
+    .filter(c => c.statut !== 'archive')
+    .toArray();
+}
+
+async function deleteChantier(id) {
+  await db.taches.where('chantierId').equals(id).delete();
+  return db.chantiers.delete(id);
+}
+
+async function addTache(chantierId, titre) {
+  return db.taches.add({ chantierId, titre, fait: 0 });
+}
+
+async function getTaches(chantierId) {
+  return db.taches.where('chantierId').equals(chantierId).toArray();
+}
+
+async function toggleTache(id, fait) {
+  return db.taches.update(id, { fait: fait ? 1 : 0 });
+}
+
+async function deleteTache(id) {
+  return db.taches.delete(id);
 }
