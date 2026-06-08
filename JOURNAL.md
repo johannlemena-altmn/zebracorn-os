@@ -5,6 +5,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 15 : Bibliothèque légère · Fix CAP sync · Fix sync.js · iCal debug
+
+- **Fait** :
+  - **Bibliothèque légère (K')** : table Dexie v5 `livres`. FicheLivre (pattern FicheChantier) : toggle statut (À lire / En cours / Lu), progression pages + barre, intention, notes de lecture, question vivante liée, captures liées. Section 📚 Bibliothèque dans Semaine avec cartes + ajout rapide. Bloc lecture dynamique dans Maintenant (affiche le livre en cours + progression si statut `en-cours`). Sélecteur livre dans Capture composer (comme chantier). Corpus export enrichi avec section Bibliothèque. Seed : « Bienvenue en 2055 » pré-chargé avec intention mémoire M2.
+  - **Fix CAP 2026 non syncé** : Dexie v6 table `settings` (clé/valeur). `getCap()` / `saveCap()` migrés vers IndexedDB avec fallback localStorage au premier chargement. CAP est maintenant dans SYNC_TABLES → syncé via Supabase Pousser/Tirer.
+  - **Fix sync.js** : TABLES dans `sync.js` ne listait pas `questions`, `livres`, `settings` — les questions vivantes et le cap ne synçaient pas. Corrigé.
+  - **iCal debug** : bouton « Tester » dans Réglages → affiche le nombre d'événements total + nb aujourd'hui + leurs noms. Hint « aucun événement aujourd'hui » visible quand fetch OK mais résultat vide. Note explicative ajoutée : URL iCal est **par calendrier**, pas globale — si l'event est dans un autre agenda, il ne remonte pas.
+
+- **Pourquoi** :
+  - Bibliothèque = organe « Boussole des Récits » : les livres alimentent les questions vivantes et le corpus NLM. Approche Obsidian (livre ↔ questions ↔ captures) crée un vrai second cerveau.
+  - CAP non syncé = bug silencieux critique : Johann poussait depuis l'ordi, tirait sur le tel, mais le cap n'arrivait jamais. Cause : localStorage n'est pas syncé par Supabase, seul IndexedDB l'est.
+  - sync.js incomplet = même problème pour les questions vivantes (jamais synçées sur d'autres appareils).
+  - iCal debug = le bouton « Tester » permet à Johann de diagnostiquer si le fetch fonctionne et si l'événement est dans le bon calendrier.
+
+- **DoD** : zéro erreur console, seed « Bienvenue en 2055 » visible dans Bibliothèque et dans le sélecteur Capture, FicheLivre navigable depuis Semaine, Cap chargé depuis migration localStorage→IndexedDB (visible dans Maintenant), sections confirmées par snapshot DOM.
+
+- **Setup pour Google Calendar** : Si le bouton Tester dit « 0 aujourd'hui » alors que tu as un événement — vérifie que l'URL iCal dans Réglages correspond au calendrier qui contient l'événement. Google Calendar a une URL iCal **par calendrier** (pas une URL globale). Va dans chaque agenda → ⚙ → « Adresse secrète au format iCal ».
+
+- **Prochain** : H (lier tâche → objectif annuel · moyen), K (export corpus enrichi questions · rapide), I (Le Filtre IA · grosse session), Reprise Sport nutrition (session dédiée), Low-Tech gamification (session dédiée).
+
+---
+
 ## 2026-06-08 — Incrément 14 : Auto-pull · Revue hebdo · Capture→Question · Google Calendar
 
 - **Fait** :
