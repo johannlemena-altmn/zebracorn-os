@@ -123,13 +123,20 @@ function filterToday(evts){
   return evts.filter(e=>e.dtstart.startsWith(td));
 }
 async function loadGcalEvents(){
-  const url=localStorage.getItem('zc_gcal_url');
-  if(!url) return null;
-  const r=await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  const text=await r.text();
-  const evts=filterToday(parseIcal(unfoldIcal(text)));
-  return evts.sort((a,b)=>a.dtstart<b.dtstart?-1:1);
+  const raw=localStorage.getItem('zc_gcal_url');
+  if(!raw) return null;
+  const urls=raw.split('\n').map(u=>u.trim()).filter(u=>u.startsWith('https://calendar.google.com/calendar/ical/'));
+  if(!urls.length) return null;
+  const all=[];
+  for(const url of urls){
+    try{
+      const r=await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
+      if(!r.ok) continue;
+      const text=await r.text();
+      all.push(...filterToday(parseIcal(unfoldIcal(text))));
+    }catch{}
+  }
+  return all.sort((a,b)=>a.dtstart<b.dtstart?-1:1);
 }
 
 /* ── helpers ────────────────────────────────── */
@@ -1197,27 +1204,32 @@ function Reglages(){
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Google Calendar</span><span class="sec-c">${gcalUrl?'configuré':'—'}</span></div>
       <div class="set-field">
-        <div class="set-label">URL iCal secrète</div>
-        <input class="taginp" style="width:100%;font-size:11px" value=${gcalUrl} onInput=${e=>setGcalUrl(e.target.value)} placeholder="https://calendar.google.com/calendar/ical/…"/>
+        <div class="set-label">URLs iCal secrètes <span style="color:var(--ink3)">(une par ligne · un calendrier par URL)</span></div>
+        <textarea class="cmp-inp" rows=3 value=${gcalUrl} onInput=${e=>setGcalUrl(e.target.value)} placeholder=${"https://calendar.google.com/calendar/ical/…\nhttps://calendar.google.com/calendar/ical/… (2e agenda)"}/>
       </div>
       <div class="btn-row" style="margin-top:4px">
         <button class="save-btn" style="flex:2" onClick=${()=>{localStorage.setItem('zc_gcal_url',gcalUrl.trim());setGcalTest('');setMsg('Google Calendar configuré ✓');}}>Enregistrer</button>
         <button class="btn" style="flex:1" onClick=${async()=>{
           setGcalTest('⏳ Test…');
           try{
-            const url=gcalUrl.trim()||localStorage.getItem('zc_gcal_url');
-            if(!url){setGcalTest('⚠ Aucune URL configurée');return;}
-            const r=await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
-            if(!r.ok){setGcalTest(`⚠ Erreur HTTP ${r.status}`);return;}
-            const text=await r.text();
-            const evts=parseIcal(unfoldIcal(text));
-            const today=filterToday(evts);
-            setGcalTest(`✓ ${evts.length} événements total · ${today.length} aujourd'hui${today.length?(' : '+today.map(e=>e.summary).join(', ')):''}`);}
+            const raw=gcalUrl.trim()||localStorage.getItem('zc_gcal_url')||'';
+            const urls=raw.split('\n').map(u=>u.trim()).filter(u=>u.startsWith('https://calendar.google.com/'));
+            if(!urls.length){setGcalTest('⚠ Aucune URL valide');return;}
+            let totalEvts=0,todayEvts=[];
+            for(const url of urls){
+              const r=await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
+              if(!r.ok) continue;
+              const text=await r.text();
+              const evts=parseIcal(unfoldIcal(text));
+              totalEvts+=evts.length;
+              todayEvts.push(...filterToday(evts));
+            }
+            setGcalTest(`✓ ${urls.length} agenda(s) · ${totalEvts} événements · ${todayEvts.length} aujourd'hui${todayEvts.length?(' : '+todayEvts.map(e=>e.summary).join(', ')):''}`);}
           catch(e){setGcalTest('⚠ '+e.message);}
         }}>Tester</button>
       </div>
       ${gcalTest?html`<div class="set-note" style="margin-top:6px;color:${gcalTest.startsWith('✓')?'var(--ok)':'var(--ac)'}">${gcalTest}</div>`:''}
-      <div class="set-note">Google Calendar → ton agenda → ⚙ Paramètres → « Adresse secrète au format iCal » · Read-only, sans OAuth. Si un événement ne s'affiche pas, vérifie qu'il est bien dans CE calendrier (l'URL est par calendrier, pas globale).</div>
+      <div class="set-note">Google Calendar → chaque agenda → ⚙ Paramètres → « Adresse secrète au format iCal » · Colle une URL par ligne pour afficher plusieurs agendas dans Maintenant.</div>
     </div>
 
     <div class="sec">
