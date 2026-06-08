@@ -1262,6 +1262,18 @@ function Reglages(){
       <div class="set-note">Filet de sécurité hors-ligne : un fichier à garder ou transférer à la main.</div>
     </div>
 
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Base locale</span></div>
+      <div class="btn-row">
+        <button class="btn danger-btn" onClick=${async()=>{
+          if(!confirm('Supprimer la base locale et recharger ? Les données Supabase restent intactes — fais "Tirer" après le rechargement.')) return;
+          try{ await Dexie.delete('ZebracornOS'); }catch(_){}
+          location.reload();
+        }}>⚠ Réinitialiser la base</button>
+      </div>
+      <div class="set-note">Utile si "VersionError" s'affiche. Tes données Supabase restent intactes — tire après le rechargement.</div>
+    </div>
+
     ${msg?html`<div class="set-msg">${msg}</div>`:''}
 
     <div class="set-note" style="margin-top:1rem">⚠ Sécurité v1 : ta clé secrète d'espace protège tes données — choisis-la longue et unique. La clé anon Supabase est publique par nature. Pas de chiffrement bout-en-bout en v1.</div>
@@ -1317,14 +1329,25 @@ function App(){
   </div>`;
 }
 
-if(syncConfigured()&&(lastSync().push||lastSync().pull)){
-  try{ await pullAll(); }catch(e){}
+try {
+  if(syncConfigured()&&(lastSync().push||lastSync().pull)){
+    try{ await pullAll(); }catch(e){}
+  }
+  await seedOnce();
+  await seedOnce_v2();
+  await seedQuestionsOnce();
+  await seedLivresOnce();
+  render(html`<${App}/>`, document.getElementById('root'));
+} catch(e) {
+  if(e.name==='VersionError'||e.name==='InvalidStateError') {
+    // DB locale à une version supérieure au code — reset auto puis rechargement
+    try{ await Dexie.delete('ZebracornOS'); }catch(_){}
+    location.reload();
+  } else {
+    // Autre erreur : afficher dans la page
+    document.getElementById('root').innerHTML=`<div style="padding:32px;font-family:monospace;color:#c2552f">⚠ ${e.name}<br>${e.message}<br><br><button onclick="location.reload()">Recharger</button></div>`;
+  }
 }
-await seedOnce();
-await seedOnce_v2();
-await seedQuestionsOnce();
-await seedLivresOnce();
-render(html`<${App}/>`, document.getElementById('root'));
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').then(reg=>{
