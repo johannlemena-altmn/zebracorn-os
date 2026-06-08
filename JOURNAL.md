@@ -5,6 +5,26 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 9 : Liens entre captures (Obsidian-like)
+
+- **Fait** :
+  - `linkCaptures(a,b)` / `unlinkCaptures(a,b)` bidirectionnels dans `db.js` (`linkedIds:[]`).
+  - Section "Liens" dans la carte expansible : affiche les captures liées avec bouton × délier.
+  - Picker "🔗 Lier" : liste toutes les autres captures (triées par date), toggle Lier/✓Lié.
+  - Mise à jour locale (setInbox + setLinkedCaps) — pas de reload complet, fluidité maintenue.
+  - Indicateur 🔗 N en bleu (`var(--bleu)`) sur les cartes collapsées ayant des liens.
+
+- **Pourquoi** : les captures restaient des silos. Le lien bidirectionnel crée un graphe de connaissance
+  minimal sans complexité d'interface (pas de vue graphe — les liens sont visibles dans la carte).
+  Fondation pour les badges gamification ("1er lien", "5 liens sur un chantier").
+
+- **DoD** : structure relue in-context. stopPropagation sur tous les boutons du picker.
+  Mise à jour locale cohérente avec l'inbox.
+
+- **Prochain** : incrément 10 — Gamification (stats corpus + badges paliers) + Icône Z/zèbre.
+
+---
+
 ## 2026-06-08 — Incrément 8 : Carte expansible + notes pré-ACTOR
 
 - **Fait** :
