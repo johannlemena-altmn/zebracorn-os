@@ -336,3 +336,5 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .nutri-repas-kcal{font-family:var(--fm);font-size:9px;color:var(--ink3);white-space:nowrap;}
 .nutri-tr-collation td{opacity:.75;}
 .nutri-collation-ideas{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:8px;}
+.nutri-stock-box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ink3);border-radius:var(--r);padding:11px 13px;margin-top:1.1rem;}
+.nutri-stock-chip{font-family:var(--fm);font-size:9.5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 10px;color:var(--ink3);white-space:nowrap;}

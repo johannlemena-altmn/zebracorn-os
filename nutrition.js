@@ -74,17 +74,26 @@ export const RECETTES_SOIR = [
   },
 ];
 
-/* ── 3 paniers hebdo rotatifs (~30€, gut-friendly) ── */
+/* ── Stock permanent (acheté en gros, jamais dans les courses hebdo) ── */
+export const STOCK_BASE = [
+  { nom: 'Riz blanc (18 kg)',      qte: '~1 mois à deux', note: 'Sac en cours' },
+  { nom: 'Pâtes',                  qte: 'grand format',   note: 'Stock en cours' },
+  { nom: 'Huile d\'olive',         qte: '1-2 L',          note: 'Réappro mensuel' },
+  { nom: 'Flocons d\'avoine',      qte: '1 kg',           note: 'Réappro mensuel' },
+  { nom: 'Graines de lin moulues', qte: '250 g',          note: 'Réappro mensuel' },
+  { nom: 'Sel, poivre, épices',    qte: 'placard',        note: 'Réappro rare' },
+  { nom: 'Sauce soja',             qte: 'bouteille',      note: 'Réappro rare' },
+];
+
+/* ── 3 paniers hebdo rotatifs (~22-26€, féculents de stock exclus) ── */
 const COURSES_SEMAINES = [
-  // Semaine A — poulet + lentilles corail + riz
+  // Semaine A — poulet + lentilles corail
   [
     { nom: 'Poulet (500g)',             prix: 4.2, cat: 'proteines', qte: '500g' },
     { nom: 'Œufs (x12)',                prix: 2.8, cat: 'proteines', qte: 'boîte x12' },
     { nom: 'Lentilles corail',          prix: 1.2, cat: 'proteines', qte: '500g' },
     { nom: 'Yaourt grec (x4)',          prix: 2.8, cat: 'proteines', qte: 'x4 200g' },
     { nom: 'Kéfir (bouteille)',         prix: 2.2, cat: 'proteines', qte: '500ml' },
-    { nom: 'Riz blanc',                 prix: 1.0, cat: 'feculent',  qte: '1kg' },
-    { nom: 'Flocons d\'avoine',         prix: 1.5, cat: 'feculent',  qte: '500g' },
     { nom: 'Pain au levain',            prix: 2.2, cat: 'feculent',  qte: 'miche' },
     { nom: 'Carottes (sachet)',         prix: 0.9, cat: 'legumes',   qte: '1kg' },
     { nom: 'Courgettes (x3)',           prix: 1.5, cat: 'legumes',   qte: 'x3' },
@@ -92,8 +101,7 @@ const COURSES_SEMAINES = [
     { nom: 'Épinards frais',            prix: 1.5, cat: 'legumes',   qte: '250g' },
     { nom: 'Bananes (grappe)',          prix: 1.2, cat: 'fruits',    qte: '~6' },
     { nom: 'Pommes (sachet)',           prix: 2.0, cat: 'fruits',    qte: '1kg' },
-    { nom: 'Huile d\'olive',            prix: 3.5, cat: 'autres',    qte: '500ml' },
-    { nom: 'Graines de lin moulues',    prix: 1.5, cat: 'autres',    qte: '250g' },
+    { nom: 'Gingembre frais',           prix: 0.8, cat: 'autres',    qte: 'morceau' },
   ],
   // Semaine B — tofu + pois chiches + patate douce
   [
@@ -102,16 +110,14 @@ const COURSES_SEMAINES = [
     { nom: 'Pois chiches (boîte x2)',   prix: 1.6, cat: 'proteines', qte: '2×400g' },
     { nom: 'Thon en boîte (x3)',        prix: 3.0, cat: 'proteines', qte: 'x3 140g' },
     { nom: 'Fromage blanc (x4)',        prix: 2.0, cat: 'proteines', qte: 'x4 200g' },
-    { nom: 'Pâtes complètes',           prix: 1.3, cat: 'feculent',  qte: '500g' },
     { nom: 'Patate douce (x3)',         prix: 2.1, cat: 'feculent',  qte: 'x3' },
-    { nom: 'Flocons d\'avoine',         prix: 1.5, cat: 'feculent',  qte: '500g' },
+    { nom: 'Pain au levain',            prix: 2.2, cat: 'feculent',  qte: 'miche' },
     { nom: 'Tomates (grappe)',          prix: 1.6, cat: 'legumes',   qte: '500g' },
     { nom: 'Courgettes (x3)',           prix: 1.5, cat: 'legumes',   qte: 'x3' },
     { nom: 'Carottes (sachet)',         prix: 0.9, cat: 'legumes',   qte: '1kg' },
     { nom: 'Brocoli (x1)',              prix: 1.2, cat: 'legumes',   qte: '~300g' },
     { nom: 'Bananes (grappe)',          prix: 1.2, cat: 'fruits',    qte: '~6' },
     { nom: 'Oranges (filet)',           prix: 2.0, cat: 'fruits',    qte: '~6' },
-    { nom: 'Huile d\'olive',            prix: 3.5, cat: 'autres',    qte: '500ml' },
     { nom: 'Gingembre frais',           prix: 0.8, cat: 'autres',    qte: 'morceau' },
   ],
   // Semaine C — saumon + haricots rouges + quinoa
@@ -122,7 +128,6 @@ const COURSES_SEMAINES = [
     { nom: 'Lentilles corail',          prix: 1.2, cat: 'proteines', qte: '500g' },
     { nom: 'Yaourt grec (x4)',          prix: 2.8, cat: 'proteines', qte: 'x4 200g' },
     { nom: 'Quinoa',                    prix: 2.2, cat: 'feculent',  qte: '500g' },
-    { nom: 'Riz blanc',                 prix: 1.0, cat: 'feculent',  qte: '1kg' },
     { nom: 'Pain au levain',            prix: 2.2, cat: 'feculent',  qte: 'miche' },
     { nom: 'Épinards frais',            prix: 1.5, cat: 'legumes',   qte: '250g' },
     { nom: 'Champignons (barquette)',   prix: 1.8, cat: 'legumes',   qte: '250g' },
@@ -130,8 +135,7 @@ const COURSES_SEMAINES = [
     { nom: 'Courgettes (x2)',           prix: 1.0, cat: 'legumes',   qte: 'x2' },
     { nom: 'Bananes (grappe)',          prix: 1.2, cat: 'fruits',    qte: '~6' },
     { nom: 'Pommes (sachet)',           prix: 2.0, cat: 'fruits',    qte: '1kg' },
-    { nom: 'Huile d\'olive',            prix: 3.5, cat: 'autres',    qte: '500ml' },
-    { nom: 'Graines de lin moulues',    prix: 1.5, cat: 'autres',    qte: '250g' },
+    { nom: 'Gingembre frais',           prix: 0.8, cat: 'autres',    qte: 'morceau' },
   ],
 ];
 
@@ -286,6 +290,13 @@ function CoursesView() {
         <button class="del-btn" onClick=${() => del(item.id)}>×</button>
       </div>`)}
     </div>`)}
+
+    <div class="nutri-stock-box">
+      <div class="nutri-section-hdr" style="margin-bottom:7px">📦 Stock de base — pas à racheter</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${STOCK_BASE.map((s, i) => html`<span key=${i} class="nutri-stock-chip" title=${s.note}>${s.nom}</span>`)}
+      </div>
+    </div>
 
     <div class="nutri-section-hdr" style="cursor:pointer;margin-top:1.4rem"
       onClick=${() => setShowRecettes(v => !v)}>
