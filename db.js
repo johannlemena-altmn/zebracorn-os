@@ -53,6 +53,14 @@ async function getInboxCount() {
   return db.captures.where('statut').equals('inbox').count();
 }
 
+async function getLater() {
+  return db.captures.where('statut').equals('plus-tard').reverse().sortBy('date');
+}
+
+async function deleteCapture(id) {
+  return db.captures.delete(id);
+}
+
 async function getCapturesByChantier(chantierId) {
   const all = await db.captures.filter(c => c.chantierId === chantierId).toArray();
   return all.sort((a, b) => (a.date < b.date ? 1 : -1));

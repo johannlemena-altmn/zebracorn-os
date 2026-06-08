@@ -145,6 +145,9 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .ch-pill.on{background:var(--ok);border-color:var(--ok);color:#fff;}
 .item-mini{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);}
 .item-mini:last-child{border-bottom:none;}
+.del-btn{font-size:15px;line-height:1;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;flex-shrink:0;align-self:flex-start;color:var(--ink3);transition:.15s;}
+.del-btn:active,.del-btn.danger-btn{color:var(--ac);}
+.btn.danger-btn{border-color:var(--ac);color:var(--ac);}
 
 /* ── Tab nav ── */
 .tabnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--bg);border-top:1px solid var(--border);display:flex;padding:8px 1.5rem calc(8px + env(safe-area-inset-bottom));gap:4px;z-index:100;}

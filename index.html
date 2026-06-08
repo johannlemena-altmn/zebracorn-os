@@ -235,6 +235,7 @@ function Capture({onCapture}){
   const [tag,setTag]=useState('');
   const [inbox,setInbox]=useState([]);
   const [done,setDone]=useState([]);
+  const [later,setLater]=useState([]);
   const [saving,setSaving]=useState(false);
   const [file,setFile]=useState(null);
   const [fileWarn,setFileWarn]=useState('');
@@ -242,10 +243,11 @@ function Capture({onCapture}){
   const [chList,setChList]=useState([]);
   const [annotId,setAnnotId]=useState(null);
   const [annotTxt,setAnnotTxt]=useState('');
+  const [confirmDelId,setConfirmDelId]=useState(null);
 
   const load=useCallback(async()=>{
-    const[a,b]=await Promise.all([getInbox(),getDone()]);
-    setInbox(a); setDone(b);
+    const[a,b,c]=await Promise.all([getInbox(),getDone(),getLater()]);
+    setInbox(a); setDone(b); setLater(c);
   },[]);
   useEffect(()=>{ load(); },[load]);
   useEffect(()=>{ getChantiers().then(setChList); },[]);
@@ -273,10 +275,12 @@ function Capture({onCapture}){
     setContent(''); setTag(''); setLinkCh(null); setSaving(false);
     await load(); if(onCapture)onCapture();
   }
-  async function markDone(id){ setAnnotId(id); setAnnotTxt(''); }
+  async function markDone(id){ setAnnotId(id); setAnnotTxt(''); setConfirmDelId(null); }
   async function validerTrait(id,txt){ await traitCapture(id,txt); setAnnotId(null); setAnnotTxt(''); await load(); if(onCapture)onCapture(); }
   async function skipAnnot(id){ await traitCapture(id,null); setAnnotId(null); await load(); if(onCapture)onCapture(); }
   async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
+  async function supprimerCapture(id){ if(confirmDelId!==id){setConfirmDelId(id);return;} await deleteCapture(id); setConfirmDelId(null); await load(); if(onCapture)onCapture(); }
+  async function remettreInbox(id){ await updateCaptureStatut(id,'inbox'); await load(); if(onCapture)onCapture(); }
 
   const now=new Date();
   return html`<div class="scroll">
@@ -329,18 +333,42 @@ function Capture({onCapture}){
           </div>
         </div>`
         :html`<div class="item-b">
-          <button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter · ACTOR</button>
-          <button class="btn" onClick=${()=>markLater(item.id)}>Plus tard</button>
+          <button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter ✓</button>
+          <button class="btn" onClick=${()=>markLater(item.id)}>↓ Plus tard</button>
           ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${()=>shareFile(item)}>↗ Partager</button>`:''}
         </div>`}
     </div>`)}
 
+    ${later.length>0?html`
+      <div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Plus tard</span><span class="sec-c" style="color:var(--ink3)">${later.length}</span></div>
+      ${later.map(item=>html`<div class="item" style="opacity:.82" key=${item.id}>
+        <div class="item-top">
+          ${item.type==='fichier'&&item.mimeType?.startsWith('image/')
+            ?html`<img class="item-thumb" src=${item.dataUrl} alt=${item.filename}/>`
+            :item.type==='fichier'
+            ?html`<div class="item-pdf">📄</div>`
+            :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
+          <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink2)">${item.contenu.slice(0,120)}${item.contenu.length>120?'…':''}</div>
+          <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div></div>
+        </div>
+        <div class="item-b">
+          <button class="btn" onClick=${()=>remettreInbox(item.id)}>↑ Reprendre</button>
+          <button class=${'btn'+(confirmDelId===item.id?' danger-btn':'')} onClick=${()=>supprimerCapture(item.id)}>${confirmDelId===item.id?'Supprimer ?':'Effacer'}</button>
+        </div>
+      </div>`)}
+    `:''}
+
     ${done.length>0?html`<div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
-    ${done.slice(0,5).map(item=>html`<div class="item" key=${item.id}>
+    ${done.slice(0,10).map(item=>html`<div class="item" key=${item.id}>
       <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
-      <div><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,80)}</div>
+      <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,200)}${item.contenu.length>200?'…':''}</div>
       <div class="item-src"><span class="done-tag">✓ Traité</span> · ${relDate(item.date)}</div>
-      ${item.annotation?html`<div class="annot-badge">${item.annotation}</div>`:''}</div></div>
+      ${item.annotation?html`<div class="annot-badge">${item.annotation}</div>`:''}</div>
+      <button class=${'del-btn'+(confirmDelId===item.id?' danger-btn':'')} onClick=${()=>supprimerCapture(item.id)}>${confirmDelId===item.id?'✕':'×'}</button>
+      </div>
+      <div class="item-b">
+        <button class="btn" style="font-size:11px;padding:5px 10px" onClick=${()=>remettreInbox(item.id)}>↩ Réouvrir</button>
+      </div>
     </div>`)}`:'' }
 
     <div class="foot">Zebracorn OS · Capture · v0.1</div>
