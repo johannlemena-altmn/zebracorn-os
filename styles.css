@@ -190,3 +190,7 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .set-note{font-family:var(--fm);font-size:9px;line-height:1.5;color:var(--ink3);margin-top:8px;letter-spacing:.01em;}
 .set-msg{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ac);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-bottom:1rem;}
 .btn:disabled,.save-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Le Filtre v0 — annotation inline ── */
+.annot-form{padding:8px 0 2px;display:flex;flex-direction:column;gap:6px;}
+.annot-badge{font-family:var(--fm);font-size:9px;color:var(--ok);letter-spacing:.04em;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:2px solid var(--ok);padding:2px 7px;}

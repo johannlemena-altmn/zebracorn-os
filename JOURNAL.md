@@ -5,6 +5,40 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incréments 4+5 : Le Filtre v0 + auto-sync + SW auto-reload
+
+- **Fait** :
+  - **Le Filtre v0** : "Traiter · ACTOR" ouvre un champ inline (pas de modal)
+    pour annoter la capture avant de la valider. "Sans note" pour traiter direct.
+    L'annotation est affichée en badge vert dans la section « Traités ».
+    `traitCapture(id, annotation)` helper ajouté à `db.js`.
+  - **Push-on-hide** (item 7) : si la sync Supabase est configurée, un
+    `visibilitychange` dans App déclenche `pushAll()` silencieusement quand
+    l'app passe en arrière-plan. Zéro friction pour l'utilisateur.
+  - **SW auto-reload** : `updatefound` handler sur l'enregistrement du service
+    worker — quand Vercel déploie une nouvelle version, l'app se recharge
+    automatiquement côté iPhone dès que le nouveau SW est activé. Fin des
+    réinstallations manuelles.
+  - CSS : `.annot-form`, `.annot-badge`.
+
+- **Pourquoi** : capturer sans friction est inutile si traiter en génère.
+  L'annotation inline (ACTOR) ferme la boucle sans quitter le contexte. Le
+  push-on-hide et le SW auto-reload ensemble rendent l'app auto-synchronisée
+  côté données et côté code.
+
+- **Décision** : annotation optionnelle (pas bloquante), field autofocus,
+  Enter = valider. Pas de modal pour rester sobre. Push-on-hide conditionnel
+  à `syncConfigured()` — pas de bruit si Supabase non configuré.
+
+- **DoD** : HTML/CSS vérifié in-context. Push sur `main` → Vercel déploie.
+
+- **Prochain** : tester la sync Supabase depuis l'iPhone → configurer les
+  identifiants dans Réglages.
+
+> **Contexte ~70 % rempli** · limites réelles → panneau d'usage Claude Code.
+
+---
+
 ## 2026-06-08 — Session orientation + Incrément 3 : captures liées aux chantiers
 
 - **Fait** :

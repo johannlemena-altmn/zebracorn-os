@@ -240,6 +240,8 @@ function Capture({onCapture}){
   const [fileWarn,setFileWarn]=useState('');
   const [linkCh,setLinkCh]=useState(null);
   const [chList,setChList]=useState([]);
+  const [annotId,setAnnotId]=useState(null);
+  const [annotTxt,setAnnotTxt]=useState('');
 
   const load=useCallback(async()=>{
     const[a,b]=await Promise.all([getInbox(),getDone()]);
@@ -271,7 +273,9 @@ function Capture({onCapture}){
     setContent(''); setTag(''); setLinkCh(null); setSaving(false);
     await load(); if(onCapture)onCapture();
   }
-  async function markDone(id){ await updateCaptureStatut(id,'traité'); await load(); if(onCapture)onCapture(); }
+  async function markDone(id){ setAnnotId(id); setAnnotTxt(''); }
+  async function validerTrait(id,txt){ await traitCapture(id,txt); setAnnotId(null); setAnnotTxt(''); await load(); if(onCapture)onCapture(); }
+  async function skipAnnot(id){ await traitCapture(id,null); setAnnotId(null); await load(); if(onCapture)onCapture(); }
   async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
 
   const now=new Date();
@@ -316,18 +320,27 @@ function Capture({onCapture}){
         <div style="flex:1;min-width:0"><div class="item-ti">${item.contenu.slice(0,100)}${item.contenu.length>100?'…':''}</div>
         <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div></div>
       </div>
-      <div class="item-b">
-        <button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter · ACTOR</button>
-        <button class="btn" onClick=${()=>markLater(item.id)}>Plus tard</button>
-        ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${()=>shareFile(item)}>↗ Partager</button>`:''}
-      </div>
+      ${annotId===item.id
+        ?html`<div class="annot-form">
+          <input class="taginp" style="width:100%" value=${annotTxt} onInput=${e=>setAnnotTxt(e.target.value)} placeholder="Next action, décision, lien…" onKeyDown=${e=>e.key==='Enter'&&validerTrait(item.id,annotTxt)} autofocus/>
+          <div style="display:flex;gap:6px">
+            <button class="save-btn" style="flex:1" onClick=${()=>validerTrait(item.id,annotTxt)}>Traité ✓</button>
+            <button class="btn" onClick=${()=>skipAnnot(item.id)}>Sans note</button>
+          </div>
+        </div>`
+        :html`<div class="item-b">
+          <button class="btn pri" onClick=${()=>markDone(item.id)}>Traiter · ACTOR</button>
+          <button class="btn" onClick=${()=>markLater(item.id)}>Plus tard</button>
+          ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${()=>shareFile(item)}>↗ Partager</button>`:''}
+        </div>`}
     </div>`)}
 
     ${done.length>0?html`<div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
     ${done.slice(0,5).map(item=>html`<div class="item" key=${item.id}>
       <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
       <div><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,80)}</div>
-      <div class="item-src"><span class="done-tag">✓ Traité</span> · ${relDate(item.date)}</div></div></div>
+      <div class="item-src"><span class="done-tag">✓ Traité</span> · ${relDate(item.date)}</div>
+      ${item.annotation?html`<div class="annot-badge">${item.annotation}</div>`:''}</div></div>
     </div>`)}`:'' }
 
     <div class="foot">Zebracorn OS · Capture · v0.1</div>
@@ -547,6 +560,12 @@ function App(){
   const [inboxCount,setCount]=useState(0);
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
   useEffect(()=>{ refresh(); },[refresh]);
+  useEffect(()=>{
+    if(!syncConfigured()) return;
+    const fn=()=>{ if(document.hidden) pushAll().catch(()=>{}); };
+    document.addEventListener('visibilitychange',fn);
+    return()=>document.removeEventListener('visibilitychange',fn);
+  },[]);
 
   return html`<div class="phone">
     ${tab==='maintenant'
@@ -579,7 +598,16 @@ await seedOnce();
 await seedOnce_v2();
 render(html`<${App}/>`, document.getElementById('root'));
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').then(reg=>{
+    reg.addEventListener('updatefound',()=>{
+      const sw=reg.installing;
+      sw.addEventListener('statechange',()=>{
+        if(sw.state==='activated'&&navigator.serviceWorker.controller) location.reload();
+      });
+    });
+  });
+}
 </script>
 </body>
 </html>

@@ -45,6 +45,10 @@ async function updateCaptureStatut(id, statut) {
   return db.captures.update(id, { statut });
 }
 
+async function traitCapture(id, annotation) {
+  return db.captures.update(id, { statut: 'traité', annotation: annotation ? annotation.trim() : null });
+}
+
 async function getInboxCount() {
   return db.captures.where('statut').equals('inbox').count();
 }
