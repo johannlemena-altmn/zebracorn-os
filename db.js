@@ -365,6 +365,14 @@ async function archiveQuestion(id) {
   return db.questions.update(id, { statut: 'archivee' });
 }
 
+async function getArchivedQuestions() {
+  return db.questions.filter(q => q.statut === 'archivee').toArray();
+}
+
+async function restoreQuestion(id) {
+  return db.questions.update(id, { statut: 'vivante' });
+}
+
 async function seedQuestionsOnce() {
   if (localStorage.getItem('zebracorn_seed_q1')) return;
   const existing = await getQuestions();

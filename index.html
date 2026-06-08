@@ -645,12 +645,15 @@ function Semaine(){
   const [editEchId,setEditEchId] = useState(null);
   const [editEchVal,setEditEchVal] = useState('');
   const [questions,setQuestions]   = useState([]);
+  const [qArchived,setQArchived]   = useState([]);
+  const [qShowArch,setQShowArch]   = useState(false);
   const [qCounts,setQCounts]       = useState({});
 
   const load = useCallback(async()=>{
     setTaches(await getTaches({fait:false}));
     setChant(await getChantiers());
     const qs=await getQuestions(); setQuestions(qs);
+    setQArchived(await getArchivedQuestions());
     const traites=await getDone();
     const counts={};
     for(const c of traites) if(c.questionId) counts[c.questionId]=(counts[c.questionId]||0)+1;
@@ -670,6 +673,7 @@ function Semaine(){
   async function sauveEcheance(id,val){ await setTacheEcheance(id,val||null); setEditEchId(null); await load(); }
   function ouvrirEch(t){ setEditEchId(t.id); setEditEchVal(t.echeance||''); }
   async function archiveQ(id){ await archiveQuestion(id); await load(); }
+  async function restoreQ(id){ await restoreQuestion(id); await load(); }
 
   if(ficheId!==null) return html`<${FicheChantier} id=${ficheId} onBack=${()=>{setFicheId(null);load();}}/>`;
 
@@ -734,13 +738,27 @@ function Semaine(){
       ${questions.map(q=>html`<div class="q-card" key=${q.id}>
         <div class="q-card-top">
           <span class="q-intitule">${q.intitule}</span>
-          <button class="q-arch" onClick=${()=>archiveQ(q.id)} title="Archiver">↓</button>
+          <button class="q-arch" onClick=${()=>archiveQ(q.id)} title="Archiver — répondue ou plus vivante">↓ archiver</button>
         </div>
         <div class="q-intention">${q.intention}</div>
         <div class="q-meta">
           <span class="q-count">${qCounts[q.id]||0} capture${(qCounts[q.id]||0)>1?'s':''}</span>
         </div>
       </div>`)}
+      ${qArchived.length>0?html`<div style="margin-top:10px">
+        <button class="q-arch" style="width:100%;text-align:center;padding:6px" onClick=${()=>setQShowArch(o=>!o)}>
+          📦 ${qArchived.length} archivée${qArchived.length>1?'s':''} ${qShowArch?'▲':'▼'}
+        </button>
+        ${qShowArch?html`<div style="margin-top:6px">
+          ${qArchived.map(q=>html`<div class="q-card" style="opacity:.55;border-left-color:var(--border2)" key=${q.id}>
+            <div class="q-card-top">
+              <span class="q-intitule" style="font-weight:400;color:var(--ink2)">${q.intitule}</span>
+              <button class="q-arch" onClick=${()=>restoreQ(q.id)} title="Réactiver">↑ rouvrir</button>
+            </div>
+            <div class="q-intention">${q.intention}</div>
+          </div>`)}
+        </div>`:''}
+      </div>`:''}
     </div>
 
     <div class="foot">Zebracorn OS · Semaine · v0.1</div>
