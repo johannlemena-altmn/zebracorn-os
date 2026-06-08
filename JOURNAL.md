@@ -5,6 +5,30 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 17 : Interface ACTOR — traitement en 5 étapes
+
+- **Fait** :
+  - `db.js` : helper `saveActorAnalysis(id, analysis)` — écrit le champ libre `actorAnalysis` sur la capture dans IndexedDB (pas de migration Dexie nécessaire).
+  - `index.html` :
+    1. Bouton `⊙ ACTOR` discret dans `item-b` sur chaque capture inbox (s'active en terracotta quand le panneau est ouvert).
+    2. Panneau accordéon 5 sections (A/C/T/O/R) inséré entre la zone expand et item-b. S'ouvre/ferme indépendamment de l'expand ; ouvrir ACTOR ferme l'expand et vice-versa.
+    3. Section T = grille 2×2 F/I/C/V + question socratique pré-remplie en lecture (bordure terracotta gauche, italique Fraunces).
+    4. Section O = visuellement proéminente : label italic, textarea avec `border: 2px solid var(--ac)` + glow au focus — impossible à zapper.
+    5. Section R = dropdown 4 options (Chantier / Livre / Question ouverte / #resurfacing) + textarea action.
+    6. Indicateur `⊙` terracotta dans `item-src` si `actorAnalysis` existe — visible au repos sans ouvrir la carte.
+  - `styles.css` : 20 nouvelles règles ACTOR dans la palette existante (papier/encre/terracotta). Zéro nouvelle couleur ni police.
+  - `doCorpus` : export enrichi — AIM, COMPRESS, OWN, RUN inclus dans le `.md` NLM si l'analyse existe.
+
+- **Pourquoi** : fermer la boucle capture → jugement → position. ACTOR sans interface = méthodologie fantôme. L'indicateur `⊙` rend visible le niveau de traitement du corpus d'un coup d'œil.
+
+- **Arbitrage** : panneau inline (pas de modal) — reste dans le contexte de la carte, fermable sans perte. Section O en `actor-own-body` (hors du pattern `actor-step-body`) pour un padding et un fond légèrement distincts sans nouveau token.
+
+- **DoD** : testé preview — bouton visible sur 3 captures, panneau s'ouvre/ferme, section T FICV navigable, section O proéminente, sauvegarde → indicateur ⊙ apparaît → reload → indicateur persiste. Zéro erreur console.
+
+- **Prochain** : Incrément 18 — workflow croisé « Ressources croisées » dans META_ACTOR.md (confrontation de 2 ACTOR → scénario prospectif) + test terrain sur les 2 vidéos (Wallenhorst + Halloy).
+
+---
+
 ## 2026-06-08 — Incrément 16 : Share Target — capture depuis n'importe quelle app iOS
 
 - **Fait** :

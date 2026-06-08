@@ -431,6 +431,9 @@ function Capture({onCapture, initContent='', initSource='', initType='note', ini
   const [pickerCaps,setPickerCaps]=useState([]);
   const [questions,setQuestions]=useState([]);
   const [qPickerId,setQPickerId]=useState(null);
+  const [actorId,setActorId]=useState(null);
+  const [actorDraft,setActorDraft]=useState({});
+  const [actorSection,setActorSection]=useState('A');
 
   const load=useCallback(async()=>{
     const[a,b,c]=await Promise.all([getInbox(),getDone(),getLater()]);
@@ -473,7 +476,7 @@ function Capture({onCapture, initContent='', initSource='', initType='note', ini
     if(expandId===id){ setExpandId(null); setLinkedCaps([]); setLinkPickerId(null); setQPickerId(null); return; }
     const item=inbox.find(x=>x.id===id);
     setExpandId(id); setExpandNotes(item?.notes||'');
-    setAnnotId(null); setLinkPickerId(null); setQPickerId(null);
+    setAnnotId(null); setLinkPickerId(null); setQPickerId(null); setActorId(null);
     if(item?.linkedIds?.length){
       const caps=await Promise.all(item.linkedIds.map(lid=>db.captures.get(lid)));
       setLinkedCaps(caps.filter(Boolean));
@@ -505,6 +508,39 @@ function Capture({onCapture, initContent='', initSource='', initType='note', ini
     await linkCaptureToQuestion(captureId,qId||null);
     setInbox(prev=>prev.map(x=>x.id===captureId?{...x,questionId:qId||null}:x));
     if(!qId) setQPickerId(null);
+  }
+  function ouvrirActor(item){
+    if(actorId===item.id){setActorId(null);return;}
+    const ex=item.actorAnalysis||{};
+    setActorDraft({
+      aim:ex.aim||'',
+      compress:ex.compress||'',
+      faits:ex.test?.faits||'',
+      interp:ex.test?.interp||'',
+      croyances:ex.test?.croyances||'',
+      valeurs:ex.test?.valeurs||'',
+      question:ex.test?.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?",
+      own:ex.own||'',
+      runTexte:ex.run?.texte||'',
+      runType:ex.run?.type||'→ Chantier',
+    });
+    setActorSection('A');
+    setActorId(item.id);
+    setExpandId(null);
+    setAnnotId(null);
+  }
+  async function sauveActor(id){
+    const a={
+      aim:actorDraft.aim,
+      compress:actorDraft.compress,
+      test:{faits:actorDraft.faits,interp:actorDraft.interp,croyances:actorDraft.croyances,valeurs:actorDraft.valeurs,question:actorDraft.question},
+      own:actorDraft.own,
+      run:{texte:actorDraft.runTexte,type:actorDraft.runType},
+      updatedAt:new Date().toISOString(),
+    };
+    await saveActorAnalysis(id,a);
+    setInbox(prev=>prev.map(x=>x.id===id?{...x,actorAnalysis:a}:x));
+    setActorId(null);
   }
   async function markDone(id){
     const item=inbox.find(x=>x.id===id);
@@ -568,7 +604,7 @@ function Capture({onCapture, initContent='', initSource='', initType='note', ini
             <div class="item-src">
               ${item.source?item.source+' · ':''}${relDate(item.date)}
               ${item.linkedIds?.length?html` · <span style="color:var(--bleu)">🔗 ${item.linkedIds.length}</span>`:''}
-            </div>
+              ${item.actorAnalysis?html` · <span class="actor-ic">⊙</span>`:''}</div>
             ${isExpanded&&chName?html`<div style="margin-top:5px"><span class="ch-pill on" style="font-size:9px;padding:2px 8px">◎ ${chName.slice(0,28)}</span></div>`:''}
           </div>
           <span style="font-size:11px;color:var(--ink3);flex-shrink:0;margin-left:4px">${isExpanded?'↑':'↓'}</span>
@@ -627,6 +663,71 @@ function Capture({onCapture, initContent='', initSource='', initType='note', ini
             </div>`)}
           </div>`:''}
         </div>`:''}
+        ${actorId===item.id?html`<div class="actor-panel">
+          <div class="actor-panel-hdr">
+            <span class="actor-panel-title">⊙ ACTOR</span>
+            <button class="actor-btn" style="padding:4px 9px" onClick=${e=>{e.stopPropagation();setActorId(null);}}>× Fermer</button>
+          </div>
+          <div class="actor-step">
+            <div class="actor-step-hdr" onClick=${e=>{e.stopPropagation();setActorSection(actorSection==='A'?null:'A');}}>
+              <span class="actor-step-key">A</span><span class="actor-step-lbl">AIM — Pourquoi cette capture ?</span>
+              <span class="actor-step-caret">${actorSection==='A'?'↑':'↓'}</span>
+            </div>
+            ${actorSection==='A'?html`<div class="actor-step-body">
+              <textarea class="actor-ta" rows=2 placeholder="En 1 phrase : pourquoi maintenant ? Dans quel projet ?" value=${actorDraft.aim} onInput=${e=>setActorDraft(d=>({...d,aim:e.target.value}))}/>
+            </div>`:''}
+          </div>
+          <div class="actor-step">
+            <div class="actor-step-hdr" onClick=${e=>{e.stopPropagation();setActorSection(actorSection==='C'?null:'C');}}>
+              <span class="actor-step-key">C</span><span class="actor-step-lbl">COMPRESS — À l'os</span>
+              <span class="actor-step-caret">${actorSection==='C'?'↑':'↓'}</span>
+            </div>
+            ${actorSection==='C'?html`<div class="actor-step-body">
+              <textarea class="actor-ta" rows=3 placeholder="Thèse centrale (1 phrase). 2-3 éléments qui changent quelque chose." value=${actorDraft.compress} onInput=${e=>setActorDraft(d=>({...d,compress:e.target.value}))}/>
+            </div>`:''}
+          </div>
+          <div class="actor-step">
+            <div class="actor-step-hdr" onClick=${e=>{e.stopPropagation();setActorSection(actorSection==='T'?null:'T');}}>
+              <span class="actor-step-key">T</span><span class="actor-step-lbl">TEST — F / I / C / V</span>
+              <span class="actor-step-caret">${actorSection==='T'?'↑':'↓'}</span>
+            </div>
+            ${actorSection==='T'?html`<div class="actor-step-body">
+              <div class="actor-ficv">
+                <div><div class="actor-ficv-lbl">Faits [F]</div><textarea class="actor-ta" rows=2 placeholder="Documenté, sourcé…" value=${actorDraft.faits} onInput=${e=>setActorDraft(d=>({...d,faits:e.target.value}))}/></div>
+                <div><div class="actor-ficv-lbl">Interprétations [I]</div><textarea class="actor-ta" rows=2 placeholder="Dépend d'un cadre…" value=${actorDraft.interp} onInput=${e=>setActorDraft(d=>({...d,interp:e.target.value}))}/></div>
+                <div><div class="actor-ficv-lbl">Croyances [C]</div><textarea class="actor-ta" rows=2 placeholder="Présupposés cachés…" value=${actorDraft.croyances} onInput=${e=>setActorDraft(d=>({...d,croyances:e.target.value}))}/></div>
+                <div><div class="actor-ficv-lbl">Valeurs [V]</div><textarea class="actor-ta" rows=2 placeholder="Présenté comme neutre…" value=${actorDraft.valeurs} onInput=${e=>setActorDraft(d=>({...d,valeurs:e.target.value}))}/></div>
+              </div>
+              <div class="actor-q-socr">"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?"</div>
+            </div>`:''}
+          </div>
+          <div class="actor-step">
+            <div class="actor-step-hdr" onClick=${e=>{e.stopPropagation();setActorSection(actorSection==='O'?null:'O');}}>
+              <span class="actor-step-key">O</span><span class="actor-step-lbl">OWN — Ma position</span>
+              <span class="actor-step-caret">${actorSection==='O'?'↑':'↓'}</span>
+            </div>
+            ${actorSection==='O'?html`<div class="actor-own-body">
+              <div class="actor-own-lbl">Ce que je pense — pas ce que j'ai lu.</div>
+              <textarea class="actor-own-ta" rows=4 placeholder="Qu'est-ce que ça confirme, nuance ou contredit ? Quel angle m'appartient ?" value=${actorDraft.own} onInput=${e=>setActorDraft(d=>({...d,own:e.target.value}))}/>
+            </div>`:''}
+          </div>
+          <div class="actor-step">
+            <div class="actor-step-hdr" onClick=${e=>{e.stopPropagation();setActorSection(actorSection==='R'?null:'R');}}>
+              <span class="actor-step-key">R</span><span class="actor-step-lbl">RUN — L'action concrète</span>
+              <span class="actor-step-caret">${actorSection==='R'?'↑':'↓'}</span>
+            </div>
+            ${actorSection==='R'?html`<div class="actor-step-body">
+              <select class="actor-run-sel" value=${actorDraft.runType} onChange=${e=>setActorDraft(d=>({...d,runType:e.target.value}))}>
+                <option value="→ Chantier">→ Chantier</option>
+                <option value="→ Livre">→ Livre</option>
+                <option value="→ Question ouverte">→ Question ouverte</option>
+                <option value="→ Rien #resurfacing">→ Rien pour l'instant · #resurfacing</option>
+              </select>
+              <textarea class="actor-ta" rows=2 placeholder="Action concrète, délai, avec qui…" value=${actorDraft.runTexte} onInput=${e=>setActorDraft(d=>({...d,runTexte:e.target.value}))}/>
+            </div>`:''}
+          </div>
+          <button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder l'analyse ⊙</button>
+        </div>`:''}
         ${annotId===item.id
           ?html`<div class="annot-form">
             <input class="taginp" style="width:100%" value=${annotTxt} onInput=${e=>setAnnotTxt(e.target.value)} placeholder="Next action, décision, lien…" onKeyDown=${e=>e.key==='Enter'&&validerTrait(item.id,annotTxt)} autofocus/>
@@ -638,6 +739,7 @@ function Capture({onCapture, initContent='', initSource='', initType='note', ini
           :html`<div class="item-b">
             <button class="btn pri" onClick=${e=>{e.stopPropagation();markDone(item.id);}}>Traiter ✓</button>
             <button class="btn" onClick=${e=>{e.stopPropagation();markLater(item.id);}}>↓ Plus tard</button>
+            <button class=${'actor-btn'+(actorId===item.id?' active':'')} onClick=${e=>{e.stopPropagation();ouvrirActor(item);}}>⊙ ACTOR</button>
             ${isURL?html`<a class="share-btn" href=${item.contenu} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Ouvrir</a>`:''}
             ${item.sourceUrl&&!isURL?html`<a class="share-btn" href=${item.sourceUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Source</a>`:''}
             ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${e=>{e.stopPropagation();shareFile(item);}}>↗ Partager</button>`:''}
@@ -1115,6 +1217,13 @@ function Reglages(){
       if(ch) md+=`> Chantier : **${ch.titre}**\n`;
       if(c.notes) md+=`\n**Notes** : ${c.notes}\n`;
       if(c.annotation) md+=`\n**ACTOR** : ${c.annotation}\n`;
+      if(c.actorAnalysis){
+        const a=c.actorAnalysis;
+        if(a.aim) md+=`\n**AIM** : ${a.aim}\n`;
+        if(a.compress) md+=`\n**COMPRESS** : ${a.compress}\n`;
+        if(a.own) md+=`\n**OWN** : ${a.own}\n`;
+        if(a.run?.texte) md+=`\n**RUN** : [${a.run.type||'→'}] ${a.run.texte}\n`;
+      }
       if(c.source) md+=`\n*Source : ${c.source}*\n`;
       md+=`\n*${new Date(c.date).toLocaleDateString('fr-FR')}* · statut : ${c.statut}\n\n---\n\n`;
     }

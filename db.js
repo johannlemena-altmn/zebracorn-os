@@ -452,3 +452,9 @@ async function seedLivresOnce() {
   });
   localStorage.setItem('zebracorn_seed_livres_v1', 'done');
 }
+
+// ── ACTOR (analyse en 5 étapes) ───────────────────────────────────────────
+// Stocké comme champ libre sur la capture — pas de migration Dexie nécessaire.
+async function saveActorAnalysis(id, analysis) {
+  return db.captures.update(id, { actorAnalysis: analysis });
+}
