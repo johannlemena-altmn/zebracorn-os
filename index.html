@@ -8,6 +8,8 @@
   <meta name="theme-color" content="#c2552f">
   <title>Zebracorn OS</title>
   <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -48,6 +50,18 @@ const T_PH    = {
 };
 const MAX_PDF_MB = 15;
 const MAX_PDF = MAX_PDF_MB * 1024 * 1024;
+
+const BADGES=[
+  {id:'seed',   e:'🌱',label:'Première graine', check:s=>s.total>=1},
+  {id:'noter',  e:'✍️',label:'Annotateur',       check:s=>s.avecNotes>=1},
+  {id:'acteur', e:'⚡',label:'Acteur',           check:s=>s.tachesDone>=1},
+  {id:'carto',  e:'🔗',label:'Cartographe',      check:s=>s.avecLiens>=1},
+  {id:'halfway',e:'⚒️',label:'Mi-chantier',      check:s=>s.maxPct>=50},
+  {id:'f10',    e:'🔍',label:'Filtreur',         check:s=>s.traites>=10,  prog:s=>`${Math.min(s.traites,10)}/10`},
+  {id:'a50',    e:'📚',label:'Archiviste',        check:s=>s.total>=50,    prog:s=>`${Math.min(s.total,50)}/50`},
+  {id:'master', e:'🏆',label:"Maître d'œuvre",  check:s=>s.maxPct>=100},
+  {id:'corpus', e:'🧠',label:'Corpus vivant',    check:s=>s.total>=100,   prog:s=>`${Math.min(s.total,100)}/100`},
+];
 
 /* ── helpers ────────────────────────────────── */
 function fmtDate(d){ return `${DAYS[d.getDay()]}. ${d.getDate()} ${MONTHS[d.getMonth()]}`; }
@@ -663,7 +677,9 @@ function Reglages(){
   const [cfg,setCfg]=useState(getSyncConfig());
   const [msg,setMsg]=useState('');
   const [busy,setBusy]=useState(false);
+  const [stats,setStats]=useState(null);
   const last=lastSync();
+  useEffect(()=>{ getStats().then(setStats); },[]);
 
   const upd=(k,v)=>setCfg(c=>({...c,[k]:v}));
   function save(){ saveSyncConfig(cfg.url.trim(),cfg.key.trim(),cfg.space.trim()); setMsg('Configuration enregistrée ✓'); }
@@ -679,6 +695,32 @@ function Reglages(){
     <div class="hdr"><div class="brand">Zebracorn OS · Réglages</div><div class="date-lbl">${fmtDate(now)}</div></div>
     <div class="h1">Réglages.</div>
     <div class="greet">Synchronise tes appareils. Tes données restent à toi.</div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Corpus</span>${stats?html`<span class="sec-c" style="color:var(--ink3)">${stats.total} captures</span>`:''}</div>
+      ${stats?html`
+        <div class="stats-grid">
+          <div class="stat-cell"><span class="stat-n">${stats.total}</span><span class="stat-l">Capturées</span></div>
+          <div class="stat-cell"><span class="stat-n">${stats.traites}</span><span class="stat-l">Traitées</span></div>
+          <div class="stat-cell"><span class="stat-n">${stats.avecNotes}</span><span class="stat-l">Notes</span></div>
+          <div class="stat-cell"><span class="stat-n">${stats.avecLiens}</span><span class="stat-l">Liées</span></div>
+        </div>
+        <div class="sec-h" style="margin-top:1.2rem">
+          <span class="sec-t">Badges</span>
+          <span class="sec-c" style="color:var(--ink3)">${BADGES.filter(b=>b.check(stats)).length}/${BADGES.length}</span>
+        </div>
+        <div class="badges-grid">
+          ${BADGES.map(b=>{
+            const ok=b.check(stats);
+            return html`<div class=${'badge-cell'+(ok?'':' locked')} key=${b.id}>
+              <span class="badge-e">${b.e}</span>
+              <span class="badge-l">${b.label}</span>
+              ${!ok&&b.prog?html`<span class="badge-prog">${b.prog(stats)}</span>`:''}
+            </div>`;
+          })}
+        </div>
+      `:''}
+    </div>
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Sync cloud · Supabase</span><span class="sec-c">${syncConfigured()?'configuré':'à configurer'}</span></div>

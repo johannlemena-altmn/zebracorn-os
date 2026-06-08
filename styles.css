@@ -160,6 +160,18 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .del-btn:active,.del-btn.danger-btn{color:var(--ac);}
 .btn.danger-btn{border-color:var(--ac);color:var(--ac);}
 
+/* ── Corpus & Badges ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;}
+.stat-cell{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 5px;text-align:center;}
+.stat-n{display:block;font-family:var(--fs);font-size:22px;font-weight:500;color:var(--ink);}
+.stat-l{display:block;font-family:var(--fm);font-size:8px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-top:2px;}
+.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.badge-cell{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.badge-cell.locked{opacity:.3;filter:grayscale(.6);}
+.badge-e{font-size:22px;line-height:1;}
+.badge-l{font-family:var(--fm);font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);line-height:1.2;}
+.badge-prog{font-family:var(--fm);font-size:8px;color:var(--ink3);}
+
 /* ── Tab nav ── */
 .tabnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--bg);border-top:1px solid var(--border);display:flex;padding:8px 1.5rem calc(8px + env(safe-area-inset-bottom));gap:4px;z-index:100;}
 .tabnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 4px;border-radius:10px;color:var(--ink3);transition:.15s;}

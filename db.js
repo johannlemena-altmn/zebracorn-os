@@ -82,6 +82,31 @@ async function unlinkCaptures(idA, idB) {
   ]);
 }
 
+async function getStats() {
+  const [caps, chans, etps, tachs] = await Promise.all([
+    db.captures.toArray(),
+    db.chantiers.where('statut').equals('actif').toArray(),
+    db.etapes.toArray(),
+    db.taches.toArray(),
+  ]);
+  let maxPct = 0;
+  for (const ch of chans) {
+    const et = etps.filter(e => e.chantierId === ch.id);
+    if (et.length) {
+      const pct = Math.round(et.filter(e => e.fait).length / et.length * 100);
+      if (pct > maxPct) maxPct = pct;
+    }
+  }
+  return {
+    total: caps.length,
+    traites: caps.filter(c => c.statut === 'traité').length,
+    avecNotes: caps.filter(c => c.notes).length,
+    avecLiens: caps.filter(c => c.linkedIds?.length).length,
+    tachesDone: tachs.filter(t => t.fait).length,
+    maxPct,
+  };
+}
+
 async function getCapturesByChantier(chantierId) {
   const all = await db.captures.filter(c => c.chantierId === chantierId).toArray();
   return all.sort((a, b) => (a.date < b.date ? 1 : -1));
