@@ -418,6 +418,9 @@ function Capture({onCapture}){
   const [pickerCaps,setPickerCaps]=useState([]);
   const [questions,setQuestions]=useState([]);
   const [qPickerId,setQPickerId]=useState(null);
+  const [actorId,setActorId]=useState(null);
+  const [actorDraft,setActorDraft]=useState({});
+  const [actorSection,setActorSection]=useState('A');
 
   const load=useCallback(async()=>{
     const[a,b,c]=await Promise.all([getInbox(),getDone(),getLater()]);
@@ -460,7 +463,7 @@ function Capture({onCapture}){
     if(expandId===id){ setExpandId(null); setLinkedCaps([]); setLinkPickerId(null); setQPickerId(null); return; }
     const item=inbox.find(x=>x.id===id);
     setExpandId(id); setExpandNotes(item?.notes||'');
-    setAnnotId(null); setLinkPickerId(null); setQPickerId(null);
+    setAnnotId(null); setLinkPickerId(null); setQPickerId(null); setActorId(null);
     if(item?.linkedIds?.length){
       const caps=await Promise.all(item.linkedIds.map(lid=>db.captures.get(lid)));
       setLinkedCaps(caps.filter(Boolean));
@@ -499,6 +502,29 @@ function Capture({onCapture}){
   }
   async function validerTrait(id,txt){ await traitCapture(id,txt); setAnnotId(null); setAnnotTxt(''); await load(); if(onCapture)onCapture(); }
   async function skipAnnot(id){ await traitCapture(id,null); setAnnotId(null); await load(); if(onCapture)onCapture(); }
+  function ouvrirActor(item){
+    if(actorId===item.id){setActorId(null);return;}
+    const ex=item.actorAnalysis||{};
+    setActorDraft({
+      aim:ex.aim||'', compress:ex.compress||'',
+      faits:ex.test?.faits||'', interp:ex.test?.interp||'',
+      croyances:ex.test?.croyances||'', valeurs:ex.test?.valeurs||'',
+      question:ex.test?.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?",
+      own:ex.own||'', runTexte:ex.run?.texte||'', runType:ex.run?.type||'→ Chantier',
+    });
+    setActorSection('A'); setActorId(item.id); setExpandId(null); setAnnotId(null);
+  }
+  async function sauveActor(id){
+    const a={
+      aim:actorDraft.aim, compress:actorDraft.compress,
+      test:{faits:actorDraft.faits,interp:actorDraft.interp,croyances:actorDraft.croyances,valeurs:actorDraft.valeurs,question:actorDraft.question},
+      own:actorDraft.own, run:{texte:actorDraft.runTexte,type:actorDraft.runType},
+      updatedAt:new Date().toISOString(),
+    };
+    await saveActorAnalysis(id,a);
+    setInbox(prev=>prev.map(x=>x.id===id?{...x,actorAnalysis:a}:x));
+    setActorId(null);
+  }
   async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
   async function supprimerCapture(id){ if(confirmDelId!==id){setConfirmDelId(id);return;} await deleteCapture(id); setConfirmDelId(null); await load(); if(onCapture)onCapture(); }
   async function remettreInbox(id){ await updateCaptureStatut(id,'inbox'); await load(); if(onCapture)onCapture(); }
@@ -555,6 +581,7 @@ function Capture({onCapture}){
             <div class="item-src">
               ${item.source?item.source+' · ':''}${relDate(item.date)}
               ${item.linkedIds?.length?html` · <span style="color:var(--bleu)">🔗 ${item.linkedIds.length}</span>`:''}
+              ${item.actorAnalysis?html` · <span class="actor-ic">⊙</span>`:''}
             </div>
             ${isExpanded&&chName?html`<div style="margin-top:5px"><span class="ch-pill on" style="font-size:9px;padding:2px 8px">◎ ${chName.slice(0,28)}</span></div>`:''}
           </div>
@@ -625,9 +652,51 @@ function Capture({onCapture}){
           :html`<div class="item-b">
             <button class="btn pri" onClick=${e=>{e.stopPropagation();markDone(item.id);}}>Traiter ✓</button>
             <button class="btn" onClick=${e=>{e.stopPropagation();markLater(item.id);}}>↓ Plus tard</button>
+            <button class=${'actor-btn'+(actorId===item.id?' active':'')} onClick=${e=>{e.stopPropagation();ouvrirActor(item);}}>⊙ ACTOR</button>
             ${isURL?html`<a class="share-btn" href=${item.contenu} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Ouvrir</a>`:''}
             ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${e=>{e.stopPropagation();shareFile(item);}}>↗ Partager</button>`:''}
           </div>`}
+        ${actorId===item.id?html`<div class="actor-panel">
+          <div class="actor-panel-hdr">
+            <span class="actor-panel-title">⊙ ACTOR — Analyse</span>
+            <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${e=>{e.stopPropagation();setActorId(null);}}>✕</button>
+          </div>
+          ${['A','C','T','O','R'].map(s=>{
+            const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
+            const isOpen=actorSection===s;
+            return html`<div class="actor-step" key=${s}>
+              <div class="actor-step-hdr" onClick=${()=>setActorSection(isOpen?null:s)}>
+                <span class="actor-step-key">${s}</span>
+                <span class="actor-step-lbl">${LABELS[s]}</span>
+                <span class="actor-step-caret">${isOpen?'↑':'↓'}</span>
+              </div>
+              ${isOpen?html`${s==='T'?html`<div class="actor-step-body">
+                  <div class="actor-ficv">
+                    ${['faits','interp','croyances','valeurs'].map(k=>html`<div key=${k}>
+                      <div class="actor-ficv-lbl">${{faits:'F — Faits',interp:'I — Interprétations',croyances:'C — Croyances',valeurs:'V — Valeurs'}[k]}</div>
+                      <textarea class="actor-ta" rows=2 value=${actorDraft[k]||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,[k]:v}));}} placeholder="…"></textarea>
+                    </div>`)}
+                  </div>
+                  <div class="actor-q-socr">❝ ${actorDraft.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?"}</div>
+                </div>`
+              :s==='O'?html`<div class="actor-own-body">
+                  <div class="actor-own-lbl">Quelle est ta position ? Pas ce que tu as lu — ce que tu penses.</div>
+                  <textarea class="actor-own-ta" rows=3 value=${actorDraft.own||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,own:v}));}} placeholder="Je pense que…"></textarea>
+                </div>`
+              :s==='R'?html`<div class="actor-step-body">
+                  <select class="actor-run-sel" value=${actorDraft.runType||'→ Chantier'} onChange=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runType:v}));}}>
+                    ${['→ Chantier','→ Livre','→ Question ouverte','→ Écriture','→ Partager','→ Décision','→ #resurfacing'].map(o=>html`<option key=${o}>${o}</option>`)}
+                  </select>
+                  <textarea class="actor-ta" rows=2 value=${actorDraft.runTexte||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runTexte:v}));}} placeholder="Action concrète…"></textarea>
+                  <button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder ⊙</button>
+                </div>`
+              :html`<div class="actor-step-body">
+                  <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?"Pourquoi cette capture m'intéresse maintenant ?":"Quelle est la thèse centrale ? (1 phrase)"}></textarea>
+                </div>`}
+              `:''}
+            </div>`;
+          })}
+        </div>`:''}
       </div>`;
     })}
 

@@ -548,3 +548,8 @@ async function seedLivresOnce() {
   });
   localStorage.setItem('zebracorn_seed_livres_v1', 'done');
 }
+
+// ── ACTOR (analyse en 5 étapes) ───────────────────────────────────────────
+async function saveActorAnalysis(id, analysis) {
+  return db.captures.update(id, { actorAnalysis: analysis });
+}
