@@ -690,6 +690,31 @@ function Reglages(){
   async function doExport(){ const dump=await exportAll(); const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='zebracorn-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); setMsg('Sauvegarde téléchargée ✓'); }
   function doImport(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=async()=>{ if(!confirm('Importer va REMPLACER les données de cet appareil. Continuer ?')) return; try{ await importAll(JSON.parse(r.result)); setMsg('Importé ✓ — rechargement…'); setTimeout(()=>location.reload(),800);}catch(err){ setMsg('⚠ fichier invalide'); } }; r.readAsText(f); }
 
+  async function doCorpus(){
+    const all=await db.captures.toArray();
+    const chans=await db.chantiers.toArray();
+    const items=all.filter(c=>c.statut==='traité'||c.notes).sort((a,b)=>a.date<b.date?-1:1);
+    const date=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+    let md=`# Corpus Zebracorn\n> Exporté le ${date} · ${items.length} entrées\n\n`;
+    for(const c of items){
+      const ico=T_ICONS[c.type]||'📝';
+      const ch=chans.find(x=>x.id===c.chantierId);
+      md+=`## ${ico} ${c.contenu}\n`;
+      if(ch) md+=`> Chantier : **${ch.titre}**\n`;
+      if(c.notes) md+=`\n**Notes** : ${c.notes}\n`;
+      if(c.annotation) md+=`\n**ACTOR** : ${c.annotation}\n`;
+      if(c.source) md+=`\n*Source : ${c.source}*\n`;
+      md+=`\n*${new Date(c.date).toLocaleDateString('fr-FR')}* · statut : ${c.statut}\n\n---\n\n`;
+    }
+    const fname=`zebracorn-corpus-${new Date().toISOString().slice(0,10)}.md`;
+    const blob=new Blob([md],{type:'text/plain'});
+    if(navigator.share){
+      try{ await navigator.share({files:[new File([blob],fname,{type:'text/plain'})],title:'Corpus Zebracorn'}); setMsg('Corpus partagé ✓'); return; }catch(e){ if(e.name==='AbortError') return; }
+    }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    setMsg('Corpus téléchargé ✓');
+  }
+
   const now=new Date();
   return html`<div class="scroll">
     <div class="hdr"><div class="brand">Zebracorn OS · Réglages</div><div class="date-lbl">${fmtDate(now)}</div></div>
@@ -733,6 +758,12 @@ function Reglages(){
         <button class="btn" disabled=${busy||!syncConfigured()} onClick=${doPull}>↓ Tirer</button>
       </div>
       <div class="set-note">Pousse depuis l'appareil à jour, Tire sur l'autre. Envoi : ${last.push?new Date(last.push).toLocaleString():'—'} · Réception : ${last.pull?new Date(last.pull).toLocaleString():'—'}</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Corpus · NotebookLM</span></div>
+      <button class="save-btn" style="width:100%" onClick=${doCorpus}>↗ Exporter le corpus (.md)</button>
+      <div class="set-note">Génère un fichier Markdown de toutes tes captures traitées + notes · partage vers Fichiers ou NLM directement.</div>
     </div>
 
     <div class="sec">
