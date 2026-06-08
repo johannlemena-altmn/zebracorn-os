@@ -5,6 +5,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 8 : Carte expansible + notes pré-ACTOR
+
+- **Fait** :
+  - Tap sur le corps d'une carte inbox → expand (flèche ↓/↑).
+  - Contenu complet visible, champ "Notes" (textarea) sauvegardé à la perte de focus via `updateCaptureNotes`.
+  - Chantier lié affiché en chip vert si la capture est liée à un chantier.
+  - "Traiter ✓" pré-remplit le champ ACTOR depuis les notes existantes.
+  - Captures de type lien/vidéo : bouton "↗ Ouvrir" (tab Safari, iOS compatible).
+  - `toggleExpand` sauve les notes du card précédent avant de changer de carte.
+
+- **Pourquoi** : l'inbox était unidirectionnelle (capturer → traiter sans retour).
+  L'utilisateur ne pouvait pas "creuser" une carte avant de décider. Les notes
+  pré-ACTOR créent un espace de réflexion entre la capture et le traitement.
+
+- **DoD** : rendu relu in-context. stopPropagation sur les boutons (pas de conflit
+  avec le toggle expand). Tri données : fondation pour les liens entre captures.
+
+- **Prochain** : liens entre captures (Obsidian-like) — `linkedIds:[]` dans captures,
+  sélection dans la carte expansible. OU export corpus NotebookLM. À valider.
+
+---
+
 ## 2026-06-08 — Incrément 7 : Échéances datées 🔴/🔵 (backlog 6)
 
 - **Fait** :
