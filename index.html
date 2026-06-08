@@ -222,6 +222,7 @@ function Maintenant({inboxCount,onGoCapture}){
       <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention pour ce moment…"/>
     </div>
     ${cap.intention?html`<div class="cap-annuel">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
+    ${cap.objectifsMois?html`<div class="cap-annuel" style="margin-top:-0.8rem;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}${cap.objectifsMois.split('\n').filter(l=>l.trim()).length>1?' +…':''}</em></div>`:''}
 
     <div class="track">
       <div class="kpi"><div class="kpi-n">${streaks.length?Math.max(...streaks):0}<small> j</small></div><div class="kpi-l">Meilleure série</div></div>
@@ -297,6 +298,7 @@ function Capture({onCapture}){
   const [done,setDone]=useState([]);
   const [later,setLater]=useState([]);
   const [saving,setSaving]=useState(false);
+  const [hsOpen,setHsOpen]=useState(false);
   const [file,setFile]=useState(null);
   const [fileWarn,setFileWarn]=useState('');
   const [linkCh,setLinkCh]=useState(null);
@@ -526,6 +528,26 @@ function Capture({onCapture}){
       </div>
     </div>`)}`:'' }
 
+    ${(()=>{
+      const moisISO=new Date().toISOString().slice(0,7);
+      const hsMois=done.filter(c=>c.horsScope&&c.date?.startsWith(moisISO));
+      if(!hsMois.length) return '';
+      return html`<div class="sec" style="margin-top:.4rem">
+        <div class="sec-h" style="cursor:pointer" onClick=${()=>setHsOpen(o=>!o)}>
+          <span class="sec-t">📍 Revue hors-scope · ${new Date().toLocaleDateString('fr-FR',{month:'long'})}</span>
+          <span class="sec-c">${hsMois.length} ${hsOpen?'▲':'▼'}</span>
+        </div>
+        ${hsOpen?html`<div>
+          <div class="hint" style="margin-bottom:10px;font-style:italic">Ces captures ne servent pas directement ton cap — qu'est-ce qu'elles révèlent ?</div>
+          ${hsMois.map(item=>html`<div class="item" style="opacity:.85" key=${item.id}>
+            <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
+            <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,120)}</div>
+            <div class="item-src">${relDate(item.date)}</div></div></div>
+          </div>`)}
+        </div>`:''}
+      </div>`;
+    })()}
+
     <div class="foot">Zebracorn OS · Capture · v0.1</div>
   </div>`;
 }
@@ -622,10 +644,17 @@ function Semaine(){
   const [ficheId,setFicheId] = useState(null);
   const [editEchId,setEditEchId] = useState(null);
   const [editEchVal,setEditEchVal] = useState('');
+  const [questions,setQuestions]   = useState([]);
+  const [qCounts,setQCounts]       = useState({});
 
   const load = useCallback(async()=>{
     setTaches(await getTaches({fait:false}));
     setChant(await getChantiers());
+    const qs=await getQuestions(); setQuestions(qs);
+    const traites=await getDone();
+    const counts={};
+    for(const c of traites) if(c.questionId) counts[c.questionId]=(counts[c.questionId]||0)+1;
+    setQCounts(counts);
   },[]);
   useEffect(()=>{ load(); },[load]);
 
@@ -640,6 +669,7 @@ function Semaine(){
   async function delChant(id){ await deleteChantier(id); await load(); }
   async function sauveEcheance(id,val){ await setTacheEcheance(id,val||null); setEditEchId(null); await load(); }
   function ouvrirEch(t){ setEditEchId(t.id); setEditEchVal(t.echeance||''); }
+  async function archiveQ(id){ await archiveQuestion(id); await load(); }
 
   if(ficheId!==null) return html`<${FicheChantier} id=${ficheId} onBack=${()=>{setFicheId(null);load();}}/>`;
 
@@ -698,6 +728,21 @@ function Semaine(){
       </div>`)}
     </div>
 
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">❓ Questions vivantes</span><span class="sec-c">${questions.length}</span></div>
+      ${questions.length===0?html`<div class="empty-state">aucune question active ✶</div>`:''}
+      ${questions.map(q=>html`<div class="q-card" key=${q.id}>
+        <div class="q-card-top">
+          <span class="q-intitule">${q.intitule}</span>
+          <button class="q-arch" onClick=${()=>archiveQ(q.id)} title="Archiver">↓</button>
+        </div>
+        <div class="q-intention">${q.intention}</div>
+        <div class="q-meta">
+          <span class="q-count">${qCounts[q.id]||0} capture${(qCounts[q.id]||0)>1?'s':''}</span>
+        </div>
+      </div>`)}
+    </div>
+
     <div class="foot">Zebracorn OS · Semaine · v0.1</div>
   </div>`;
 }
@@ -726,12 +771,38 @@ function Reglages(){
     const all=await db.captures.toArray();
     const chans=await db.chantiers.toArray();
     const items=all.filter(c=>c.statut==='traité'||c.notes).sort((a,b)=>a.date<b.date?-1:1);
+    const capData=getCap();
     const date=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+    const moisStr=new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    const moisISO=new Date().toISOString().slice(0,7);
+
     let md=`# Corpus Zebracorn\n> Exporté le ${date} · ${items.length} entrées\n\n`;
+
+    // ── Contexte stratégique ──────────────────────────────────────────────
+    if(capData.intention){
+      md+=`---\n\n## 🧭 Contexte stratégique\n\n`;
+      md+=`**Cap 2026 :** ${capData.intention}\n\n`;
+      if(capData.objectifs) md+=`**Objectifs annuels :**\n${capData.objectifs}\n\n`;
+      if(capData.objectifsMois) md+=`**Objectifs de ${moisStr} :**\n${capData.objectifsMois}\n\n`;
+      if(capData.nonNeg) md+=`**Non-négociables :** ${capData.nonNeg}\n\n`;
+      md+=`---\n\n`;
+    }
+
+    // ── Hors-scope du mois ────────────────────────────────────────────────
+    const hsMois=items.filter(c=>c.horsScope&&c.date?.startsWith(moisISO));
+    if(hsMois.length>0){
+      md+=`## 📍 Hors-scope · ${moisStr} (${hsMois.length})\n\n`;
+      md+=`*Captures traitées hors cap — signal de dérive à analyser.*\n\n`;
+      for(const c of hsMois) md+=`- **${c.contenu.slice(0,80)}**\n`;
+      md+=`\n---\n\n`;
+    }
+
+    // ── Corpus ────────────────────────────────────────────────────────────
     for(const c of items){
       const ico=T_ICONS[c.type]||'📝';
       const ch=chans.find(x=>x.id===c.chantierId);
-      md+=`## ${ico} ${c.contenu}\n`;
+      md+=`## ${ico} ${c.contenu.slice(0,120)}\n`;
+      if(c.horsScope) md+=`> 📍 *Hors-scope*\n`;
       if(ch) md+=`> Chantier : **${ch.titre}**\n`;
       if(c.notes) md+=`\n**Notes** : ${c.notes}\n`;
       if(c.annotation) md+=`\n**ACTOR** : ${c.annotation}\n`;
@@ -767,8 +838,12 @@ function Reglages(){
         <div class="set-label">Non-négociables</div>
         <textarea class="cmp-inp" rows=2 value=${cap.nonNeg} onInput=${e=>setCap(c=>({...c,nonNeg:e.target.value}))} placeholder="Santé · famille · …"/>
       </div>
+      <div class="set-field">
+        <div class="set-label">Objectifs du mois de ${new Date().toLocaleDateString('fr-FR',{month:'long'})} <span style="color:var(--ink3)">(2–3 max)</span></div>
+        <textarea class="cmp-inp" rows=3 value=${cap.objectifsMois||''} onInput=${e=>setCap(c=>({...c,objectifsMois:e.target.value}))} placeholder=${"Finir la partie 1 du mémoire\nPostuler chez X\n…"}/>
+      </div>
       <button class="save-btn" style="width:100%;margin-top:4px" onClick=${()=>{saveCap(cap);setMsg('Cap 2026 enregistré ✓');}}>Enregistrer le cap</button>
-      <div class="set-note">Visible dans Maintenant chaque jour — ta boussole permanente.</div>
+      <div class="set-note">Cap annuel + objectifs du mois — visibles dans Maintenant et inclus dans l'export NLM.</div>
     </div>
 
     <div class="sec">
@@ -875,6 +950,7 @@ function App(){
 
 await seedOnce();
 await seedOnce_v2();
+await seedQuestionsOnce();
 render(html`<${App}/>`, document.getElementById('root'));
 
 if('serviceWorker' in navigator){

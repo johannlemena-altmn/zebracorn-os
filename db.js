@@ -293,6 +293,11 @@ db.version(3).stores({
   amwap: '++id, date',
 });
 
+// v4 — Questions vivantes
+db.version(4).stores({
+  questions: '++id, chantierId, statut',
+});
+
 // ── AMWAP (mes victoires du jour) ──────────────────────────────────────────
 
 async function saveAmwap(v1, v2, v3) {
@@ -308,7 +313,7 @@ async function getAmwap(dateStr) {
 
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };
@@ -329,8 +334,8 @@ async function importAll(dump) {
 // ── Cap annuel (North Star) ────────────────────────────────────────────────
 
 function getCap() {
-  try { return JSON.parse(localStorage.getItem('zebracorn_cap') || 'null') || { intention: '', objectifs: '', nonNeg: '' }; }
-  catch { return { intention: '', objectifs: '', nonNeg: '' }; }
+  try { return JSON.parse(localStorage.getItem('zebracorn_cap') || 'null') || { intention: '', objectifs: '', nonNeg: '', objectifsMois: '' }; }
+  catch { return { intention: '', objectifs: '', nonNeg: '', objectifsMois: '' }; }
 }
 function saveCap(cap) {
   localStorage.setItem('zebracorn_cap', JSON.stringify(cap));
@@ -344,4 +349,28 @@ async function getHorsScopeMois() {
   const mois = new Date().toISOString().slice(0, 7);
   const traites = await db.captures.where('statut').equals('traité').toArray();
   return traites.filter(c => c.horsScope && c.date.startsWith(mois)).length;
+}
+
+// ── Questions vivantes ─────────────────────────────────────────────────────
+
+async function addQuestion({ intitule, intention, chantierId = null }) {
+  return db.questions.add({ intitule, intention, chantierId: chantierId || null, statut: 'vivante', createdAt: new Date().toISOString() });
+}
+
+async function getQuestions() {
+  return db.questions.filter(q => q.statut !== 'archivee').toArray();
+}
+
+async function archiveQuestion(id) {
+  return db.questions.update(id, { statut: 'archivee' });
+}
+
+async function seedQuestionsOnce() {
+  if (localStorage.getItem('zebracorn_seed_q1')) return;
+  const existing = await getQuestions();
+  if (existing.length > 0) { localStorage.setItem('zebracorn_seed_q1', 'done'); return; }
+  await addQuestion({ intitule: 'Comment raconter une idée complexe sans la trahir ?', intention: 'Trouver le langage qui transmet la nuance — clé de tout ce que je produis.' });
+  await addQuestion({ intitule: "Qu'est-ce qui fait qu'une ressource devient vraiment utile ?", intention: "Éviter d'accumuler sans comprendre — le filtre entre capter et agir." });
+  await addQuestion({ intitule: 'Comment documenter une transformation sans perdre son élan ?', intention: "Garder la trace du chemin sans que l'outil devienne le projet lui-même." });
+  localStorage.setItem('zebracorn_seed_q1', 'done');
 }

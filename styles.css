@@ -160,6 +160,16 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .del-btn:active,.del-btn.danger-btn{color:var(--ac);}
 .btn.danger-btn{border-color:var(--ac);color:var(--ac);}
 
+/* ── Questions vivantes (Semaine) ── */
+.q-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--ac2);border-radius:var(--r);padding:11px 13px;margin-bottom:8px;}
+.q-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.q-intitule{font-size:13px;font-weight:600;line-height:1.4;flex:1;}
+.q-intention{font-family:var(--fm);font-size:9.5px;letter-spacing:.01em;color:var(--ink2);margin-top:5px;line-height:1.5;font-style:italic;}
+.q-meta{display:flex;align-items:center;gap:8px;margin-top:7px;}
+.q-count{font-family:var(--fm);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);}
+.q-arch{font-family:var(--fm);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--border2);background:transparent;color:var(--ink3);border-radius:10px;padding:3px 9px;cursor:pointer;}
+.q-arch:active{opacity:.65;}
+
 /* ── Corpus & Badges ── */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;}
 .stat-cell{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 5px;text-align:center;}
