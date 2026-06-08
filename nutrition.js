@@ -703,6 +703,203 @@ function MacrosView() {
   </div>`;
 }
 
+/* ── ScoreBig ─────────────────────────────────────────────────────────────── */
+function ScoreBig({ score, label }) {
+  const bg = { A:'#3f7d5a', B:'#7ab648', C:'#e8a020', D:'#e07020', E:'#c2552f' };
+  return html`<div class="nutri-score-big-wrap">
+    <div class="nutri-score-big" style=${'background:' + (bg[score]||'#999')}>${score}</div>
+    <div class="nutri-score-lbl">${label}</div>
+  </div>`;
+}
+
+/* ── YukaCard ─────────────────────────────────────────────────────────────── */
+function YukaCard({ aliment: a, onBack }) {
+  const NOVA_LABELS = ['','Non transformé','Ingrédient culinaire','Transformé','Ultra-transformé'];
+  const NOVA_COLORS = ['','#3f7d5a','#7ab648','#e8a020','#c2552f'];
+  const ghgColor = (a.ghg||0) < 200 ? '#3f7d5a' : (a.ghg||0) < 600 ? '#e8a020' : '#c2552f';
+  const ghgPct = Math.min(100, Math.round((a.ghg||0) / 1500 * 100));
+  const isGut = ['corail','kéfir','lin','gingembre','spiruline','épinard'].some(k => a.nom.toLowerCase().includes(k));
+
+  return html`<div>
+    <button class="btn" style="margin-bottom:1rem" onClick=${onBack}>← Retour</button>
+    <div class="nutri-yuka-card">
+      <div class="nutri-yuka-hero">
+        <span class="nutri-yuka-emoji">${a.emoji}</span>
+        <div>
+          <div class="nutri-yuka-nom">${a.nom}</div>
+          <div class="nutri-yuka-cat">${CAT_META[a.cat]?.label || a.cat}</div>
+        </div>
+      </div>
+
+      <div class="nutri-yuka-scores">
+        <${ScoreBig} score=${a.nutri} label="Nutri-Score"/>
+        <${ScoreBig} score=${a.eco} label="Éco-Score"/>
+        <div class="nutri-score-big-wrap">
+          <div class="nutri-nova-badge" style=${'background:' + (NOVA_COLORS[a.nova]||'#999')}>NOVA ${a.nova}</div>
+          <div class="nutri-score-lbl" style="margin-top:4px;max-width:70px;text-align:center">${NOVA_LABELS[a.nova]||''}</div>
+        </div>
+      </div>
+
+      <div class="nutri-yuka-macros">
+        ${[['Kcal',a.kcal,'kcal'],['Protéines',a.prot,'g'],['Glucides',a.gluc,'g'],['Lipides',a.lip,'g']].map(([l,v,u],i) =>
+          html`<div key=${i} class="nutri-macro-cell">
+            <span class="nutri-macro-cell-v">${v}<small>${u}</small></span>
+            <span class="nutri-macro-cell-l">${l}</span>
+          </div>`
+        )}
+      </div>
+
+      <div class="nutri-ghg-row">
+        <span class="nutri-ghg-lbl">CO₂e</span>
+        <div class="prog-bar" style="flex:1">
+          <div class="prog-fill" style=${'width:' + ghgPct + '%;background:' + ghgColor}/>
+        </div>
+        <span class="nutri-ghg-val" style=${'color:' + ghgColor}>${a.ghg||0} g / portion</span>
+      </div>
+
+      ${isGut ? html`<div class="nutri-gut-tag">🌿 Gut-friendly · digestion facilitée</div>` : ''}
+
+      <div class="nutri-yuka-footer">
+        💰 ~${(a.prixUnit||0).toFixed(2)} € / portion
+        ${a.custom ? html` · <span style="color:var(--ac2);font-weight:600">ajouté manuellement</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── AnalyseView ──────────────────────────────────────────────────────────── */
+function AnalyseView() {
+  const [query, setQuery]         = useState('');
+  const [selected, setSelected]   = useState(null);
+  const [custom, setCustom]       = useState([]);
+  const [showAdd, setShowAdd]     = useState(false);
+  const [cf, setCf] = useState({ nom:'', emoji:'🍽️', kcal:'', prot:'', gluc:'', lip:'',
+    nutri:'B', eco:'C', nova:3, ghg:'400', prixUnit:'', cat:'proteines' });
+
+  useEffect(() => { getAlimentsCustom().then(setCustom); }, []);
+
+  const allFoods = [...ALIMENTS, ...custom];
+  const results = query.length >= 2
+    ? allFoods.filter(a => a.nom.toLowerCase().includes(query.toLowerCase()))
+    : allFoods;
+
+  const pctOf = (key, val) => Math.round(allFoods.filter(a => a[key] === val).length / allFoods.length * 100);
+
+  async function saveCustom() {
+    if (!cf.nom.trim()) return;
+    await addAlimentCustom({
+      nom: cf.nom.trim(), emoji: cf.emoji||'🍽️',
+      kcal: parseInt(cf.kcal)||0, prot: parseFloat(cf.prot)||0,
+      gluc: parseFloat(cf.gluc)||0, lip: parseFloat(cf.lip)||0,
+      nutri: cf.nutri, eco: cf.eco, nova: parseInt(cf.nova)||3,
+      ghg: parseInt(cf.ghg)||400, prixUnit: parseFloat(cf.prixUnit)||0,
+      cat: cf.cat, custom: true,
+    });
+    setCustom(await getAlimentsCustom());
+    setShowAdd(false);
+    setCf({ nom:'', emoji:'🍽️', kcal:'', prot:'', gluc:'', lip:'', nutri:'B', eco:'C', nova:3, ghg:'400', prixUnit:'', cat:'proteines' });
+  }
+
+  async function delCustom(id, e) {
+    e.stopPropagation();
+    await deleteAlimentCustom(id);
+    setCustom(await getAlimentsCustom());
+  }
+
+  if (selected) return html`<${YukaCard} aliment=${selected} onBack=${() => setSelected(null)}/>`;
+
+  return html`<div>
+    <div class="nutri-manifeste">
+      Décider mieux · <strong>santé</strong> · <strong>planète</strong> · <strong>porte-monnaie</strong>
+    </div>
+
+    <div class="nutri-bilan-box">
+      <div class="nutri-section-hdr" style="margin-bottom:10px">Profil · ${allFoods.length} aliments en base</div>
+      <div style="display:flex">
+        ${[['Nutri-A', pctOf('nutri','A')+'%','var(--ok)'],
+           ['Éco-A',   pctOf('eco','A')+'%', 'var(--ok)'],
+           ['NOVA 1',  pctOf('nova',1)+'%',  'var(--ac2)'],
+           ['Perso',   custom.length,         'var(--ink3)']
+          ].map(([l,v,c],i,arr) =>
+          html`<div key=${i} style=${'flex:1;text-align:center' + (i < arr.length-1 ? ';border-right:1px solid var(--border)' : '')}>
+            <div style=${'font-family:var(--fs);font-size:22px;font-weight:500;color:'+c}>${v}</div>
+            <div class="hint" style="margin-top:2px">${l}</div>
+          </div>`
+        )}
+      </div>
+    </div>
+
+    <input class="taginp" style="width:100%;margin-bottom:.9rem"
+      placeholder="🔍 Analyser un aliment…"
+      value=${query} onInput=${e => setQuery(e.target.value)}/>
+
+    <div class="sec-h" style="margin-bottom:7px">
+      <span class="sec-t">${results.length} résultat${results.length > 1 ? 's' : ''}</span>
+      <button class=${'btn' + (showAdd ? ' pri' : '')} style="font-size:11px;padding:4px 10px"
+        onClick=${() => setShowAdd(v => !v)}>+ Ajouter</button>
+    </div>
+
+    ${showAdd ? html`<div class="nutri-add-form" style="margin-bottom:1rem">
+      <div style="display:flex;gap:6px;margin-bottom:7px">
+        <input class="taginp" style="width:48px;text-align:center;font-size:18px" placeholder="😀"
+          value=${cf.emoji} onInput=${e => setCf(p => ({...p, emoji: e.target.value}))}/>
+        <input class="taginp" style="flex:1" placeholder="Nom de l'aliment"
+          value=${cf.nom} onInput=${e => setCf(p => ({...p, nom: e.target.value}))} autoFocus/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px">
+        ${[['kcal','Kcal'],['prot','Prot. g'],['gluc','Gluc. g'],['lip','Lip. g']].map(([k,l]) =>
+          html`<input key=${k} class="taginp" type="number" min="0" placeholder=${l}
+            value=${cf[k]} onInput=${e => setCf(p => ({...p, [k]: e.target.value}))}/>`
+        )}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:7px">
+        <select class="taginp" style="flex:1" value=${cf.nutri}
+          onChange=${e => setCf(p => ({...p, nutri: e.target.value}))}>
+          ${['A','B','C','D','E'].map(s => html`<option key=${s} value=${s}>Nutri-Score ${s}</option>`)}
+        </select>
+        <select class="taginp" style="flex:1" value=${cf.eco}
+          onChange=${e => setCf(p => ({...p, eco: e.target.value}))}>
+          ${['A','B','C','D','E'].map(s => html`<option key=${s} value=${s}>Éco-Score ${s}</option>`)}
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:7px">
+        <select class="taginp" style="flex:1" value=${cf.nova}
+          onChange=${e => setCf(p => ({...p, nova: parseInt(e.target.value)}))}>
+          ${[1,2,3,4].map(n => html`<option key=${n} value=${n}>NOVA ${n}</option>`)}
+        </select>
+        <input class="taginp" style="flex:1" type="number" min="0" placeholder="CO₂ g/portion"
+          value=${cf.ghg} onInput=${e => setCf(p => ({...p, ghg: e.target.value}))}/>
+        <input class="taginp" style="width:70px" type="number" step="0.1" min="0" placeholder="Prix €"
+          value=${cf.prixUnit} onInput=${e => setCf(p => ({...p, prixUnit: e.target.value}))}/>
+      </div>
+      <div class="types" style="flex-wrap:wrap;margin-bottom:9px">
+        ${CAT_ORDER.map(c => html`<button key=${c} class=${'type-btn' + (cf.cat === c ? ' on' : '')}
+          onClick=${() => setCf(p => ({...p, cat: c}))}>${CAT_META[c].emoji} ${CAT_META[c].label}</button>`)}
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="save-btn" style="flex:1" onClick=${saveCustom} disabled=${!cf.nom.trim()}>Sauvegarder</button>
+        <button class="btn" onClick=${() => setShowAdd(false)}>Annuler</button>
+      </div>
+    </div>` : ''}
+
+    ${results.map((a, i) => html`<div key=${a.nom + i} class="nutri-aliment-row"
+      onClick=${() => setSelected(a)}>
+      <span class="nutri-aliment-emoji">${a.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div class="nutri-aliment-nom">${a.nom}</div>
+        ${a.custom ? html`<span class="nutri-custom-tag">perso</span>` : ''}
+      </div>
+      <div style="display:flex;gap:3px;flex-shrink:0">
+        <${ScoreChip} score=${a.nutri} type="Nutri-Score"/>
+        <${ScoreChip} score=${a.eco} type="Éco-Score"/>
+      </div>
+      ${a.custom
+        ? html`<button class="del-btn" onClick=${e => delCustom(a.id, e)}>×</button>`
+        : html`<span class="nutri-aliment-arrow">›</span>`}
+    </div>`)}
+  </div>`;
+}
+
 /* ── Nutrition (composant racine exporté) ─────────────────────────────────── */
 export function Nutrition() {
   const [sub, setSub] = useState('courses');
@@ -719,15 +916,17 @@ export function Nutrition() {
     <div class="h1">Nutrition.</div>
     <div class="greet">Bien manger = bien s'entraîner. Simple, étudiant, durable.</div>
 
-    <div class="prio-pills" style="margin-bottom:1.2rem">
-      <button class=${'prio-pill' + (sub === 'courses' ? ' on' : '')} onClick=${() => setSub('courses')}>🛒 Courses</button>
-      <button class=${'prio-pill' + (sub === 'planning' ? ' on' : '')} onClick=${() => setSub('planning')}>📅 Planning</button>
-      <button class=${'prio-pill' + (sub === 'macros' ? ' on' : '')} onClick=${() => setSub('macros')}>📊 Macros</button>
+    <div class="prio-pills" style="margin-bottom:1.2rem;overflow-x:auto;flex-wrap:nowrap">
+      <button class=${'prio-pill' + (sub === 'courses'  ? ' on' : '')} onClick=${() => setSub('courses')} style="white-space:nowrap">🛒 Courses</button>
+      <button class=${'prio-pill' + (sub === 'planning' ? ' on' : '')} onClick=${() => setSub('planning')} style="white-space:nowrap">📅 Planning</button>
+      <button class=${'prio-pill' + (sub === 'macros'   ? ' on' : '')} onClick=${() => setSub('macros')} style="white-space:nowrap">📊 Macros</button>
+      <button class=${'prio-pill' + (sub === 'analyse'  ? ' on' : '')} onClick=${() => setSub('analyse')} style="white-space:nowrap">🔬 Analyser</button>
     </div>
 
-    ${sub === 'courses' ? html`<${CoursesView}/>` :
+    ${sub === 'courses'  ? html`<${CoursesView}/>` :
       sub === 'planning' ? html`<${PlanningView}/>` :
-      html`<${MacrosView}/>`}
+      sub === 'macros'   ? html`<${MacrosView}/>` :
+      html`<${AnalyseView}/>`}
 
     <div class="foot" style="margin-top:1.4rem">Sport · nutrition locale · aucune API externe</div>
   </div>`;

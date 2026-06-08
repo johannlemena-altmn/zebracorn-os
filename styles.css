@@ -345,6 +345,39 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .nutri-stock-add{background:none;border:none;font-size:15px;cursor:pointer;padding:2px 4px;border-radius:6px;line-height:1;transition:.15s;}
 .nutri-stock-add:active{background:var(--bg3);}
 
+/* Analyser tab — manifeste & bilan */
+.nutri-manifeste{font-family:var(--fm);font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);border-left:2px solid var(--ac2);padding-left:9px;margin-bottom:1rem;line-height:1.7;}
+.nutri-manifeste strong{color:var(--ac2);}
+.nutri-bilan-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 13px;margin-bottom:1.1rem;}
+/* Aliment list rows */
+.nutri-aliment-row{display:flex;align-items:center;gap:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 11px;margin-bottom:6px;cursor:pointer;transition:.15s;}
+.nutri-aliment-row:active{background:var(--bg3);}
+.nutri-aliment-emoji{font-size:20px;flex-shrink:0;}
+.nutri-aliment-nom{font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nutri-aliment-arrow{font-size:16px;color:var(--ink3);flex-shrink:0;}
+.nutri-custom-tag{font-family:var(--fm);font-size:8px;color:var(--ac2);border:1px solid var(--ac2);border-radius:4px;padding:1px 5px;display:inline-block;margin-top:2px;}
+/* Yuka card */
+.nutri-yuka-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 15px;}
+.nutri-yuka-hero{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.nutri-yuka-emoji{font-size:42px;line-height:1;flex-shrink:0;}
+.nutri-yuka-nom{font-family:var(--fs);font-size:20px;font-weight:500;line-height:1.2;}
+.nutri-yuka-cat{font-family:var(--fm);font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-top:4px;}
+.nutri-yuka-scores{display:flex;gap:8px;margin-bottom:14px;}
+.nutri-score-big-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.nutri-score-big{font-family:var(--fs);font-size:28px;font-weight:700;color:#fff;width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.nutri-score-lbl{font-family:var(--fm);font-size:7.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);text-align:center;}
+.nutri-nova-badge{font-family:var(--fm);font-size:10px;font-weight:700;color:#fff;border-radius:8px;padding:7px 6px;text-align:center;white-space:nowrap;width:50px;}
+.nutri-yuka-macros{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:12px;}
+.nutri-macro-cell{text-align:center;padding:4px 0;}
+.nutri-macro-cell-v{display:block;font-family:var(--fs);font-size:22px;font-weight:500;line-height:1;}
+.nutri-macro-cell-v small{font-size:10px;font-family:var(--fb);font-weight:400;}
+.nutri-macro-cell-l{display:block;font-family:var(--fm);font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-top:3px;}
+.nutri-ghg-row{display:flex;align-items:center;gap:8px;margin-bottom:11px;}
+.nutri-ghg-lbl{font-family:var(--fm);font-size:8px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.nutri-ghg-val{font-family:var(--fm);font-size:10px;font-weight:600;white-space:nowrap;}
+.nutri-gut-tag{background:rgba(63,125,90,.1);border:1px solid var(--ok);border-radius:20px;padding:6px 13px;font-size:12px;color:var(--ok);display:inline-block;margin-bottom:11px;}
+.nutri-yuka-footer{font-family:var(--fm);font-size:10px;color:var(--ink3);border-top:1px solid var(--border);padding-top:10px;}
+
 /* Score chips (Nutri-Score / Éco-Score) */
 .nutri-score-chip{display:inline-flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:8px;font-weight:700;color:#fff;border-radius:4px;padding:2px 5px;letter-spacing:.04em;min-width:16px;}
 /* Aliment picker */

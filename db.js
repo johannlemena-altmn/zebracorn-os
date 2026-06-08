@@ -323,7 +323,7 @@ async function getAmwap(dateStr) {
 
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses','aliments_custom'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };
@@ -487,6 +487,23 @@ async function clearCoursesFaites() {
 
 async function updateCourse(id, patch) {
   return db.courses.update(id, patch);
+}
+
+// v8 — BDD aliments personnalisés (fiches Yuka perso, extensible)
+db.version(8).stores({
+  aliments_custom: '++id, cat',
+});
+
+async function addAlimentCustom(food) {
+  return db.aliments_custom.add({ ...food, cree: new Date().toISOString() });
+}
+
+async function getAlimentsCustom() {
+  return db.aliments_custom.toArray();
+}
+
+async function deleteAlimentCustom(id) {
+  return db.aliments_custom.delete(id);
 }
 
 function getMacrosObjectif() {
