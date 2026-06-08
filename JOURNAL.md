@@ -5,6 +5,26 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-08 — Incrément 7 : Échéances datées 🔴/🔵 (backlog 6)
+
+- **Fait** :
+  - `setTacheEcheance(id, echeance)` dans `db.js`.
+  - `fmtEch(ech)` → `{label, urgent}` : Retard / Auj. / Demain (⚠) ou "LUN 9".
+  - `sortByEch(arr)` : trie par date asc, les sans-date en fin.
+  - Chip `+` sur chaque tâche 🔴/🔵 → `input type="date"` natif iOS au tap.
+  - `onChange` sauve à la confirmation picker, `onBlur` ferme sans sauver (annulation propre).
+  - Badge `.ech-chip.urgent` terracotta si ≤ demain ou en retard.
+
+- **Pourquoi** : les tâches sans date visible ne se différencient pas par urgence réelle.
+  Le picker natif iOS évite toute dépendance externe. `echeance` était déjà dans le
+  schema Dexie — aucune migration nécessaire.
+
+- **DoD** : relu in-context. Tri et badge vérifiés logiquement. Mobile-first.
+
+- **Prochain** : rotation rail captif (item 9) ou icône Z (item 10). À confirmer.
+
+---
+
 ## 2026-06-08 — Incrément 6 : Le Filtre UX — Plus tard visible, Traités gérables
 
 - **Fait** :
