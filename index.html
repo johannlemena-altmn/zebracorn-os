@@ -612,6 +612,9 @@ function Capture({onCapture}){
     if(!qId) setQPickerId(null);
   }
   async function markDone(id){
+    if(actorId===id&&(actorDraft.aim||actorDraft.compress||actorDraft.own)){
+      await sauveActor(id); setActorId(null); setActorSaved(false); setConnectSuggestions(null);
+    }
     const item=inbox.find(x=>x.id===id);
     setAnnotId(id); setAnnotTxt(item?.notes||''); setExpandId(null); setConfirmDelId(null);
   }
@@ -634,7 +637,7 @@ function Capture({onCapture}){
     setActorSection('A'); setActorId(item.id); setExpandId(null); setAnnotId(null);
   }
   async function callActorAI(step,extra={}){
-    const item=inbox.find(x=>x.id===actorId); if(!item) return null;
+    const item=[...inbox,...corpus].find(x=>x.id===actorId); if(!item) return null;
     setAiLoading(step); setAiError(null);
     try{
       const r=await fetch('/api/actor-ai',{
@@ -695,11 +698,18 @@ function Capture({onCapture}){
     setActorSaved(true);
     if(filtreIa.enabled&&a.compress?.trim()&&a.own?.trim()) genConnections(id,a);
   }
-  async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
+  async function markLater(id){
+    if(actorId===id&&(actorDraft.aim||actorDraft.compress||actorDraft.own)){
+      await sauveActor(id); setActorId(null); setActorSaved(false); setConnectSuggestions(null);
+    }
+    await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture();
+  }
   async function supprimerCapture(id){ if(confirmDelId!==id){setConfirmDelId(id);return;} await deleteCapture(id); setConfirmDelId(null); await load(); if(onCapture)onCapture(); }
   async function remettreInbox(id){ await updateCaptureStatut(id,'inbox'); await load(); if(onCapture)onCapture(); }
 
   const now=new Date();
+  const actorItem=actorId?([...inbox,...corpus].find(x=>x.id===actorId)):null;
+  const isNLM_actor=actorItem?(actorItem.source==='NotebookLM'||actorItem.contenu?.includes('notebooklm.google')||actorItem.nlm):false;
   return html`<div class="scroll">
     <div class="hdr"><div class="brand">Zebracorn OS · Capture</div><div class="date-lbl">${fmtDate(now)}</div></div>
     <div class="h1">Capturer.</div>
@@ -830,92 +840,6 @@ function Capture({onCapture}){
             ${isURL?html`<a class="share-btn" href=${item.contenu} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Ouvrir</a>`:''}
             ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${e=>{e.stopPropagation();shareFile(item);}}>↗ Partager</button>`:''}
           </div>`}
-        ${actorId===item.id?html`<div class="actor-panel">
-          <div class="actor-panel-hdr">
-            <span class="actor-panel-title">⊙ ACTOR — Analyse</span>
-            <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${e=>{e.stopPropagation();setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>✕</button>
-          </div>
-          ${['A','C','T','O','R'].map(s=>{
-            const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
-            const isOpen=actorSection===s;
-            return html`<div class="actor-step" key=${s}>
-              <div class="actor-step-hdr" onClick=${()=>setActorSection(isOpen?null:s)}>
-                <span class="actor-step-key">${s}</span>
-                <span class="actor-step-lbl">${LABELS[s]}</span>
-                <span class="actor-step-caret">${isOpen?'↑':'↓'}</span>
-              </div>
-              ${isOpen?html`${s==='T'?html`<div class="actor-step-body">
-                  <div class="actor-ficv">
-                    ${['faits','interp','croyances','valeurs'].map(k=>html`<div key=${k}>
-                      <div class="actor-ficv-lbl">${{faits:'F — Faits',interp:'I — Interprétations',croyances:'C — Croyances',valeurs:'V — Valeurs'}[k]}</div>
-                      <textarea class="actor-ta" rows=2 value=${actorDraft[k]||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,[k]:v}));}} placeholder="…"></textarea>
-                    </div>`)}
-                  </div>
-                  ${filtreIa.enabled?html`
-                    <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genTest();}} disabled=${aiLoading!==null}>
-                      ${aiLoading==='test'?'✦ Analyse…':'✨ Analyser avec Sonnet'}
-                    </button>
-                    ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
-                  `:''}
-                  <div class="actor-q-socr">❝ ${actorDraft.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?"}</div>
-                </div>`
-              :s==='O'?html`<div class="actor-own-body">
-                  <div class="actor-own-lbl">Quelle est ta position ? Pas ce que tu as lu — ce que tu penses.</div>
-                  <textarea class="actor-own-ta" rows=3 value=${actorDraft.own||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,own:v}));}} placeholder="Je pense que…"></textarea>
-                </div>`
-              :s==='R'?html`<div class="actor-step-body">
-                  <select class="actor-run-sel" value=${actorDraft.runType||'→ Chantier'} onChange=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runType:v}));}}>
-                    ${['→ Chantier','→ Livre','→ Question ouverte','→ Écriture','→ Partager','→ Décision','→ #resurfacing'].map(o=>html`<option key=${o}>${o}</option>`)}
-                  </select>
-                  <textarea class="actor-ta" rows=2 value=${actorDraft.runTexte||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runTexte:v}));}} placeholder="Action concrète…"></textarea>
-                </div>`
-              :html`<div class="actor-step-body">
-                  ${s==='A'&&isNLM?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
-                  <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?(isNLM?"Quelle question j'explorais dans cette session NLM ?":"Pourquoi cette capture m'intéresse maintenant ?"):(isNLM?"Synthèse de ta session — ce que tu en retiens (1-2 phrases)":"Quelle est la thèse centrale ? (1 phrase)")}></textarea>
-                  ${s==='C'&&filtreIa.enabled?html`
-                    ${(item.type==='lien'||item.type==='video')&&!item.notes&&!actorDraft.compress?html`
-                      <div class="ai-error" style="background:rgba(194,85,47,.1)">
-                        📎 Lien sans contenu — colle les idées clés dans les <strong>Notes</strong> (champ texte sous la carte) avant de lancer Haiku.
-                      </div>
-                    `:''}
-                    <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genCompress();}} disabled=${aiLoading!==null}>
-                      ${aiLoading==='compress'?'✦ Génération…':'✨ Résumer avec Haiku'}
-                    </button>
-                    ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
-                  `:''}
-                </div>`}
-              `:''}
-            </div>`;
-          })}
-          <div class="actor-footer">
-            ${actorSaved
-              ?html`
-                <div class="actor-saved-confirm">
-                  <span class="actor-saved-lbl">⊙ Sauvegardé ✓</span>
-                  <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${e=>{e.stopPropagation();setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>Fermer</button>
-                </div>
-                ${filtreIa.enabled?html`
-                  <div class="actor-connect-hdr">🔗 Connexions</div>
-                  ${connectLoading?html`<div class="hint" style="font-style:italic">Recherche de connexions…</div>`
-                    :connectSuggestions===null?''
-                    :connectSuggestions.length===0?html`<div class="hint">Pas assez de captures traitées (70%+) pour établir des connexions.</div>`
-                    :connectSuggestions.map(s=>html`<div class="connect-card" key=${s.id}>
-                      <div style="flex:1;min-width:0">
-                        <div class="connect-content">${T_ICONS[s.cap.type]||'📝'} ${s.cap.contenu.slice(0,60)}${s.cap.contenu.length>60?'…':''}</div>
-                        <div class="connect-reason">↝ ${s.reason}</div>
-                      </div>
-                      <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px">
-                        <button class="btn pri" style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();lierSuggestion(item.id,s.id);}}>✓ Lier</button>
-                        <button class="btn" style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();setConnectSuggestions(p=>p.filter(x=>x.id!==s.id));}}>✗</button>
-                      </div>
-                    </div>`)
-                  }
-                `:''}
-              `
-              :html`<button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder ⊙</button>`
-            }
-          </div>
-        </div>`:''}
       </div>`;
     })}
 
@@ -983,6 +907,7 @@ function Capture({onCapture}){
       </div>
       ${corpus.map(item=>{
         const a=item.actorAnalysis;
+        const isCorpusURL=/^https?:\/\//i.test(item.contenu?.trim()||'');
         return html`<div class="corpus-card" key=${item.id}>
           <div style="display:flex;align-items:flex-start;gap:8px">
             <span style="font-size:13px;flex-shrink:0">${T_ICONS[item.type]||'📝'}</span>
@@ -995,11 +920,109 @@ function Capture({onCapture}){
               </div>
             </div>
           </div>
+          <div class="corpus-actions">
+            <button class="btn" style="font-size:10px;padding:4px 10px" onClick=${()=>{ouvrirActor(item);}}>⊙ Éditer</button>
+            <button class="btn" style="font-size:10px;padding:4px 10px" onClick=${()=>remettreInbox(item.id)}>↺ Rouvrir</button>
+            ${isCorpusURL?html`<a class="share-btn" href=${item.contenu} target="_blank" rel="noopener" style="font-size:10px;padding:4px 10px;text-decoration:none">↗ Ouvrir</a>`:''}
+          </div>
         </div>`;
       })}
     `:''}
 
     <div class="foot">Zebracorn OS · Capture · v0.1</div>
+
+    ${actorId&&actorItem?html`
+      <div class="actor-backdrop" onClick=${()=>{setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}></div>
+      <div class="actor-sheet">
+        <div class="actor-sheet-handle"></div>
+        <div class="actor-panel-hdr">
+          <span class="actor-panel-title">⊙ ACTOR — ${actorItem.contenu.slice(0,45)}${actorItem.contenu.length>45?'…':''}</span>
+          <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${()=>{setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>✕</button>
+        </div>
+        <div style="padding:10px 12px 0">
+        ${['A','C','T','O','R'].map(s=>{
+          const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
+          const isOpen=actorSection===s;
+          return html`<div class="actor-step" key=${s}>
+            <div class="actor-step-hdr" onClick=${()=>setActorSection(isOpen?null:s)}>
+              <span class="actor-step-key">${s}</span>
+              <span class="actor-step-lbl">${LABELS[s]}</span>
+              <span class="actor-step-caret">${isOpen?'↑':'↓'}</span>
+            </div>
+            ${isOpen?html`${s==='T'?html`<div class="actor-step-body">
+                <div class="actor-ficv">
+                  ${['faits','interp','croyances','valeurs'].map(k=>html`<div key=${k}>
+                    <div class="actor-ficv-lbl">${{faits:'F — Faits',interp:'I — Interprétations',croyances:'C — Croyances',valeurs:'V — Valeurs'}[k]}</div>
+                    <textarea class="actor-ta" rows=2 value=${actorDraft[k]||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,[k]:v}));}} placeholder="…"></textarea>
+                  </div>`)}
+                </div>
+                ${filtreIa.enabled?html`
+                  <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genTest();}} disabled=${aiLoading!==null}>
+                    ${aiLoading==='test'?'✦ Analyse…':'✨ Analyser avec Sonnet'}
+                  </button>
+                  ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                `:''}
+                <div class="actor-q-socr">❝ ${actorDraft.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?"}</div>
+              </div>`
+            :s==='O'?html`<div class="actor-own-body">
+                <div class="actor-own-lbl">Quelle est ta position ? Pas ce que tu as lu — ce que tu penses.</div>
+                <textarea class="actor-own-ta" rows=3 value=${actorDraft.own||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,own:v}));}} placeholder="Je pense que…"></textarea>
+              </div>`
+            :s==='R'?html`<div class="actor-step-body">
+                <select class="actor-run-sel" value=${actorDraft.runType||'→ Chantier'} onChange=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runType:v}));}}>
+                  ${['→ Chantier','→ Livre','→ Question ouverte','→ Écriture','→ Partager','→ Décision','→ #resurfacing'].map(o=>html`<option key=${o}>${o}</option>`)}
+                </select>
+                <textarea class="actor-ta" rows=2 value=${actorDraft.runTexte||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runTexte:v}));}} placeholder="Action concrète…"></textarea>
+              </div>`
+            :html`<div class="actor-step-body">
+                ${s==='A'&&isNLM_actor?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
+                <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?(isNLM_actor?"Quelle question j'explorais dans cette session NLM ?":"Pourquoi cette capture m'intéresse maintenant ?"):(isNLM_actor?"Synthèse de ta session — ce que tu en retiens (1-2 phrases)":"Quelle est la thèse centrale ? (1 phrase)")}></textarea>
+                ${s==='C'&&filtreIa.enabled?html`
+                  ${(actorItem.type==='lien'||actorItem.type==='video')&&!actorItem.notes&&!actorDraft.compress?html`
+                    <div class="ai-error" style="background:rgba(194,85,47,.1)">
+                      📎 Lien sans contenu — colle les idées clés dans les <strong>Notes</strong> (champ texte sous la carte) avant de lancer Haiku.
+                    </div>
+                  `:''}
+                  <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genCompress();}} disabled=${aiLoading!==null}>
+                    ${aiLoading==='compress'?'✦ Génération…':'✨ Résumer avec Haiku'}
+                  </button>
+                  ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                `:''}
+              </div>`}
+            `:''}
+          </div>`;
+        })}
+        </div>
+        <div class="actor-footer">
+          ${actorSaved
+            ?html`
+              <div class="actor-saved-confirm">
+                <span class="actor-saved-lbl">⊙ Sauvegardé ✓</span>
+                <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${()=>{setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>Fermer</button>
+              </div>
+              ${filtreIa.enabled?html`
+                <div class="actor-connect-hdr">🔗 Connexions</div>
+                ${connectLoading?html`<div class="hint" style="font-style:italic">Recherche de connexions…</div>`
+                  :connectSuggestions===null?''
+                  :connectSuggestions.length===0?html`<div class="hint">Pas assez de captures traitées (70%+) pour établir des connexions.</div>`
+                  :connectSuggestions.map(s=>html`<div class="connect-card" key=${s.id}>
+                    <div style="flex:1;min-width:0">
+                      <div class="connect-content">${T_ICONS[s.cap.type]||'📝'} ${s.cap.contenu.slice(0,60)}${s.cap.contenu.length>60?'…':''}</div>
+                      <div class="connect-reason">↝ ${s.reason}</div>
+                    </div>
+                    <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px">
+                      <button class="btn pri" style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();lierSuggestion(actorId,s.id);}}>✓ Lier</button>
+                      <button class="btn" style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();setConnectSuggestions(p=>p.filter(x=>x.id!==s.id));}}>✗</button>
+                    </div>
+                  </div>`)
+                }
+              `:''}
+            `
+            :html`<button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(actorId);}}>Sauvegarder ⊙</button>`
+          }
+        </div>
+      </div>
+    `:''}
   </div>`;
 }
 
