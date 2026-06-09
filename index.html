@@ -240,11 +240,12 @@ function AmwapModal({onClose,onSave}){
 }
 
 /* ── Maintenant ─────────────────────────────── */
-function Maintenant({inboxCount,onGoCapture}){
+function Maintenant({inboxCount,onGoCapture,onGoSem}){
   const [mode,setMode]=useState('fort');
   const [selQ,setSelQ]=useState(()=>pickQ('fort'));
   function changeMode(m){ setMode(m); setSelQ(pickQ(m)); }
   const [intent,setIntent]=useState('');
+  const [intentSaved,setIntentSaved]=useState(false);
   const [dayTasks,setDayTasks]=useState([]);
   const [routs,setRouts]=useState([false,false,false]);
   const [streaks,setStreaks]=useState([0,0,0]);
@@ -285,7 +286,10 @@ function Maintenant({inboxCount,onGoCapture}){
   },[]);
   useEffect(()=>{ load(); },[load]);
 
-  async function blurIntent(){ await saveIntention(intent); setWeek(await getWeekData()); }
+  async function blurIntent(){
+    await saveIntention(intent); setWeek(await getWeekData());
+    if(intent.trim()){ setIntentSaved(true); setTimeout(()=>setIntentSaved(false),2200); }
+  }
   async function togTask(id){ const t=dayTasks.find(x=>x.id===id); await toggleTacheDone(id,!t.fait); setDayTasks(dayTasks.map(x=>x.id===id?{...x,fait:!x.fait}:x)); }
   function toggleExpandTask(id,notes){ if(expandTaskId===id){setExpandTaskId(null);setExpandNotes('');}else{setExpandTaskId(id);setExpandNotes(notes||'');} }
   async function sauveTaskNotes(id,val){ await setTacheNotes(id,val); setDayTasks(prev=>prev.map(t=>t.id===id?{...t,notes:val||null}:t)); }
@@ -331,7 +335,11 @@ function Maintenant({inboxCount,onGoCapture}){
     <div class="rail">
       <div class="rail-k">◇ Le rail · ${mode==='fort'?'matin/journée':mode==='relache'?'pause':'week-end'}</div>
       <div class="rail-q">${typed}${typed.length<selQ.length?html`<span class="cursor"/>`:''}</div>
-      <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention pour ce moment…"/>
+      <div class="rail-input-wrap">
+        <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention — tape + Entrée pour fixer…"/>
+        ${intentSaved?html`<span class="intent-confirm">✓ noté</span>`:''}
+      </div>
+      ${intent.trim()&&!intentSaved?html`<div class="rail-hint">Appuie sur Entrée pour ancrer l'intention</div>`:''}
     </div>
     ${cap.intention?html`<div class="cap-annuel">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
     ${cap.objectifsMois?html`<div class="cap-annuel" style="margin-top:-0.8rem;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}${cap.objectifsMois.split('\n').filter(l=>l.trim()).length>1?' +…':''}</em></div>`:''}
@@ -423,13 +431,14 @@ function Maintenant({inboxCount,onGoCapture}){
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>
-      <div class="read">
-        <div class="read-ic">📖</div>
+      <div class="read" onClick=${onGoSem} role="button" aria-label="Aller à la lecture">
+        <div class="read-ic">${livreEnCours?'📖':'🌙'}</div>
         <div style="flex:1">
           <div class="read-t">${livreEnCours?livreEnCours.titre:'Lecture avant le coucher'}</div>
           <div class="read-s">${livreEnCours?(livreEnCours.pages?`${livreEnCours.pagesLues||0}/${livreEnCours.pages} p. · continuer ce soir`:'En cours · continuer ce soir'):'Objectif : 20 pages · au lieu du tel après 22 h'}</div>
           ${livreEnCours&&livreEnCours.pages?html`<div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style=${'width:'+Math.round((livreEnCours.pagesLues||0)/livreEnCours.pages*100)+'%;background:var(--ac2)'}/></div>`:''}
         </div>
+        <span class="read-chevron">›</span>
       </div>
     </div>
 
@@ -956,12 +965,15 @@ function Capture({onCapture}){
                     <textarea class="actor-ta" rows=2 value=${actorDraft[k]||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,[k]:v}));}} placeholder="…"></textarea>
                   </div>`)}
                 </div>
-                ${filtreIa.enabled?html`
-                  <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genTest();}} disabled=${aiLoading!==null}>
-                    ${aiLoading==='test'?'✦ Analyse…':'✨ Analyser avec Sonnet'}
-                  </button>
-                  ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
-                `:''}
+                ${filtreIa.enabled
+                  ?html`
+                    <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genTest();}} disabled=${aiLoading!==null}>
+                      ${aiLoading==='test'?'✦ Analyse…':'✨ Analyser avec Sonnet'}
+                    </button>
+                    ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                  `
+                  :html`<button class="actor-ai-btn actor-ai-off" disabled>✦ Sonnet · activer dans Réglages ›</button>`
+                }
                 <div class="actor-q-socr">❝ ${actorDraft.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?"}</div>
               </div>`
             :s==='O'?html`<div class="actor-own-body">
@@ -977,16 +989,21 @@ function Capture({onCapture}){
             :html`<div class="actor-step-body">
                 ${s==='A'&&isNLM_actor?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
                 <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?(isNLM_actor?"Quelle question j'explorais dans cette session NLM ?":"Pourquoi cette capture m'intéresse maintenant ?"):(isNLM_actor?"Synthèse de ta session — ce que tu en retiens (1-2 phrases)":"Quelle est la thèse centrale ? (1 phrase)")}></textarea>
-                ${s==='C'&&filtreIa.enabled?html`
-                  ${(actorItem.type==='lien'||actorItem.type==='video')&&!actorItem.notes&&!actorDraft.compress?html`
+                ${s==='C'?html`
+                  ${filtreIa.enabled&&(actorItem.type==='lien'||actorItem.type==='video')&&!actorItem.notes&&!actorDraft.compress?html`
                     <div class="ai-error" style="background:rgba(194,85,47,.1)">
-                      📎 Lien sans contenu — colle les idées clés dans les <strong>Notes</strong> (champ texte sous la carte) avant de lancer Haiku.
+                      📎 Lien sans contenu — colle les idées clés dans les <strong>Notes</strong> avant de lancer Haiku.
                     </div>
                   `:''}
-                  <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genCompress();}} disabled=${aiLoading!==null}>
-                    ${aiLoading==='compress'?'✦ Génération…':'✨ Résumer avec Haiku'}
-                  </button>
-                  ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                  ${filtreIa.enabled
+                    ?html`
+                      <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genCompress();}} disabled=${aiLoading!==null}>
+                        ${aiLoading==='compress'?'✦ Génération…':'✨ Résumer avec Haiku'}
+                      </button>
+                      ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                    `
+                    :html`<button class="actor-ai-btn actor-ai-off" disabled>✦ Haiku · activer dans Réglages ›</button>`
+                  }
                 `:''}
               </div>`}
             `:''}
@@ -1747,7 +1764,7 @@ function App(){
 
   return html`<div class="phone">
     ${tab==='maintenant'
-      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')}/>`
+      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')} onGoSem=${()=>setTab('semaine')}/>`
       : tab==='semaine'
       ? html`<${Semaine}/>`
       : tab==='reglages'

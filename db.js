@@ -127,13 +127,19 @@ async function getTodayIntention() {
 
 async function getWeekData() {
   const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  // Start from Monday of current week (European week: Mon=1)
+  const day = now.getDay(); // 0=Sun, 1=Mon…6=Sat
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
   const result = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
     const ds = d.toISOString().slice(0, 10);
     const count = await db.intentions.filter(x => x.date.startsWith(ds)).count();
-    result.push({ date: ds, done: count > 0, isToday: i === 0 });
+    result.push({ date: ds, done: count > 0, isToday: ds === todayStr });
   }
   return result;
 }
@@ -577,7 +583,7 @@ async function saveActorAnalysis(id, analysis) {
 async function getActorCorpus() {
   const all = await db.captures.toArray();
   return all
-    .filter(c => c.actorAnalysis)
+    .filter(c => c.actorAnalysis && c.statut !== 'inbox')
     .sort((a, b) => (a.actorAnalysis.updatedAt < b.actorAnalysis.updatedAt ? 1 : -1));
 }
 
