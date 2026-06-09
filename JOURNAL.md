@@ -5,6 +5,24 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 23 : Resurfacing quotidien
+
+- **Fait** : Section "📍 Resurfacer" dans le Maintenant screen — entre la quote et l'inbox.
+  - `getResurfaceCandidates()` : retourne les captures > 7 jours, jamais surfacées ou surfacées > 7 jours. Triées : inbox sans ACTOR en premier (les plus orphelines), puis le reste.
+  - `seededShuffle(arr, seed)` : LCG déterministique seedé sur la date ISO du jour (`20260609`). Mêmes 3 captures toute la journée — change demain. Stabilité cognitive.
+  - 3 captures max affichées. Section cachée si 0 candidats (pas de bruit).
+  - Chaque carte : type icon + contenu (80 chars) + date relative + statut + badge ⊙ si ACTOR. Border-left terracotta pour distinguer visuellement.
+  - **"→ Traiter"** : si la capture est `inbox` → navigate vers Capture (item visible en haut). Si `traité` ou `plus-tard` → rouvrir en inbox + navigate. Le traitement cognitif reste dans Capture — pas de duplication.
+  - **"✓ Revu"** : `lastSurfaced = now` en DB + retire la carte localement immédiatement (sans reload). L'item sera de nouveau éligible dans 7 jours.
+
+- **Pourquoi** : C'est la boucle manquante d'un second cerveau. Capturer sans jamais revoir = stock mort. La valeur d'un second cerveau est dans la remontée spontanée de captures oubliées — connexions nouvelles, positions à réviser, actions à déclencher. 3 captures = charge cognitive calibrée (ni submergé, ni insignifiant). Le seed déterministique évite l'effet "slot machine" (les mêmes 3 reviennent toute la journée, pas un roll à chaque visite).
+
+- **DoD** : 13/13 vérifications logiques OK. Fonctions db.js présentes, state Maintenant, loader, handlers, JSX section.
+
+- **Prochain** : Tester sur iPhone avec captures réelles > 7 jours. Puis Plan B = Le Filtre IA.
+
+---
+
 ## 2026-06-09 — Incrément 22 : Croquis image · ACTOR dans corpus · NLM↔Zebracorn
 
 - **Fait** :

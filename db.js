@@ -580,3 +580,27 @@ async function getActorCorpus() {
     .filter(c => c.actorAnalysis)
     .sort((a, b) => (a.actorAnalysis.updatedAt < b.actorAnalysis.updatedAt ? 1 : -1));
 }
+
+// ── Resurfacing ───────────────────────────────────────────────────────────
+// Retourne toutes les captures candidates au resurfacing :
+// - capturées il y a 7+ jours
+// - jamais surfacées OU surfacées il y a 7+ jours
+// - triées : inbox sans ACTOR en premier (les plus "orphelines")
+async function getResurfaceCandidates() {
+  const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const all = await db.captures
+    .filter(c =>
+      c.date < cutoff &&
+      (!c.lastSurfaced || c.lastSurfaced < cutoff)
+    )
+    .toArray();
+  return all.sort((a, b) => {
+    const pa = (a.statut === 'inbox' && !a.actorAnalysis) ? 0 : 1;
+    const pb = (b.statut === 'inbox' && !b.actorAnalysis) ? 0 : 1;
+    return pa - pb;
+  });
+}
+
+async function updateCaptureLastSurfaced(id) {
+  return db.captures.update(id, { lastSurfaced: new Date().toISOString() });
+}

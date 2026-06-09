@@ -60,6 +60,16 @@ const DEF_ROUTINES = [
   { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
   { key:'routine_2', nom:'AMWAP — mes victoires du jour',   moment:'Soir'   },
 ];
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  let s = Math.abs(seed) >>> 0;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = ((s * 1664525) + 1013904223) & 0x7fffffff;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 const T_ICONS = { note:'📝', lien:'🔗', pdf:'📄', video:'🎥', fichier:'📎', croquis:'📐' };
 const T_LBLS  = { note:'Note', lien:'Lien', pdf:'Réf.', video:'Vidéo', fichier:'Fichier', croquis:'Croquis' };
 const T_PH    = {
@@ -248,6 +258,7 @@ function Maintenant({inboxCount,onGoCapture}){
   const [revueOpen,setRevueOpen]=useState(()=>new Date().getDay()===5&&!getRevue().done);
   const [gcalEvts,setGcalEvts]=useState(null);
   const [livreEnCours,setLivreEnCours]=useState(null);
+  const [resurfItems,setResurfItems]=useState([]);
   const [expandTaskId,setExpandTaskId]=useState(null);
   const [expandNotes,setExpandNotes]=useState('');
   const [editNotesId,setEditNotesId]=useState(null);
@@ -262,6 +273,9 @@ function Maintenant({inboxCount,onGoCapture}){
     setRouts(await Promise.all(DEF_ROUTINES.map(r=>getRoutineCheck(r.key))));
     setStreaks(await Promise.all(DEF_ROUTINES.map(r=>getStreak(r.key))));
     setCaps((await getInbox()).slice(0,4));
+    const surf=await getResurfaceCandidates();
+    const surfSeed=parseInt(new Date().toISOString().slice(0,10).replace(/-/g,''));
+    setResurfItems(seededShuffle(surf,surfSeed).slice(0,3));
     const yest=new Date(); yest.setDate(yest.getDate()-1);
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
     setCap(await getCap());
@@ -289,6 +303,18 @@ function Maintenant({inboxCount,onGoCapture}){
 
   function updRevue(k,v){ const r={...revue,[k]:v}; setRevue(r); saveRevue(r); }
   function cloreRevue(){ const r={...revue,done:true}; setRevue(r); saveRevue(r); setRevueOpen(false); }
+
+  async function markRevu(id){
+    await updateCaptureLastSurfaced(id);
+    setResurfItems(prev=>prev.filter(x=>x.id!==id));
+  }
+  async function traiterResurface(item){
+    if(item.statut!=='inbox'){
+      await updateCaptureStatut(item.id,'inbox');
+      setResurfItems(prev=>prev.map(x=>x.id===item.id?{...x,statut:'inbox'}:x));
+    }
+    onGoCapture();
+  }
 
   const done=dayTasks.filter(t=>t.fait).length;
   const idone=week.filter(d=>d.done).length;
@@ -408,6 +434,33 @@ function Maintenant({inboxCount,onGoCapture}){
     </div>
 
     <div class="quote">« La liberté n'est pas un libre arbitre héroïque ; c'est une liberté praticable. »<small>Ressurgi de — Pilier Spinoza</small></div>
+
+    ${resurfItems.length>0?html`<div class="sec">
+      <div class="sec-h">
+        <span class="sec-t">📍 Resurfacer</span>
+        <span class="sec-c" style="color:var(--ink3)">${resurfItems.length} du jour</span>
+      </div>
+      <div class="hint" style="margin-bottom:10px;font-style:italic">Capturées il y a 7+ jours — toujours pertinent ?</div>
+      ${resurfItems.map(item=>html`<div class="item" style="border-left:3px solid var(--ac);padding-left:10px" key=${item.id}>
+        <div class="item-top">
+          ${item.type==='croquis'
+            ?html`<img class="item-thumb" src=${item.dataUrl} alt="📐" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0"/>`
+            :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
+          <div style="flex:1;min-width:0">
+            <div class="item-ti">${item.contenu.slice(0,80)}${item.contenu.length>80?'…':''}</div>
+            <div class="item-src">
+              ${relDate(item.date)} · ${item.statut==='inbox'?'à traiter':item.statut==='traité'?'traité':'plus tard'}
+              ${item.actorAnalysis?html` · <span class="actor-ic">⊙</span>`:''}
+              ${item.source?html` · ${item.source}`:''}
+            </div>
+          </div>
+        </div>
+        <div class="item-b">
+          <button class="btn pri" style="flex:1" onClick=${()=>traiterResurface(item)}>→ Traiter</button>
+          <button class="btn" onClick=${()=>markRevu(item.id)}>✓ Revu</button>
+        </div>
+      </div>`)}
+    </div>`:''}
 
     ${(caps.length>0||inboxCount>0)?html`<div class="sec">
       <div class="sec-h"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
