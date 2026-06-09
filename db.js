@@ -242,6 +242,10 @@ async function setTacheNotes(id, notes) {
   return db.taches.update(id, { notes: notes || null });
 }
 
+async function setTacheObjectif(id, objectif) {
+  return db.taches.update(id, { capObjectif: objectif || null });
+}
+
 // ── Seed initial (une seule fois) : amorce la semaine de Johann ──────────
 // Flag localStorage → si Johann supprime des items, ils ne reviennent pas.
 
@@ -290,6 +294,18 @@ async function seedOnce_v2() {
   await addTache({ titre: 'Écrire 3 lignes sur mon positionnement Regen consultant', prio: 'bleu' });
 
   localStorage.setItem('zebracorn_seed_v2', 'done');
+}
+
+async function seedChantiersEte2026() {
+  if (localStorage.getItem('zebracorn_seed_ete2026')) return;
+  const ch = async (titre, prochaine) => {
+    const id = await addChantier({ titre, prio: 'vert' });
+    await updateChantier(id, { prochaine });
+  };
+  await ch('Low-tech design — appart parisien', 'croquis mixeur roue de skate · noter les contraintes physiques');
+  await ch('Machine à pédale Singer redesignée', 'comprendre rapport engrenages diamètre/dents/vitesse · schéma');
+  await ch('7 éléments → 6 prismes Campus Environnement', 'revoir la vidéo · mapper les correspondances · 1 page de notes');
+  localStorage.setItem('zebracorn_seed_ete2026', 'done');
 }
 
 // v3 — AMWAP : log de victoires quotidiennes

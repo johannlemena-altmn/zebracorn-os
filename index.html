@@ -60,8 +60,8 @@ const DEF_ROUTINES = [
   { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
   { key:'routine_2', nom:'AMWAP — mes victoires du jour',   moment:'Soir'   },
 ];
-const T_ICONS = { note:'📝', lien:'🔗', pdf:'📄', video:'🎥', fichier:'📎' };
-const T_LBLS  = { note:'Note', lien:'Lien', pdf:'Réf.', video:'Vidéo', fichier:'Fichier' };
+const T_ICONS = { note:'📝', lien:'🔗', pdf:'📄', video:'🎥', fichier:'📎', croquis:'📐' };
+const T_LBLS  = { note:'Note', lien:'Lien', pdf:'Réf.', video:'Vidéo', fichier:'Fichier', croquis:'Croquis' };
 const T_PH    = {
   note:'Note une idée brute, sans la juger…',
   lien:'Colle un lien (article, site)…',
@@ -594,7 +594,7 @@ function Capture({onCapture}){
     <div class="greet">Capte en 1 geste. Le jugement vient après. ✶</div>
 
     <div class="composer">
-      <div class="types" style="flex-wrap:wrap">${['note','lien','pdf','video','fichier'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>{setType(t);setFile(null);setFileWarn('');}} key=${t}>${T_ICONS[t]} ${T_LBLS[t]}</button>`)}</div>
+      <div class="types" style="flex-wrap:wrap">${['note','lien','pdf','video','fichier','croquis'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>{setType(t);setFile(null);setFileWarn('');}} key=${t}>${T_ICONS[t]} ${T_LBLS[t]}</button>`)}</div>
       ${type==='fichier'
         ?html`<label class="file-drop">
           <span class="fd-ic">${file?'✓':'📎'}</span>
@@ -1053,6 +1053,7 @@ function Semaine(){
   const [livres,setLivres]         = useState([]);
   const [ficheLivreId,setFicheLivreId] = useState(null);
   const [newLivre,setNewLivre]     = useState('');
+  const [capObjectifs,setCapObjectifs] = useState([]);
 
   const load = useCallback(async()=>{
     setTaches(await getTaches({fait:false}));
@@ -1064,6 +1065,8 @@ function Semaine(){
     for(const c of allCaps) if(c.questionId) counts[c.questionId]=(counts[c.questionId]||0)+1;
     setQCounts(counts);
     setLivres(await getLivres());
+    const cap=await getCap();
+    setCapObjectifs((cap.objectifs||'').split('\n').map(s=>s.trim()).filter(Boolean));
   },[]);
   useEffect(()=>{ load(); },[load]);
 
@@ -1076,6 +1079,7 @@ function Semaine(){
   async function togTache(id,fait){ await toggleTacheDone(id,fait); await load(); }
   function toggleExpandTache(id,notes){ if(expandTacheId===id){setExpandTacheId(null);setExpandTacheNotes('');}else{setExpandTacheId(id);setExpandTacheNotes(notes||'');} }
   async function sauveExpandNotes(id,val){ await setTacheNotes(id,val); setTaches(prev=>prev.map(t=>t.id===id?{...t,notes:val||null}:t)); }
+  async function sauveObjectif(id,val){ await setTacheObjectif(id,val); setTaches(prev=>prev.map(t=>t.id===id?{...t,capObjectif:val||null}:t)); }
   async function delTache(id){ await deleteTache(id); await load(); }
   async function delChant(id){ await deleteChantier(id); await load(); }
   async function sauveEcheance(id,val){ await setTacheEcheance(id,val||null); setEditEchId(null); await load(); }
@@ -1103,6 +1107,7 @@ function Semaine(){
       return html`<div class=${'task'+(t.fait?' done':'')+(isExp?' expanded':'')} key=${t.id}>
         <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
         <span class="t-txt" onClick=${()=>toggleExpandTache(t.id,t.notes)}>${t.titre}</span>
+        ${t.capObjectif&&!isExp?html`<span class="cap-obj-chip" title=${t.capObjectif}>🎯 ${t.capObjectif.slice(0,20)}${t.capObjectif.length>20?'…':''}</span>`:''}
         ${editEchId===t.id
           ?html`<input type="date" class="ech-inp" value=${editEchVal}
               onInput=${e=>setEditEchVal(e.target.value)}
@@ -1137,6 +1142,15 @@ function Semaine(){
               <button class="edit-notes-btn" onClick=${e=>{e.stopPropagation();setEditTacheId(t.id);setExpandTacheNotes(t.notes||'');}}>✎ éditer</button>
             </div>
           `}
+          ${capObjectifs.length>0?html`<div class="cap-obj-picker">
+            <div class="cap-obj-label">🎯 Objectif Cap</div>
+            <div class="cap-obj-opts">
+              ${capObjectifs.map(obj=>html`<button key=${obj}
+                class=${'cap-obj-opt'+(t.capObjectif===obj?' on':'')}
+                onClick=${e=>{e.stopPropagation();sauveObjectif(t.id,t.capObjectif===obj?null:obj);}}
+              >${obj.slice(0,40)}${obj.length>40?'…':''}</button>`)}
+            </div>
+          </div>`:null}
         </div>`:null}
       </div>`;
     })}
@@ -1251,6 +1265,7 @@ function Reglages(){
     const chans=await db.chantiers.toArray();
     const items=all.filter(c=>c.statut==='traité'||c.notes).sort((a,b)=>a.date<b.date?-1:1);
     const capData=await getCap();
+    const allQuestions=await db.questions.toArray();
     const date=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
     const moisStr=new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     const moisISO=new Date().toISOString().slice(0,7);
@@ -1307,6 +1322,27 @@ function Reglages(){
           for(const c of livreCaps) md+=`- ${c.contenu.slice(0,100)}${c.notes?' *('+c.notes.slice(0,50)+')*':''}\n`;
         }
         md+='\n---\n\n';
+      }
+    }
+
+    // ── Questions vivantes ────────────────────────────────────────────────────
+    if(allQuestions.length>0){
+      const vivantes=allQuestions.filter(q=>q.statut!=='archivee');
+      const archivees=allQuestions.filter(q=>q.statut==='archivee');
+      md+=`---\n\n## ❓ Questions vivantes (${vivantes.length})\n\n`;
+      md+=`*Les questions qui orientent le regard — fondation du second cerveau.*\n\n`;
+      for(const q of vivantes){
+        md+=`### ${q.intitule}\n`;
+        if(q.intention) md+=`> ${q.intention}\n\n`;
+        const qCaps=all.filter(c=>c.questionId===q.id&&(c.statut==='traité'||c.notes));
+        if(qCaps.length){
+          md+=`**Captures liées (${qCaps.length}) :**\n`;
+          for(const c of qCaps) md+=`- ${c.contenu.slice(0,100)}${c.notes?' *('+c.notes.slice(0,60)+')*':''}\n`;
+          md+='\n';
+        }
+      }
+      if(archivees.length){
+        md+=`\n*Questions archivées : ${archivees.map(q=>q.intitule).join(' · ')}*\n\n`;
       }
     }
 
@@ -1503,6 +1539,7 @@ await seedOnce();
 await seedOnce_v2();
 await seedQuestionsOnce();
 await seedLivresOnce();
+await seedChantiersEte2026();
 render(html`<${App}/>`, document.getElementById('root'));
 
 if('serviceWorker' in navigator){

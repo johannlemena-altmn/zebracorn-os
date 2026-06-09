@@ -5,6 +5,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 21 : Corpus enrichi · Tâche→Cap · Croquis · Chantiers été
+
+- **Fait** :
+  - **K — Questions vivantes dans le corpus** : `doCorpus()` génère maintenant une section `❓ Questions vivantes` avec l'intention de chaque question + les captures qui lui sont rattachées (filtrées sur traité ou annoté). Questions archivées listées en une ligne en bas de section.
+  - **H — Lier tâche → objectif Cap 2026** : dans la vue expanded d'une tâche 🔴/🔵, un picker `🎯 Objectif Cap` liste les objectifs annuels (parsés depuis le Cap 2026 dans Réglages). Sélection = tap (toggle = désélectionner). Objectif lié visible comme petit chip terracotta sur la carte collapsée. `setTacheObjectif()` dans `db.js`, sans migration Dexie.
+  - **📐 Croquis** : nouveau type de capture. Honore la capture analogique (photo d'un dessin, schéma, note à la main). Visible dans le picker de types + `T_ICONS` + `T_LBLS`.
+  - **Seed chantiers été 2026** : 3 nouveaux chantiers verts au démarrage (flag `zebracorn_seed_ete2026`) : *Low-tech design appart parisien*, *Machine à pédale Singer redesignée*, *7 éléments → 6 prismes Campus Environnement*.
+
+- **Pourquoi** :
+  - **K** : le corpus NLM était aveugle aux questions vivantes — les captures rattachées à une question n'avaient pas de contexte dans l'export. Ferme la boucle capture→question→corpus→NLM.
+  - **H** : ferme la boucle planif→cap. La friction est calibrée : opt-in conscient (expand + choisir), jamais automatique. L'acte de lier EST la réflexion stratégique.
+  - **📐 Croquis** : friction calibrée — le dessin engage le moteur différemment. L'app archive la trace sans remplacer l'acte. Issu des notes chantiers d'été (schémas Singer, mapping 6 prismes).
+  - **Chantiers été** : ancrer les projets low-tech dans l'outil. Machine Singer + 7 éléments→6 prismes sont des chantiers ressourcement scientifique en aval du cap Regen.
+
+- **Design principle acté** : *friction calibrée*. Zero-friction n'est pas la cible. L'ACTOR à 5 étapes, le picker Cap opt-in, le type Croquis — chaque point de friction est un moment de jugement actif. L'app reprogramme le cerveau à faire des tâches complexes en les rendant désirables, pas invisibles.
+
+- **DoD** : 11/11 vérifications logiques OK (node). Corpus questions présent, picker Cap dans expanded task, chip visible collapsée, Croquis dans types, seed été registré.
+
+- **Prochain** : Test iPhone (picker Cap + Croquis + corpus). I (Le Filtre IA) quand inbox ~20+ captures.
+
+---
+
 ## 2026-06-09 — Incrément 20 : Workflow NotebookLM fluide (ACTOR pré-rempli · audio · corpus)
 
 - **Fait** :
