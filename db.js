@@ -604,3 +604,19 @@ async function getResurfaceCandidates() {
 async function updateCaptureLastSurfaced(id) {
   return db.captures.update(id, { lastSurfaced: new Date().toISOString() });
 }
+
+// ── Filtre IA — paramètres localStorage ──────────────────────────────────
+const IA_KEY = 'zc_filtre_ia';
+const IA_DEFAULTS = {
+  enabled: false,
+  compressModel: 'claude-haiku-4-5-20251001',
+  compressTemp: '0.3',
+  testModel: 'claude-sonnet-4-6',
+  testTemp: '0.3',
+};
+function getFiltreIaSettings() {
+  try { return { ...IA_DEFAULTS, ...JSON.parse(localStorage.getItem(IA_KEY) || '{}') }; } catch { return { ...IA_DEFAULTS }; }
+}
+function saveFiltreIaSettings(settings) {
+  localStorage.setItem(IA_KEY, JSON.stringify(settings));
+}

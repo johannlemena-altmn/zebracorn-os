@@ -530,6 +530,9 @@ function Capture({onCapture}){
   const [actorDraft,setActorDraft]=useState({});
   const [actorSection,setActorSection]=useState('A');
   const [corpus,setCorpus]=useState([]);
+  const [filtreIa]=useState(()=>getFiltreIaSettings());
+  const [aiLoading,setAiLoading]=useState(null);
+  const [aiError,setAiError]=useState(null);
 
   const load=useCallback(async()=>{
     const[a,b,c,corp]=await Promise.all([getInbox(),getDone(),getLater(),getActorCorpus()]);
@@ -626,6 +629,29 @@ function Capture({onCapture}){
     });
     setActorSection('A'); setActorId(item.id); setExpandId(null); setAnnotId(null);
   }
+  async function callActorAI(step,extra={}){
+    const item=inbox.find(x=>x.id===actorId); if(!item) return null;
+    setAiLoading(step); setAiError(null);
+    try{
+      const r=await fetch('/api/actor-ai',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({step,content:item.contenu,type:item.type,source:item.source||'',compress:actorDraft.compress||'',settings:filtreIa,...extra}),
+      });
+      const data=await r.json();
+      if(!r.ok) throw new Error(data.error||`HTTP ${r.status}`);
+      setAiLoading(null); return data;
+    }catch(e){ setAiError(e.message); setAiLoading(null); return null; }
+  }
+  async function genCompress(){
+    const data=await callActorAI('compress');
+    if(data) setActorDraft(p=>({...p,compress:(data.titre?data.titre+'\n\n':'')+( data.compress||'')}));
+  }
+  async function genTest(){
+    const data=await callActorAI('test');
+    if(data) setActorDraft(p=>({...p,faits:data.faits||p.faits,interp:data.interp||p.interp,croyances:data.croyances||p.croyances,valeurs:data.valeurs||p.valeurs,question:data.question||p.question}));
+  }
+
   async function sauveActor(id){
     const a={
       aim:actorDraft.aim, compress:actorDraft.compress,
@@ -794,6 +820,12 @@ function Capture({onCapture}){
                       <textarea class="actor-ta" rows=2 value=${actorDraft[k]||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,[k]:v}));}} placeholder="…"></textarea>
                     </div>`)}
                   </div>
+                  ${filtreIa.enabled?html`
+                    <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genTest();}} disabled=${aiLoading!==null}>
+                      ${aiLoading==='test'?'✦ Analyse…':'✨ Analyser avec Sonnet'}
+                    </button>
+                    ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                  `:''}
                   <div class="actor-q-socr">❝ ${actorDraft.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?"}</div>
                 </div>`
               :s==='O'?html`<div class="actor-own-body">
@@ -810,6 +842,12 @@ function Capture({onCapture}){
               :html`<div class="actor-step-body">
                   ${s==='A'&&isNLM?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
                   <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?(isNLM?"Quelle question j'explorais dans cette session NLM ?":"Pourquoi cette capture m'intéresse maintenant ?"):(isNLM?"Synthèse de ta session — ce que tu en retiens (1-2 phrases)":"Quelle est la thèse centrale ? (1 phrase)")}></textarea>
+                  ${s==='C'&&filtreIa.enabled?html`
+                    <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genCompress();}} disabled=${aiLoading!==null}>
+                      ${aiLoading==='compress'?'✦ Génération…':'✨ Résumer avec Haiku'}
+                    </button>
+                    ${aiError&&aiLoading===null?html`<div class="ai-error">⚠ ${aiError}</div>`:''}
+                  `:''}
                 </div>`}
               `:''}
             </div>`;
@@ -1309,6 +1347,8 @@ function Reglages(){
   const [stats,setStats]=useState(null);
   const [gcalUrl,setGcalUrl]=useState(()=>localStorage.getItem('zc_gcal_url')||'');
   const [gcalTest,setGcalTest]=useState('');
+  const [ia,setIa]=useState(()=>getFiltreIaSettings());
+  function saveIa(patch){ const u={...ia,...patch}; setIa(u); saveFiltreIaSettings(u); }
   const last=lastSync();
   useEffect(()=>{ getStats().then(setStats); getCap().then(setCap); },[]);
 
@@ -1536,6 +1576,44 @@ function Reglages(){
       <div class="sec-h"><span class="sec-t">Corpus · NotebookLM</span></div>
       <button class="save-btn" style="width:100%" onClick=${doCorpus}>↗ Exporter le corpus (.md)</button>
       <div class="set-note">Génère un fichier Markdown de toutes tes captures traitées + notes · partage vers Fichiers ou NLM directement.</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">🤖 Filtre IA · ACTOR</span></div>
+      <div class="hint" style="margin-bottom:10px">
+        ✨ Haiku génère le Compress (C) · Sonnet analyse le Test FICV (T).<br/>
+        Clé API : variable d'env Vercel <code style="font-size:9px;background:var(--bg2);padding:1px 4px;border-radius:3px">ANTHROPIC_API_KEY</code>
+      </div>
+      <div class=${'rout'+(ia.enabled?' on':'')} onClick=${()=>saveIa({enabled:!ia.enabled})} style="cursor:pointer">
+        <div class="dot"/><span class="r-txt">${ia.enabled?'Filtre IA activé':'Filtre IA désactivé'}</span>
+      </div>
+      ${ia.enabled?html`
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+          <div class="cfg-row">
+            <label>Compress — modèle</label>
+            <select value=${ia.compressModel} onChange=${e=>saveIa({compressModel:e.target.value})}>
+              <option value="claude-haiku-4-5-20251001">Haiku 4.5 · rapide / économe</option>
+              <option value="claude-sonnet-4-6">Sonnet 4.6 · plus nuancé</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>Compress — température</label>
+            <select value=${ia.compressTemp} onChange=${e=>saveIa({compressTemp:e.target.value})}>
+              <option value="0.2">0.2 · précis / factuel</option>
+              <option value="0.3">0.3 · équilibré (défaut)</option>
+              <option value="0.6">0.6 · créatif / interprétatif</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>Test FICV — modèle</label>
+            <select value=${ia.testModel} onChange=${e=>saveIa({testModel:e.target.value})}>
+              <option value="claude-sonnet-4-6">Sonnet 4.6 · défaut</option>
+              <option value="claude-haiku-4-5-20251001">Haiku 4.5 · rapide / moins cher</option>
+            </select>
+          </div>
+          <div class="hint" style="margin-top:6px">O (Position) et R (Run) restent manuels · A (Aim) se complète après avoir vu la question T</div>
+        </div>
+      `:''}
     </div>
 
     <div class="sec">

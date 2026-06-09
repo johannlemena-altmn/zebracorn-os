@@ -5,6 +5,37 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 24 : Le Filtre IA — ACTOR C + T assistés par Claude
+
+- **Fait** :
+  - `api/actor-ai.js` : Vercel serverless function, 2 étapes, zéro dépendance npm (fetch natif).
+    - `step=compress` → Haiku 4.5 : titre + résumé 2-3 phrases en JSON pour le champ C.
+    - `step=test` → Sonnet 4.6 : FICV complet (faits/interp/croyances/valeurs) + question socratique pour la section T.
+    - Extraction JSON robuste (gère réponse brute + code block markdown). Clé API depuis `ANTHROPIC_API_KEY` (env Vercel — jamais exposée au client).
+  - **Bouton "✨ Résumer avec Haiku"** dans la section C de l'ACTOR panel. Visible uniquement si Filtre IA activé.
+  - **Bouton "✨ Analyser avec Sonnet"** dans la section T (au-dessus des FICV). Idem.
+  - Les deux boutons sont désactivés pendant un chargement. Erreur affichée sous le bouton si l'appel échoue.
+  - O (Position) et R (Run) restent **100% manuels**. A (Aim) se remplit après avoir vu la question T générée — c'est l'intention de Johann.
+  - **Réglages → 🤖 Filtre IA** : toggle activé/désactivé + sélecteurs de modèle et température pour Compress (Haiku par défaut, t=0.3) et Test (Sonnet par défaut). Persisté en `localStorage`. Onglet Capture re-lit les settings à chaque montage (tab switch = remount).
+
+- **Pourquoi** :
+  - Flux voulu : Capturer → ouvrir ACTOR → ✨ Haiku résume le C en 3 sec → ✨ Sonnet génère les FICV + question T → Johann lit la question, formule son A (Aim), complète O (Position) et R (Run). L'IA réduit le coût cognitif d'entrée ("feuille blanche"), pas le jugement final.
+  - Haiku pour C : tâche de compression factuelle, vitesse > nuance. Sonnet pour T : analyse critique où la nuance et la question socratique comptent.
+  - Zéro dépendance npm : pattern identique à `api/ical.js`. Pas de package.json à gérer.
+
+- **Coût réel estimé** :
+  - Compress (Haiku 4.5) : ~600 tokens in × $0.80/M + ~150 tokens out × $4/M = ~$0.001/appel
+  - Test (Sonnet 4.6) : ~850 tokens in × $3/M + ~200 tokens out × $15/M = ~$0.006/appel
+  - Total par analyse complète : ~$0.007 (0.7 centimes). 100 analyses/mois ≈ $0.70.
+
+- **Setup requis** : Ajouter `ANTHROPIC_API_KEY` dans Vercel > Settings > Environment Variables (réutiliser la clé du Filtre V1).
+
+- **DoD** : 26/26 vérifications logiques OK. API function, DB helpers, Réglages section, boutons ACTOR C+T, state aiLoading/aiError.
+
+- **Prochain** : Activer dans Réglages, tester sur une vraie capture. Vérifier que la clé V1 fonctionne bien.
+
+---
+
 ## 2026-06-09 — Incrément 23 : Resurfacing quotidien
 
 - **Fait** : Section "📍 Resurfacer" dans le Maintenant screen — entre la quote et l'inbox.
