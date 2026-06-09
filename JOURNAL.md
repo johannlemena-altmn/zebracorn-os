@@ -5,6 +5,25 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Architecture navigation + UX polish
+
+- **Fait** :
+  - **Nav stack global** (`pushNav`/`popNav` dans App) : drill-down depuis n'importe où vers `FicheChantier` ou `FicheLivre`. Overlay position:absolute qui glisse depuis la droite (iOS/Notion pattern). Tab nav masquée pendant la navigation. `FicheChantier`/`FicheLivre` : back-btn hardcodé retiré, remplacé par `nav-back-bar` globale avec label contextuel (`from:'Maintenant'`, `from:'Flux'`, etc.).
+  - **Cross-links** : tâche Maintenant avec `chantierId` → "◎ Voir le chantier →" ouvre FicheChantier ; lecture card avec livre en cours → drill vers FicheLivre ; chantier chip sur capture → drill vers FicheChantier.
+  - **ACTOR progress** : indicateur `✓` vert par étape complétée + bouton save adaptatif ("Sauvegarder · X/5" ou "⊙ Analyse complète").
+  - **Fixes** : corpus doublon corrigé (filtre `statut !== 'inbox'`) ; `getWeekData` bascule sur semaine courante Lun→Dim ; rail feedback "✓ noté" ; boutons IA découvrables (état verrouillé visible) ; lecture card cliquable.
+  - **Tabs** : Sem → Mém (🧠), Cap → Flux, Sport → Corps.
+
+- **Pourquoi** :
+  - La navigation plate (5 onglets sans drill-down) cassait le fil mental : on perdait le contexte en changeant d'onglet. Le nav stack résout ça sans complexifier le modèle mental — on sait toujours où on est et d'où on vient.
+  - Les cross-links créent des "fils conducteurs" entre Maintenant, Flux, et Mémoire. La tâche du jour se relie à son chantier sans changer d'onglet.
+  - Le progress ACTOR n'est pas un blocage (friction douce) mais une boussole : on voit ce qui manque sans être forcé. La valeur est dans la conscience, pas la contrainte.
+
+- **DoD** : vérifié visuellement. Tous les chemins de navigation testés (drill chantier, drill livre, retour). Corpus plus dupliqué.
+- **Prochain** : revue hebdo plus engageante (friction positive), resurfacing plus visible, connexions ACTOR en mode "graphe léger".
+
+---
+
 ## 2026-06-09 — Incrément 25 : Connexions automatiques post-ACTOR (graph Obsidian type)
 
 - **Fait** :
