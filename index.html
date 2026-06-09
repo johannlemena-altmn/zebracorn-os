@@ -240,7 +240,7 @@ function AmwapModal({onClose,onSave}){
 }
 
 /* ── Maintenant ─────────────────────────────── */
-function Maintenant({inboxCount,onGoCapture,onGoSem}){
+function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
   const [mode,setMode]=useState('fort');
   const [selQ,setSelQ]=useState(()=>pickQ('fort'));
   function changeMode(m){ setMode(m); setSelQ(pickQ(m)); }
@@ -377,6 +377,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem}){
             ${isExp?'▾':'▸'}
           </span>
           ${isExp?html`<div class="task-notes">
+            ${t.chantierId?html`<div style="padding-bottom:6px"><span class="task-ch-link" onClick=${e=>{e.stopPropagation();pushNav&&pushNav({type:'chantier',id:t.chantierId,from:'Maintenant'});}}>◎ Voir le chantier →</span></div>`:''}
             ${isEdit||!t.notes?html`
               <textarea class="task-notes-ta" rows="5" value=${expandNotes}
                 onInput=${e=>setExpandNotes(e.target.value)}
@@ -431,7 +432,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem}){
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>
-      <div class="read" onClick=${onGoSem} role="button" aria-label="Aller à la lecture">
+      <div class="read" onClick=${()=>livreEnCours&&pushNav?pushNav({type:'livre',id:livreEnCours.id,from:'Maintenant'}):onGoSem()} role="button" aria-label="Aller à la lecture">
         <div class="read-ic">${livreEnCours?'📖':'🌙'}</div>
         <div style="flex:1">
           <div class="read-t">${livreEnCours?livreEnCours.titre:'Lecture avant le coucher'}</div>
@@ -510,7 +511,7 @@ async function shareFile(item){
 /* ── Capture ─────────────────────────────────── */
 const isAudioUrl=u=>/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(u||'');
 
-function Capture({onCapture}){
+function Capture({onCapture,pushNav}){
   const [type,setType]=useState('note');
   const [content,setContent]=useState('');
   const [tag,setTag]=useState('');
@@ -719,6 +720,8 @@ function Capture({onCapture}){
   const now=new Date();
   const actorItem=actorId?([...inbox,...corpus].find(x=>x.id===actorId)):null;
   const isNLM_actor=actorItem?(actorItem.source==='NotebookLM'||actorItem.contenu?.includes('notebooklm.google')||actorItem.nlm):false;
+  const STEP_DONE={A:!!(actorDraft.aim?.trim()),C:!!(actorDraft.compress?.trim()),T:!!(actorDraft.faits?.trim()||actorDraft.interp?.trim()||actorDraft.croyances?.trim()),O:!!(actorDraft.own?.trim()),R:!!(actorDraft.runTexte?.trim())};
+  const actorProgress=Object.values(STEP_DONE).filter(Boolean).length;
   return html`<div class="scroll">
     <div class="hdr"><div class="brand">Zebracorn OS · Capture</div><div class="date-lbl">${fmtDate(now)}</div></div>
     <div class="h1">Capturer.</div>
@@ -775,7 +778,7 @@ function Capture({onCapture}){
               ${item.linkedIds?.length?html` · <span style="color:var(--bleu)">🔗 ${item.linkedIds.length}</span>`:''}
               ${item.actorAnalysis?html` · <span class="actor-ic">⊙</span>`:''}
             </div>
-            ${isExpanded&&chName?html`<div style="margin-top:5px"><span class="ch-pill on" style="font-size:9px;padding:2px 8px">◎ ${chName.slice(0,28)}</span></div>`:''}
+            ${isExpanded&&chName?html`<div style="margin-top:5px"><span class="ch-pill on" style="font-size:9px;padding:2px 8px;cursor:pointer" onClick=${e=>{e.stopPropagation();pushNav&&pushNav({type:'chantier',id:item.chantierId,from:'Flux'});}}>◎ ${chName.slice(0,28)} ›</span></div>`:''}
           </div>
           <span style="font-size:11px;color:var(--ink3);flex-shrink:0;margin-left:4px">${isExpanded?'↑':'↓'}</span>
         </div>
@@ -952,10 +955,12 @@ function Capture({onCapture}){
         ${['A','C','T','O','R'].map(s=>{
           const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
           const isOpen=actorSection===s;
+          const isDone=STEP_DONE[s];
           return html`<div class="actor-step" key=${s}>
             <div class="actor-step-hdr" onClick=${()=>setActorSection(isOpen?null:s)}>
-              <span class="actor-step-key">${s}</span>
+              <span class="actor-step-key" style=${isDone?'color:var(--ok)':''}>${s}</span>
               <span class="actor-step-lbl">${LABELS[s]}</span>
+              ${isDone?html`<span class="actor-step-done">✓</span>`:''}
               <span class="actor-step-caret">${isOpen?'↑':'↓'}</span>
             </div>
             ${isOpen?html`${s==='T'?html`<div class="actor-step-body">
@@ -1035,7 +1040,9 @@ function Capture({onCapture}){
                 }
               `:''}
             `
-            :html`<button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(actorId);}}>Sauvegarder ⊙</button>`
+            :html`<button class=${'actor-save'+(actorProgress===5?' actor-save-full':'')} onClick=${e=>{e.stopPropagation();sauveActor(actorId);}}>
+              ${actorProgress===5?'⊙ Analyse complète — Sauvegarder':actorProgress>0?`Sauvegarder · ${actorProgress}/5`:'Sauvegarder ⊙'}
+            </button>`
           }
         </div>
       </div>
@@ -1078,7 +1085,6 @@ function FicheChantier({id,onBack}){
 
   return html`<div class="scroll">
     <div class="hdr">
-      <button class="back-btn" onClick=${onBack}>← Semaine</button>
       <div class="date-lbl">Chantier 🟢</div>
     </div>
     <div class="h1">${chantier.titre}</div>
@@ -1150,7 +1156,6 @@ function FicheLivre({id,onBack}){
 
   return html`<div class="scroll">
     <div class="hdr">
-      <button class="back-btn" onClick=${onBack}>← Bibliothèque</button>
       <div class="date-lbl">📚 Livre</div>
     </div>
     <div class="h1">${livre.titre}</div>
@@ -1740,6 +1745,10 @@ function Reglages(){
 function App(){
   const [tab,setTab]=useState('maintenant');
   const [inboxCount,setCount]=useState(0);
+  const [navStack,setNavStack]=useState([]);
+  const pushNav=useCallback(item=>setNavStack(p=>[...p,item]),[]);
+  const popNav=useCallback(()=>setNavStack(p=>p.slice(0,-1)),[]);
+  const topNav=navStack.length>0?navStack[navStack.length-1]:null;
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
   useEffect(()=>{ refresh(); },[refresh]);
   useEffect(()=>{
@@ -1764,28 +1773,38 @@ function App(){
 
   return html`<div class="phone">
     ${tab==='maintenant'
-      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')} onGoSem=${()=>setTab('semaine')}/>`
+      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')} onGoSem=${()=>setTab('semaine')} pushNav=${pushNav}/>`
       : tab==='semaine'
       ? html`<${Semaine}/>`
       : tab==='reglages'
       ? html`<${Reglages}/>`
       : tab==='sport'
       ? html`<${Nutrition}/>`
-      : html`<${Capture} onCapture=${refresh}/>`
+      : html`<${Capture} onCapture=${refresh} pushNav=${pushNav}/>`
     }
-    <nav class="tabnav">
+    ${topNav?html`
+      <div class="nav-page">
+        <div class="nav-back-bar">
+          <button class="nav-back-btn" onClick=${popNav}>${topNav.from||'Retour'}</button>
+        </div>
+        ${topNav.type==='chantier'?html`<${FicheChantier} id=${topNav.id} onBack=${popNav}/>`
+        :topNav.type==='livre'?html`<${FicheLivre} id=${topNav.id} onBack=${popNav}/>`
+        :''}
+      </div>
+    `:''}
+    <nav class=${'tabnav'+(topNav?' hidden':'')}>
       <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
         <span class="tico">🌱</span><span class="tlbl">Maint.</span>
       </button>
       <button class=${tab==='semaine'?'on':''} onClick=${()=>setTab('semaine')}>
-        <span class="tico">▦</span><span class="tlbl">Sem.</span>
+        <span class="tico">🧠</span><span class="tlbl">Mém.</span>
       </button>
       <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
-        <span class="tlbl">Cap.</span>
+        <span class="tlbl">Flux</span>
       </button>
       <button class=${tab==='sport'?'on':''} onClick=${()=>setTab('sport')}>
-        <span class="tico">🥗</span><span class="tlbl">Sport</span>
+        <span class="tico">🥗</span><span class="tlbl">Corps</span>
       </button>
       <button class=${tab==='reglages'?'on':''} onClick=${()=>setTab('reglages')}>
         <span class="tico">⚙</span><span class="tlbl">Régl.</span>
