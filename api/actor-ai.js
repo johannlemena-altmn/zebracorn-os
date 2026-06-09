@@ -12,8 +12,17 @@ export default async function handler(req, res) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée — ajoute-la dans Vercel > Settings > Environment Variables' });
 
-  const { step, content, type, source, compress, settings = {} } = req.body || {};
+  const { step, content, type, source, compress, notes = '', settings = {} } = req.body || {};
   if (!step || !content) return res.status(400).json({ error: 'Champs manquants : step, content' });
+
+  // Pour les captures de type lien/vidéo, le contenu est une URL — utiliser notes si disponibles
+  const isUrl = /^https?:\/\//i.test(content.trim());
+  const effectiveContent = isUrl && notes.trim()
+    ? notes.trim()
+    : content;
+  const urlContext = isUrl && !notes.trim()
+    ? `\n⚠ Le contenu est une URL (non accessible). Synthétise à partir de la source et du contexte disponibles uniquement. Si insuffisant, dis-le clairement.`
+    : '';
 
   const compressModel = settings.compressModel || 'claude-haiku-4-5-20251001';
   const testModel     = settings.testModel     || 'claude-sonnet-4-6';
@@ -37,10 +46,10 @@ Réponds UNIQUEMENT en JSON valide, sans texte autour, sans markdown :
 
 Langue : français. Ton : neutre, précis, sans jargon inutile.`,
       user: `Type de capture : ${type || 'note'}
-Source : ${source || 'non renseigné'}
+Source : ${source || 'non renseigné'}${urlContext}
 
 Contenu :
-${content.slice(0, 2000)}`,
+${effectiveContent.slice(0, 2000)}`,
     },
 
     test: {
@@ -61,7 +70,7 @@ Réponds UNIQUEMENT en JSON valide, sans texte autour, sans markdown :
 
 Langue : français. Sois direct. La question doit vraiment challenger, pas conforter.`,
       user: `Contenu original :
-${content.slice(0, 2000)}
+${effectiveContent.slice(0, 2000)}${urlContext}
 ${compress ? `\nSynthèse (Compress) :\n${compress}` : ''}`,
     },
   };

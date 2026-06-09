@@ -640,7 +640,7 @@ function Capture({onCapture}){
       const r=await fetch('/api/actor-ai',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({step,content:item.contenu,type:item.type,source:item.source||'',compress:actorDraft.compress||'',settings:filtreIa,...extra}),
+        body:JSON.stringify({step,content:item.contenu,type:item.type,source:item.source||'',compress:actorDraft.compress||'',notes:item.notes||'',settings:filtreIa,...extra}),
       });
       const data=await r.json();
       if(!r.ok) throw new Error(data.error||`HTTP ${r.status}`);
@@ -873,6 +873,11 @@ function Capture({onCapture}){
                   ${s==='A'&&isNLM?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
                   <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?(isNLM?"Quelle question j'explorais dans cette session NLM ?":"Pourquoi cette capture m'intéresse maintenant ?"):(isNLM?"Synthèse de ta session — ce que tu en retiens (1-2 phrases)":"Quelle est la thèse centrale ? (1 phrase)")}></textarea>
                   ${s==='C'&&filtreIa.enabled?html`
+                    ${(item.type==='lien'||item.type==='video')&&!item.notes&&!actorDraft.compress?html`
+                      <div class="ai-error" style="background:rgba(194,85,47,.1)">
+                        📎 Lien sans contenu — colle les idées clés dans les <strong>Notes</strong> (champ texte sous la carte) avant de lancer Haiku.
+                      </div>
+                    `:''}
                     <button class="actor-ai-btn" onClick=${e=>{e.stopPropagation();genCompress();}} disabled=${aiLoading!==null}>
                       ${aiLoading==='compress'?'✦ Génération…':'✨ Résumer avec Haiku'}
                     </button>
