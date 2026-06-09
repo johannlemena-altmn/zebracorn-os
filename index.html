@@ -251,8 +251,10 @@ function Maintenant({inboxCount,onGoCapture}){
   const [expandTaskId,setExpandTaskId]=useState(null);
   const [expandNotes,setExpandNotes]=useState('');
   const [editNotesId,setEditNotesId]=useState(null);
+  const [railPulse,setRailPulse]=useState(false);
   const typed=useTypewriter(selQ);
   const now=useClock();
+  function pulseRail(){ setRailPulse(true); }
 
   const load=useCallback(async()=>{
     setIntent(await getTodayIntention());
@@ -302,10 +304,10 @@ function Maintenant({inboxCount,onGoCapture}){
       ${Object.keys(RAIL_Q).map(m=>html`<button class=${'mode'+(mode===m?' on':'')} onClick=${()=>changeMode(m)} key=${m}>${m==='fort'?'Intercept fort':m==='relache'?'Relâché':'Libre'}</button>`)}
     </div>
 
-    <div class="rail">
+    <div class=${'rail'+(railPulse?' pulse':'')} onAnimationEnd=${e=>{if(e.animationName==='railPulse'||e.animationName==='railGlow')setRailPulse(false);}}>
       <div class="rail-k">◇ Le rail · ${mode==='fort'?'matin/journée':mode==='relache'?'pause':'week-end'}</div>
       <div class="rail-q">${typed}${typed.length<selQ.length?html`<span class="cursor"/>`:''}</div>
-      <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention pour ce moment…"/>
+      <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>{if(e.key==='Enter'){if(e.target.value.trim())pulseRail();e.target.blur();}}} placeholder="Mon intention pour ce moment…"/>
     </div>
     ${cap.intention?html`<div class="cap-annuel">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
     ${cap.objectifsMois?html`<div class="cap-annuel" style="margin-top:-0.8rem;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}${cap.objectifsMois.split('\n').filter(l=>l.trim()).length>1?' +…':''}</em></div>`:''}
@@ -411,7 +413,7 @@ function Maintenant({inboxCount,onGoCapture}){
 
     ${(caps.length>0||inboxCount>0)?html`<div class="sec">
       <div class="sec-h"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
-      <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
+      <div>${caps.map((c,i)=>html`<span class="chip resurf" style=${'animation-delay:'+(i*60)+'ms'} onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
       ${hsCount>0?html`<div class="hint" style="margin-top:6px;color:var(--ac)">📍 ${hsCount} hors-scope ce mois</div>`:''}
     </div>`:''}
 
@@ -616,7 +618,7 @@ function Capture({onCapture}){
       </div>`:''}
       <div class="composer-b">
         <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
-        <button class="save-btn" onClick=${save} disabled=${saving||( type==='fichier'?!file:!content.trim() )}>${saving?'…':type==='fichier'?'Importer':'Capter'}</button>
+        <button class="save-btn" onClick=${save} disabled=${saving||( type==='fichier'?!file:!content.trim() )}>${saving?html`<span class="dots"><i/><i/><i/></span>`:type==='fichier'?'Importer':'Capter'}</button>
       </div>
       <div class="hint">⌁ Aucune friction à l'entrée — la réflexion (ACTOR) se fait plus tard.</div>
     </div>
@@ -723,10 +725,13 @@ function Capture({onCapture}){
           ${['A','C','T','O','R'].map(s=>{
             const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
             const isOpen=actorSection===s;
+            const FILLED={A:(actorDraft.aim||'').trim(),C:(actorDraft.compress||'').trim(),T:((actorDraft.faits||'')+(actorDraft.interp||'')+(actorDraft.croyances||'')+(actorDraft.valeurs||'')).trim(),O:(actorDraft.own||'').trim(),R:(actorDraft.runTexte||'').trim()};
+            const filled=!!FILLED[s];
             return html`<div class="actor-step" key=${s}>
               <div class="actor-step-hdr" onClick=${()=>setActorSection(isOpen?null:s)}>
-                <span class="actor-step-key">${s}</span>
+                <span class=${'actor-step-key'+(filled?' done':'')}>${s}</span>
                 <span class="actor-step-lbl">${LABELS[s]}</span>
+                ${filled?html`<span class="actor-step-check" key="chk">✓</span>`:''}
                 <span class="actor-step-caret">${isOpen?'↑':'↓'}</span>
               </div>
               ${isOpen?html`${s==='T'?html`<div class="actor-step-body">
@@ -747,7 +752,7 @@ function Capture({onCapture}){
                     ${['→ Chantier','→ Livre','→ Question ouverte','→ Écriture','→ Partager','→ Décision','→ #resurfacing'].map(o=>html`<option key=${o}>${o}</option>`)}
                   </select>
                   <textarea class="actor-ta" rows=2 value=${actorDraft.runTexte||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runTexte:v}));}} placeholder="Action concrète…"></textarea>
-                  <button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder ⊙</button>
+                  <button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder · ${[(actorDraft.aim||'').trim(),(actorDraft.compress||'').trim(),((actorDraft.faits||'')+(actorDraft.interp||'')+(actorDraft.croyances||'')+(actorDraft.valeurs||'')).trim(),(actorDraft.own||'').trim(),(actorDraft.runTexte||'').trim()].filter(Boolean).length}/5 ⊙</button>
                 </div>`
               :html`<div class="actor-step-body">
                   <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?"Pourquoi cette capture m'intéresse maintenant ?":"Quelle est la thèse centrale ? (1 phrase)"}></textarea>
@@ -874,7 +879,7 @@ function FicheChantier({id,onBack}){
   const pct=etapes.length?Math.round(done/etapes.length*100):0;
   const now=new Date();
 
-  return html`<div class="scroll">
+  return html`<div class="scroll page-in">
     <div class="hdr">
       <button class="back-btn" onClick=${onBack}>← Semaine</button>
       <div class="date-lbl">Chantier 🟢</div>
@@ -946,7 +951,7 @@ function FicheLivre({id,onBack}){
   const linkedQ=questions.find(q=>q.id===livre.questionId);
   const now=new Date();
 
-  return html`<div class="scroll">
+  return html`<div class="scroll page-in">
     <div class="hdr">
       <button class="back-btn" onClick=${onBack}>← Bibliothèque</button>
       <div class="date-lbl">📚 Livre</div>
@@ -1441,8 +1446,11 @@ function Reglages(){
 }
 
 /* ── App ─────────────────────────────────────── */
+const TABS=['maintenant','semaine','capture','sport','reglages'];
 function App(){
   const [tab,setTab]=useState('maintenant');
+  const [dir,setDir]=useState(1);
+  const changeTab=useCallback(t=>{ setTab(prev=>{ if(t!==prev) setDir(TABS.indexOf(t)>=TABS.indexOf(prev)?1:-1); return t; }); },[]);
   const [inboxCount,setCount]=useState(0);
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
   useEffect(()=>{ refresh(); },[refresh]);
@@ -1465,8 +1473,9 @@ function App(){
   },[]);
 
   return html`<div class="phone">
+    <div class=${'view'+(dir<0?' back':'')} key=${tab}>
     ${tab==='maintenant'
-      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')}/>`
+      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>changeTab('capture')}/>`
       : tab==='semaine'
       ? html`<${Semaine}/>`
       : tab==='reglages'
@@ -1475,21 +1484,23 @@ function App(){
       ? html`<${Nutrition}/>`
       : html`<${Capture} onCapture=${refresh}/>`
     }
+    </div>
     <nav class="tabnav">
-      <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
+      <span class="tab-dot" style=${'transform:translateX('+TABS.indexOf(tab)*100+'%)'}/>
+      <button class=${tab==='maintenant'?'on':''} onClick=${()=>changeTab('maintenant')}>
         <span class="tico">🌱</span><span class="tlbl">Maint.</span>
       </button>
-      <button class=${tab==='semaine'?'on':''} onClick=${()=>setTab('semaine')}>
+      <button class=${tab==='semaine'?'on':''} onClick=${()=>changeTab('semaine')}>
         <span class="tico">▦</span><span class="tlbl">Sem.</span>
       </button>
-      <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
+      <button class=${tab==='capture'?'on':''} onClick=${()=>changeTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
         <span class="tlbl">Cap.</span>
       </button>
-      <button class=${tab==='sport'?'on':''} onClick=${()=>setTab('sport')}>
+      <button class=${tab==='sport'?'on':''} onClick=${()=>changeTab('sport')}>
         <span class="tico">🥗</span><span class="tlbl">Sport</span>
       </button>
-      <button class=${tab==='reglages'?'on':''} onClick=${()=>setTab('reglages')}>
+      <button class=${tab==='reglages'?'on':''} onClick=${()=>changeTab('reglages')}>
         <span class="tico">⚙</span><span class="tlbl">Régl.</span>
       </button>
     </nav>
