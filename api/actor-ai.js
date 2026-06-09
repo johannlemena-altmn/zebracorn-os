@@ -67,7 +67,60 @@ ${compress ? `\nSynthèse (Compress) :\n${compress}` : ''}`,
   };
 
   const call = CALLS[step];
-  if (!call) return res.status(400).json({ error: `Step inconnu : ${step}. Attendu : compress | test` });
+
+  // ── Étape connect : traitement séparé (structure d'entrée différente) ──
+  if (step === 'connect') {
+    const { current, others } = req.body;
+    if (!current?.compress || !current?.own || !Array.isArray(others) || others.length === 0) {
+      return res.status(400).json({ error: 'connect: current.{compress,own} et others[] requis' });
+    }
+    const othersText = others
+      .map(o => `[ID:${o.id}] Compress: ${String(o.compress).slice(0, 100)} | Position: ${String(o.own).slice(0, 70)}`)
+      .join('\n');
+    const connectBody = {
+      model: settings.compressModel || 'claude-haiku-4-5-20251001',
+      max_tokens: 220,
+      temperature: 0.2,
+      system: `Tu es un assistant de connexion de connaissances pour un second cerveau (méthode ACTOR).
+Parmi une liste de captures, trouve les 3 qui ont la connexion conceptuelle la plus forte avec la capture courante.
+
+Connexion forte = thèmes communs, tension productive, prolongement d'idée, contradiction féconde, ou cadre conceptuel partagé.
+
+Réponds UNIQUEMENT en JSON valide, sans texte autour :
+{"connections":[{"id":42,"reason":"tension: autonomie vs contrainte"},{"id":17,"reason":"même cadre: friction calibrée"},{"id":31,"reason":"prolongement: systémique"}]}
+
+3 connexions max, order = force décroissante. reason = 3-5 mots max, en français.`,
+      messages: [{
+        role: 'user',
+        content: `Capture courante :
+Compress : ${String(current.compress).slice(0, 200)}
+Position : ${String(current.own).slice(0, 150)}
+
+Autres captures :
+${othersText}`,
+      }],
+    };
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify(connectBody),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        return res.status(r.status).json({ error: err.error?.message || `Anthropic HTTP ${r.status}` });
+      }
+      const data = await r.json();
+      const text = data.content?.[0]?.text?.trim() || '';
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) return res.status(500).json({ error: 'Parse error', raw: text.slice(0, 200) });
+      return res.status(200).json(JSON.parse(match[0]));
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  if (!call) return res.status(400).json({ error: `Step inconnu : ${step}. Attendu : compress | test | connect` });
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {

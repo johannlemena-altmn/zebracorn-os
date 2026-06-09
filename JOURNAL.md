@@ -5,6 +5,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 25 : Connexions automatiques post-ACTOR (graph Obsidian type)
+
+- **Fait** :
+  - `api/actor-ai.js` — nouveau step `connect` (Haiku) : prend `current.{compress,own}` + liste `others[{id,compress,own}]` (max 20 captures traitées à 70%+), retourne `{connections:[{id,reason}]}` trié par force de connexion décroissante. `reason` = 3-5 mots (ex: "tension: autonomie vs contrainte").
+  - **Déclenchement automatique** après `Sauvegarder ⊙` si `compress` + `own` remplis + Filtre IA activé. Pas de clic supplémentaire.
+  - **Bouton "Sauvegarder ⊙" déplacé** : sorti du step R, mis dans un `.actor-footer` qui recouvre tout le panel. Après sauvegarde, le footer bascule en "⊙ Sauvegardé ✓" + bouton "Fermer" + section "🔗 Connexions".
+  - **Section connexions** : 3 cartes. Chacune : [type_icon] contenu (60 chars) + raison IA en italique terracotta. Boutons "✓ Lier" (appelle `linkCaptures` existant) + "✗" (dismiss). Les cartes disparaissent au fur et à mesure des choix.
+  - Reset propre : fermeture panel / ré-ouverture → états connexions réinitialisés.
+
+- **Pourquoi** :
+  - Ferme la boucle "second cerveau Obsidian" : une fois qu'on a une position (OWN) sur une capture, l'IA trouve les positions voisines dans le corpus. Les `linkedIds` existants deviennent le graphe de connaissances personnel. La valeur est dans la découverte — pas dans la visualisation (un graphe vide de 5 nœuds ne sert à rien ; le graph vient quand le corpus est dense).
+  - Trigger = compress + own = seuil 70% ACTOR. Cohérent avec la demande "captures traitées à 70%+".
+  - Haiku pour connect : tâche de matching, pas d'analyse profonde. ~$0.002/connexion.
+
+- **Coût connect (Haiku)** : ~1600 tokens in × $0.80/M + ~100 tokens out × $4/M ≈ $0.002/appel.
+
+- **DoD** : 22/22 vérifications OK. API step connect, states, fonctions, JSX footer, CSS.
+
+- **Prochain** : Activer `ANTHROPIC_API_KEY` dans Vercel → tester sur une vraie capture avec compress+own → valider les 3 connexions proposées.
+
+---
+
 ## 2026-06-09 — Incrément 24 : Le Filtre IA — ACTOR C + T assistés par Claude
 
 - **Fait** :

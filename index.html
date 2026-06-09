@@ -533,6 +533,9 @@ function Capture({onCapture}){
   const [filtreIa]=useState(()=>getFiltreIaSettings());
   const [aiLoading,setAiLoading]=useState(null);
   const [aiError,setAiError]=useState(null);
+  const [actorSaved,setActorSaved]=useState(false);
+  const [connectSuggestions,setConnectSuggestions]=useState(null);
+  const [connectLoading,setConnectLoading]=useState(false);
 
   const load=useCallback(async()=>{
     const[a,b,c,corp]=await Promise.all([getInbox(),getDone(),getLater(),getActorCorpus()]);
@@ -615,10 +618,11 @@ function Capture({onCapture}){
   async function validerTrait(id,txt){ await traitCapture(id,txt); setAnnotId(null); setAnnotTxt(''); await load(); if(onCapture)onCapture(); }
   async function skipAnnot(id){ await traitCapture(id,null); setAnnotId(null); await load(); if(onCapture)onCapture(); }
   function ouvrirActor(item){
-    if(actorId===item.id){setActorId(null);return;}
+    if(actorId===item.id){setActorId(null);setActorSaved(false);setConnectSuggestions(null);return;}
     const ex=item.actorAnalysis||{};
     const isNew=!item.actorAnalysis;
     const isNLM=item.source==='NotebookLM'||item.contenu?.includes('notebooklm.google')||item.nlm;
+    setActorSaved(false); setConnectSuggestions(null);
     setActorDraft({
       aim:ex.aim||(isNew&&isNLM?`Session NotebookLM — ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})} — quelle question j'explorais ?`:''),
       compress:ex.compress||(isNew?item.contenu.slice(0,500):''),
@@ -651,6 +655,32 @@ function Capture({onCapture}){
     const data=await callActorAI('test');
     if(data) setActorDraft(p=>({...p,faits:data.faits||p.faits,interp:data.interp||p.interp,croyances:data.croyances||p.croyances,valeurs:data.valeurs||p.valeurs,question:data.question||p.question}));
   }
+  async function genConnections(savedId,analysis){
+    setConnectLoading(true); setConnectSuggestions(null);
+    try{
+      const all=await db.captures.toArray();
+      const others=all
+        .filter(c=>c.id!==savedId&&c.actorAnalysis?.compress?.trim()&&c.actorAnalysis?.own?.trim())
+        .sort((a,b)=>a.date<b.date?1:-1).slice(0,20)
+        .map(c=>({id:c.id,compress:c.actorAnalysis.compress.slice(0,110),own:c.actorAnalysis.own.slice(0,80)}));
+      if(!others.length){setConnectSuggestions([]);setConnectLoading(false);return;}
+      const r=await fetch('/api/actor-ai',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({step:'connect',current:{compress:analysis.compress.slice(0,200),own:analysis.own.slice(0,150)},others,settings:filtreIa}),
+      });
+      const data=await r.json();
+      if(data.connections?.length){
+        const enriched=(await Promise.all(data.connections.map(async conn=>{const cap=await db.captures.get(conn.id);return cap?{...conn,cap}:null;}))).filter(Boolean);
+        setConnectSuggestions(enriched);
+      }else{setConnectSuggestions([]);}
+    }catch(e){setConnectSuggestions([]);}
+    setConnectLoading(false);
+  }
+  async function lierSuggestion(currentId,targetId){
+    await linkCaptures(currentId,targetId);
+    setConnectSuggestions(p=>p.filter(s=>s.id!==targetId));
+    setInbox(prev=>prev.map(x=>{if(x.id!==currentId)return x;const cur=x.linkedIds||[];return{...x,linkedIds:cur.includes(targetId)?cur:[...cur,targetId]};}));
+  }
 
   async function sauveActor(id){
     const a={
@@ -662,7 +692,8 @@ function Capture({onCapture}){
     await saveActorAnalysis(id,a);
     setInbox(prev=>prev.map(x=>x.id===id?{...x,actorAnalysis:a}:x));
     setCorpus(await getActorCorpus());
-    setActorId(null);
+    setActorSaved(true);
+    if(filtreIa.enabled&&a.compress?.trim()&&a.own?.trim()) genConnections(id,a);
   }
   async function markLater(id){ await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture(); }
   async function supprimerCapture(id){ if(confirmDelId!==id){setConfirmDelId(id);return;} await deleteCapture(id); setConfirmDelId(null); await load(); if(onCapture)onCapture(); }
@@ -802,7 +833,7 @@ function Capture({onCapture}){
         ${actorId===item.id?html`<div class="actor-panel">
           <div class="actor-panel-hdr">
             <span class="actor-panel-title">⊙ ACTOR — Analyse</span>
-            <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${e=>{e.stopPropagation();setActorId(null);}}>✕</button>
+            <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${e=>{e.stopPropagation();setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>✕</button>
           </div>
           ${['A','C','T','O','R'].map(s=>{
             const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
@@ -837,7 +868,6 @@ function Capture({onCapture}){
                     ${['→ Chantier','→ Livre','→ Question ouverte','→ Écriture','→ Partager','→ Décision','→ #resurfacing'].map(o=>html`<option key=${o}>${o}</option>`)}
                   </select>
                   <textarea class="actor-ta" rows=2 value=${actorDraft.runTexte||''} onInput=${e=>{const v=e.target.value;setActorDraft(p=>({...p,runTexte:v}));}} placeholder="Action concrète…"></textarea>
-                  <button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder ⊙</button>
                 </div>`
               :html`<div class="actor-step-body">
                   ${s==='A'&&isNLM?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
@@ -852,6 +882,34 @@ function Capture({onCapture}){
               `:''}
             </div>`;
           })}
+          <div class="actor-footer">
+            ${actorSaved
+              ?html`
+                <div class="actor-saved-confirm">
+                  <span class="actor-saved-lbl">⊙ Sauvegardé ✓</span>
+                  <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${e=>{e.stopPropagation();setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>Fermer</button>
+                </div>
+                ${filtreIa.enabled?html`
+                  <div class="actor-connect-hdr">🔗 Connexions</div>
+                  ${connectLoading?html`<div class="hint" style="font-style:italic">Recherche de connexions…</div>`
+                    :connectSuggestions===null?''
+                    :connectSuggestions.length===0?html`<div class="hint">Pas assez de captures traitées (70%+) pour établir des connexions.</div>`
+                    :connectSuggestions.map(s=>html`<div class="connect-card" key=${s.id}>
+                      <div style="flex:1;min-width:0">
+                        <div class="connect-content">${T_ICONS[s.cap.type]||'📝'} ${s.cap.contenu.slice(0,60)}${s.cap.contenu.length>60?'…':''}</div>
+                        <div class="connect-reason">↝ ${s.reason}</div>
+                      </div>
+                      <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px">
+                        <button class="btn pri" style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();lierSuggestion(item.id,s.id);}}>✓ Lier</button>
+                        <button class="btn" style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();setConnectSuggestions(p=>p.filter(x=>x.id!==s.id));}}>✗</button>
+                      </div>
+                    </div>`)
+                  }
+                `:''}
+              `
+              :html`<button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder ⊙</button>`
+            }
+          </div>
         </div>`:''}
       </div>`;
     })}
