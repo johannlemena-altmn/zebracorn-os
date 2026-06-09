@@ -493,14 +493,14 @@ function Capture({onCapture}){
     setFileWarn(''); setFile(f);
   }
   async function save(){
-    if(type==='fichier'){
+    if(type==='fichier'||type==='croquis'){
       if(!file||saving) return;
       setSaving(true);
       let dataUrl, mimeType=file.type, filename=file.name;
       if(file.type.startsWith('image/')) dataUrl=await compressImage(file);
       else dataUrl=await readFileAsDataUrl(file);
       mimeType=file.type.startsWith('image/')?'image/jpeg':file.type;
-      await addCapture('fichier',filename,tag.trim(),{filename,dataUrl,mimeType,...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
+      await addCapture(type,filename,tag.trim(),{filename,dataUrl,mimeType,...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
       setFile(null); setTag(''); setLinkCh(null); setLinkLivre(null); setSaving(false);
       await load(); if(onCapture)onCapture(); return;
     }
@@ -562,8 +562,10 @@ function Capture({onCapture}){
     if(actorId===item.id){setActorId(null);return;}
     const ex=item.actorAnalysis||{};
     const isNew=!item.actorAnalysis;
+    const isNLM=item.source==='NotebookLM'||item.contenu?.includes('notebooklm.google')||item.nlm;
     setActorDraft({
-      aim:ex.aim||'', compress:ex.compress||(isNew?item.contenu.slice(0,500):''),
+      aim:ex.aim||(isNew&&isNLM?`Session NotebookLM — ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})} — quelle question j'explorais ?`:''),
+      compress:ex.compress||(isNew?item.contenu.slice(0,500):''),
       faits:ex.test?.faits||'', interp:ex.test?.interp||'',
       croyances:ex.test?.croyances||'', valeurs:ex.test?.valeurs||'',
       question:ex.test?.question||"Qu'est-ce qui devrait être faux pour que cette thèse soit vraie ?",
@@ -595,12 +597,12 @@ function Capture({onCapture}){
 
     <div class="composer">
       <div class="types" style="flex-wrap:wrap">${['note','lien','pdf','video','fichier','croquis'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>{setType(t);setFile(null);setFileWarn('');}} key=${t}>${T_ICONS[t]} ${T_LBLS[t]}</button>`)}</div>
-      ${type==='fichier'
+      ${type==='fichier'||type==='croquis'
         ?html`<label class="file-drop">
-          <span class="fd-ic">${file?'✓':'📎'}</span>
-          <span class="fd-lbl">${file?file.name:'Choisir une image ou un PDF'}</span>
-          <span class="fd-hint">iOS : Photos · Fichiers · Scanner</span>
-          <input type="file" accept="image/*,application/pdf" style="display:none" onChange=${handleFile}/>
+          <span class="fd-ic">${file?'✓':T_ICONS[type]}</span>
+          <span class="fd-lbl">${file?file.name:type==='croquis'?'Photographier un dessin ou schéma':'Choisir une image ou un PDF'}</span>
+          <span class="fd-hint">${type==='croquis'?'📷 Appareil photo · Photos · Dessins scannés':'iOS : Photos · Fichiers · Scanner'}</span>
+          <input type="file" accept=${type==='croquis'?'image/*':'image/*,application/pdf'} style="display:none" onChange=${handleFile}/>
         </label>
         ${fileWarn?html`<div class="file-warn">⚠ ${fileWarn}</div>`:''}
         ${file&&file.type.startsWith('image/')?html`<img src=${URL.createObjectURL(file)} style="width:100%;border-radius:8px;margin-top:8px;max-height:160px;object-fit:cover;"/>`:''}`
@@ -616,7 +618,7 @@ function Capture({onCapture}){
       </div>`:''}
       <div class="composer-b">
         <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
-        <button class="save-btn" onClick=${save} disabled=${saving||( type==='fichier'?!file:!content.trim() )}>${saving?'…':type==='fichier'?'Importer':'Capter'}</button>
+        <button class="save-btn" onClick=${save} disabled=${saving||((type==='fichier'||type==='croquis')?!file:!content.trim())}>${saving?'…':(type==='fichier'||type==='croquis')?'Importer':'Capter'}</button>
       </div>
       <div class="hint">⌁ Aucune friction à l'entrée — la réflexion (ACTOR) se fait plus tard.</div>
     </div>
@@ -626,10 +628,13 @@ function Capture({onCapture}){
     ${inbox.map(item=>{
       const isExpanded=expandId===item.id;
       const isURL=(item.type==='lien'||item.type==='video')&&item.contenu?.startsWith('http');
+      const isNLM=item.source==='NotebookLM'||item.contenu?.includes('notebooklm.google')||item.nlm;
       const chName=chList.find(c=>c.id===item.chantierId)?.titre;
       return html`<div class=${'item'+(isExpanded?' item-open':'')} key=${item.id}>
         <div class="item-top" style="cursor:pointer" onClick=${()=>toggleExpand(item.id)}>
-          ${item.type==='fichier'&&item.mimeType?.startsWith('image/')
+          ${item.type==='croquis'
+            ?html`<img class="item-thumb" src=${item.dataUrl} alt="📐 croquis"/>`
+            :item.type==='fichier'&&item.mimeType?.startsWith('image/')
             ?html`<img class="item-thumb" src=${item.dataUrl} alt=${item.filename}/>`
             :item.type==='fichier'
             ?html`<div class="item-pdf">📄</div>`
@@ -750,7 +755,8 @@ function Capture({onCapture}){
                   <button class="actor-save" onClick=${e=>{e.stopPropagation();sauveActor(item.id);}}>Sauvegarder ⊙</button>
                 </div>`
               :html`<div class="actor-step-body">
-                  <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?"Pourquoi cette capture m'intéresse maintenant ?":"Quelle est la thèse centrale ? (1 phrase)"}></textarea>
+                  ${s==='A'&&isNLM?html`<div class="actor-q-socr" style="margin-bottom:8px">📒 Capture NotebookLM — remplis l'aim après écoute / lecture</div>`:''}
+                  <textarea class="actor-ta" rows=3 value=${actorDraft[{A:'aim',C:'compress'}[s]]||''} onInput=${e=>{const v=e.target.value;const k={A:'aim',C:'compress'}[s];setActorDraft(p=>({...p,[k]:v}));}} placeholder=${s==='A'?(isNLM?"Quelle question j'explorais dans cette session NLM ?":"Pourquoi cette capture m'intéresse maintenant ?"):(isNLM?"Synthèse de ta session — ce que tu en retiens (1-2 phrases)":"Quelle est la thèse centrale ? (1 phrase)")}></textarea>
                 </div>`}
               `:''}
             </div>`;
@@ -763,7 +769,9 @@ function Capture({onCapture}){
       <div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Plus tard</span><span class="sec-c" style="color:var(--ink3)">${later.length}</span></div>
       ${later.map(item=>html`<div class="item" style="opacity:.82" key=${item.id}>
         <div class="item-top">
-          ${item.type==='fichier'&&item.mimeType?.startsWith('image/')
+          ${item.type==='croquis'
+            ?html`<img class="item-thumb" src=${item.dataUrl} alt="📐"/>`
+            :item.type==='fichier'&&item.mimeType?.startsWith('image/')
             ?html`<img class="item-thumb" src=${item.dataUrl} alt=${item.filename}/>`
             :item.type==='fichier'
             ?html`<div class="item-pdf">📄</div>`
@@ -1299,7 +1307,25 @@ function Reglages(){
       if(c.horsScope) md+=`> 📍 *Hors-scope*\n`;
       if(ch) md+=`> Chantier : **${ch.titre}**\n`;
       if(c.notes) md+=`\n**Notes** : ${c.notes}\n`;
-      if(c.annotation) md+=`\n**ACTOR** : ${c.annotation}\n`;
+      if(c.annotation&&!c.actorAnalysis) md+=`\n**ACTOR** : ${c.annotation}\n`;
+      if(c.actorAnalysis){
+        const a=c.actorAnalysis;
+        md+=`\n#### ⊙ ACTOR\n`;
+        if(a.aim) md+=`**Aim :** ${a.aim}\n\n`;
+        if(a.compress) md+=`**Compress :** ${a.compress}\n\n`;
+        const t=a.test||{};
+        if(t.faits||t.interp||t.croyances||t.valeurs){
+          md+=`**Think ·** `;
+          if(t.faits) md+=`F: ${t.faits}  `;
+          if(t.interp) md+=`I: ${t.interp}  `;
+          if(t.croyances) md+=`C: ${t.croyances}  `;
+          if(t.valeurs) md+=`V: ${t.valeurs}`;
+          md+='\n\n';
+        }
+        if(t.question) md+=`*❝ ${t.question}*\n\n`;
+        if(a.own) md+=`**Position :** ${a.own}\n\n`;
+        if(a.run?.texte) md+=`**Run :** ${a.run.texte}${a.run.type?' *('+a.run.type+')*':''}\n\n`;
+      }
       if(c.source) md+=`\n*Source : ${c.source}*\n`;
       md+=`\n*${new Date(c.date).toLocaleDateString('fr-FR')}* · statut : ${c.statut}\n\n---\n\n`;
     }
@@ -1486,7 +1512,9 @@ function App(){
     const p=new URLSearchParams(window.location.search);
     const txt=p.get('text'), url=p.get('url'), title=p.get('title');
     if(url&&url.trim()){
-      addCapture('lien',url.trim(),title?.trim()||'',{}).then(()=>{ refresh(); setTab('capture'); });
+      const isNLM=url.includes('notebooklm.google');
+      const src=isNLM?'NotebookLM':(title?.trim()||'');
+      addCapture('lien',url.trim(),src,{...(isNLM?{nlm:true}:{})}).then(()=>{ refresh(); setTab('capture'); });
       history.replaceState(null,'',location.pathname);
     } else if(txt&&txt.trim()){
       addCapture('note',txt.trim(),'',{}).then(()=>{ refresh(); setTab('capture'); });

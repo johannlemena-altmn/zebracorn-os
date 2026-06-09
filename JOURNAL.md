@@ -5,6 +5,24 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-09 — Incrément 22 : Croquis image · ACTOR dans corpus · NLM↔Zebracorn
+
+- **Fait** :
+  - **📐 Croquis = image** : le type Croquis déclenche maintenant un file picker image-only (caméra, Photos, fichiers scannés). Compression identique à Fichier. Miniature visible dans l'inbox et dans "Plus tard". Hint iOS "📷 Appareil photo · Photos · Dessins scannés".
+  - **ACTOR dans l'export corpus** : les 5 champs de l'analyse ACTOR (`aim`, `compress`, `test` F/I/C/V + question socratique, `own`, `run`) sont maintenant exportés dans le `.md`. La **Position (Own)** apparaît comme `**Position :**` — directement lisible par NLM. L'ancien `annotation` n'est exporté que si pas d'ACTOR complet (rétrocompatibilité).
+  - **NLM → Zebracorn** : détection auto des URLs `notebooklm.google.*` au Share Target → source automatiquement "NotebookLM". Dans le formulaire ACTOR : pré-remplissage aim avec "Session NotebookLM — [date] — quelle question j'explorais ?". Placeholders C et A spécifiques pour captures NLM. Bandeau "📒 Capture NotebookLM" sur la section Aim.
+
+- **Pourquoi** :
+  - Croquis = input analogique dans le second cerveau. Dessiner avant de digitaliser engage le moteur différemment (principe friction calibrée). La miniature rend le croquis visible immédiatement.
+  - ACTOR dans corpus : les positions (OWN) restaient invisibles dans l'export → NLM ne pouvait pas répondre "Quelle est la position de Johann sur X ?". Maintenant si.
+  - NLM → Zebracorn : quand Johann partage un audio NLM vers l'app, le contexte NLM est reconnu et les champs ACTOR sont pré-configurés pour la réflexion post-écoute, pas pour une analyse de texte générique.
+
+- **DoD** : 11/11 vérifications logiques OK. Croquis miniature, ACTOR export, détection NLM, pré-fill aim, placeholders.
+
+- **Prochain** : Test iPhone — partager une URL NLM → vérifier source "NotebookLM" + ACTOR pré-configuré. Export corpus → vérifier section ⊙ ACTOR avec Position visible.
+
+---
+
 ## 2026-06-09 — Incrément 21 : Corpus enrichi · Tâche→Cap · Croquis · Chantiers été
 
 - **Fait** :
