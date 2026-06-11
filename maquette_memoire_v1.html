@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Maquette — Mémoire v1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── v0.2 Mémoire : dots de priorité (remplacent 🔴🔵🟢) ── */
+    .pdot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}
+    .pdot.rouge{background:#c0392b;}.pdot.bleu{background:#2f6f8a;}.pdot.vert{background:var(--ok);}
+    .prio-pill{display:flex;align-items:center;justify-content:center;gap:6px;}
+    .sec-t .pdot{margin-right:6px;vertical-align:baseline;}
+    .sec-h{align-items:center;}
+    .sec-t{display:flex;align-items:center;}
+  </style>
+</head>
+<body>
+<div class="phone">
+<div class="scroll">
+  <div class="hdr"><div class="brand">Zebracorn OS · Mémoire</div><div class="date-lbl">JEU. 11 JUIN</div></div>
+  <div class="h1">Mémoire.</div>
+  <div class="greet">Pose. La couleur dit l'urgence, le reste attend en profondeur.</div>
+
+  <!-- UN CTA : le composer -->
+  <div class="composer">
+    <div class="prio-pills">
+      <button class="prio-pill on"><span class="pdot rouge"></span>Échéance</button>
+      <button class="prio-pill"><span class="pdot bleu"></span>Semaine</button>
+      <button class="prio-pill"><span class="pdot vert"></span>Chantier</button>
+    </div>
+    <div class="composer-b">
+      <input class="taginp" style="flex:1" placeholder="Nouvelle tâche…"/>
+      <button class="save-btn">Poser</button>
+    </div>
+  </div>
+
+  <!-- Temps 1 : le backlog -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-t"><span class="pdot rouge"></span>Cette échéance</span><span class="sec-c">2</span></div>
+    <div class="task">
+      <div class="box"></div>
+      <span class="t-txt">Candidature Talents for the Planet</span>
+      <button class="ech-chip urgent">⚠ Demain</button>
+      <span class="t-toggle">▸</span>
+      <span class="t-del">✕</span>
+    </div>
+    <div class="task">
+      <div class="box"></div>
+      <span class="t-txt">Relancer Kyaneos (mail suivi)</span>
+      <button class="ech-chip">VEN 13</button>
+      <span class="t-toggle">▸</span>
+      <span class="t-del">✕</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="sec-t"><span class="pdot bleu"></span>Cette semaine</span><span class="sec-c">3</span></div>
+    <div class="task">
+      <div class="box"></div>
+      <span class="t-txt">Préparer session DRAP partie 2</span>
+      <button class="ech-chip">+</button>
+      <span class="t-toggle"><span class="t-count">1/3</span> ▸</span>
+      <span class="t-del">✕</span>
+    </div>
+    <div class="task">
+      <div class="box"></div>
+      <span class="t-txt">Lire chapitre 4 — Low-tech</span>
+      <button class="ech-chip">+</button>
+      <span class="t-toggle">▸</span>
+      <span class="t-del">✕</span>
+    </div>
+    <div class="task">
+      <div class="box"></div>
+      <span class="t-txt">Trier les captures de la semaine</span>
+      <button class="ech-chip">+</button>
+      <span class="t-toggle">▸</span>
+      <span class="t-del">✕</span>
+    </div>
+  </div>
+
+  <!-- Chantiers : cartes-progression -->
+  <div class="sec">
+    <div class="sec-h"><span class="sec-t"><span class="pdot vert"></span>Chantiers</span><span class="sec-c">2</span></div>
+    <div class="chantier-card">
+      <div class="ch-top"><span class="ch-ti">Zebracorn OS — refonte v0.2</span><span class="t-del">✕</span></div>
+      <div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style="width:60%"></div></div>
+      <div class="ch-prog">→ Refondre l'écran Mémoire · 3/5 étapes</div>
+    </div>
+    <div class="chantier-card">
+      <div class="ch-top"><span class="ch-ti">Candidatures alternance 2026</span><span class="t-del">✕</span></div>
+      <div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style="width:80%"></div></div>
+      <div class="ch-prog">→ Relances semaine 25 · 8/10 étapes</div>
+    </div>
+  </div>
+
+  <!-- Profondeur : questions vivantes + bibliothèque sous le pli -->
+  <details class="pli" open>
+    <summary><span>la profondeur</span><span class="chev">▾</span></summary>
+    <div class="pli-grid">
+
+      <div class="card-pli">
+        <div class="sec-h" style="margin-bottom:8px"><span class="sec-t">Questions vivantes</span><span class="sec-c">2</span></div>
+        <div class="q-card" style="margin-bottom:8px">
+          <div class="q-card-top">
+            <span class="q-intitule">Comment relier low-tech et design d'expérience ?</span>
+            <button class="q-arch">↓ archiver</button>
+          </div>
+          <div class="q-intention">Nourrir le parcours low-tech avec un regard designer.</div>
+          <div class="q-meta"><span class="q-count">4 captures</span></div>
+        </div>
+        <div class="q-card" style="margin-bottom:0">
+          <div class="q-card-top">
+            <span class="q-intitule">Qu'est-ce qu'un récit qui donne du pouvoir d'agir ?</span>
+            <button class="q-arch">↓ archiver</button>
+          </div>
+          <div class="q-meta"><span class="q-count">2 captures</span></div>
+        </div>
+        <button class="q-arch" style="width:100%;text-align:center;padding:6px;margin-top:8px">1 archivée ▼</button>
+      </div>
+
+      <div class="card-pli">
+        <div class="sec-h" style="margin-bottom:8px"><span class="sec-t">Bibliothèque</span><span class="sec-c">3</span></div>
+        <div class="livre-card">
+          <div class="ch-top">
+            <span class="ch-ti">L'âge des low-tech</span>
+            <span class="livre-statut" style="color:var(--ac2)">📖 En cours</span>
+          </div>
+          <div class="ch-prog" style="font-style:italic;color:var(--ink3)">Philippe Bihouix</div>
+          <div class="ch-prog">112/280 p. · 40 %</div>
+        </div>
+        <div class="livre-card">
+          <div class="ch-top">
+            <span class="ch-ti">L'Éthique</span>
+            <span class="livre-statut" style="color:var(--ink3)">📚 À lire</span>
+          </div>
+          <div class="ch-prog" style="font-style:italic;color:var(--ink3)">Spinoza</div>
+        </div>
+        <div class="composer-b" style="margin-top:8px">
+          <input class="taginp" style="flex:1" placeholder="Ajouter un livre…"/>
+          <button class="save-btn">+</button>
+        </div>
+      </div>
+
+    </div>
+  </details>
+
+  <div class="foot">Maquette Mémoire v1 · statique</div>
+</div>
+</div>
+</body>
+</html>

@@ -5,6 +5,30 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.3 tranche 1 : refonte écran Mémoire (ex-Semaine)
+
+- **Fait** : écran Mémoire au langage v0.2 — maquette statique d'abord
+  (`maquette_memoire_v1.html`, validée preview dark+light) puis port dans
+  index.html. Temps 1 : composer (UN CTA « Poser ») + backlog 2 groupes +
+  chantiers ; profondeur : questions vivantes + bibliothèque sous un pli
+  `<details>` en cartes `card-pli` (pattern Maintenant). Les emojis 🔴🔵🟢/📦/📖/📚
+  remplacés par des **dots de couleur** (`.pdot`) et du texte — cohérence
+  monochrome v0.2.1, la couleur reste une donnée (urgence), pas une déco.
+  Bonus : **barre de progression** sur chaque carte chantier (étapes faites/total,
+  calculée depuis db.etapes — la carte « progresse », leçon des chantiers 🟢).
+- **Pourquoi** : « la question du temps 1 » (Basti Ui) reposée à cet écran :
+  ce qui nourrit la prochaine action (backlog + chantiers) en premier, la
+  profondeur (questions, livres) au second regard. Aucun CRUD retiré.
+- **DoD** : preview mobile dark ET light — rendu fidèle maquette, vraies données
+  affichées, ajout tâche → **persiste au reload** (puis nettoyée de la DB),
+  pli ouvre/ferme, dots rendus, zéro erreur console. Aucune migration Dexie.
+- **Piège dev (noté)** : le cache HTTP du navigateur (python http.server) peut
+  servir un styles.css périmé même avec SW network-first — `fetch(url,{cache:
+  'reload'})` pour forcer. Sans incidence en prod Vercel (headers corrects).
+- **Prochain** : tranche 2 — refonte Flux (alléger, friction calibrée).
+
+---
+
 ## 2026-06-11 — v0.2.1 : polish fidélité maquette (retour vidéo iPhone)
 
 - **Fait** : tab bar monochrome (◍ ▤ ◇ ⬡ ⊙ + labels complets, actif terracotta — les

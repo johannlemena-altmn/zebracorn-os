@@ -557,3 +557,10 @@ button:active,.mode-auto:active{transform:scale(.95);}
 .date-lbl{white-space:nowrap;font-size:9px;}
 details.pli summary:active{color:var(--ac);}
 .next-t{cursor:pointer;}
+
+/* ── v0.3 Mémoire : dots de priorité (remplacent 🔴🔵🟢) ── */
+.pdot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.pdot.rouge{background:#c0392b;}.pdot.bleu{background:#2f6f8a;}.pdot.vert{background:var(--ok);}
+.prio-pill{display:flex;align-items:center;justify-content:center;gap:6px;}
+.sec-h{align-items:center;}
+.sec-t{display:flex;align-items:center;gap:6px;}
