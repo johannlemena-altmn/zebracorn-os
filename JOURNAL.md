@@ -93,6 +93,28 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.3 tranche 5 : import-merge du pont cerveau (bloquant levé)
+
+- **Fait** : `importTachesMerge(dump)` dans db.js — valide le format
+  (`_de==='zebracorn-cerveau'` + tableau `taches`), **AJOUTE sans rien effacer**,
+  dédoublonne par titre (insensible à la casse) contre les tâches non faites.
+  Section « Pont cerveau · actions du jour » dans Réglages avec son bouton d'import
+  dédié et un message de résultat (« n ajoutées · m doublons ignorés »). L'import
+  JSON destructif existant reste le filet de secours, clairement distingué.
+  Bonus monochrome : 🤖/✨ retirés de la section Filtre IA, foot Réglages → v0.3.
+- **Pourquoi** : c'était LE bloquant du pont cerveau (R2 de la revue) : `importAll`
+  REMPLACE tout, impossible de faire couler les actions du wiki vers l'app sans
+  perdre l'appareil. Le flux devient : cerveau → actions_du_jour.json →
+  AirDrop/Fichiers → Réglages → fusion.
+- **DoD** : testé preview avec le VRAI fichier du cerveau (3 tâches) — 1ᵉʳ import :
+  3 ajoutées ; ré-import : 3 ignorées (idempotent) ; format invalide rejeté avec
+  message clair ; les 10 tâches existantes intactes ; section rendue dans Réglages ;
+  zéro erreur console. Tâches de test nettoyées.
+- **Prochain** : backlog restant — pictos main levée (Johann dessine), header 375px
+  (déjà resserré en v0.2.1, à confirmer sur iPhone), test Filtre IA avec clé Vercel.
+
+---
+
 ## 2026-06-11 — v0.2.1 : polish fidélité maquette (retour vidéo iPhone)
 
 - **Fait** : tab bar monochrome (◍ ▤ ◇ ⬡ ⊙ + labels complets, actif terracotta — les

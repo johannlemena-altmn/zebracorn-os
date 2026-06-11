@@ -1740,9 +1740,9 @@ function Reglages(){
     </div>
 
     <div class="sec">
-      <div class="sec-h"><span class="sec-t">🤖 Filtre IA · ACTOR</span></div>
+      <div class="sec-h"><span class="sec-t">Filtre IA · ACTOR</span></div>
       <div class="hint" style="margin-bottom:10px">
-        ✨ Haiku génère le Compress (C) · Sonnet analyse le Test FICV (T).<br/>
+        Haiku génère le Compress (C) · Sonnet analyse le Test FICV (T).<br/>
         Clé API : variable d'env Vercel <code style="font-size:9px;background:var(--bg2);padding:1px 4px;border-radius:3px">ANTHROPIC_API_KEY</code>
       </div>
       <div class=${'rout'+(ia.enabled?' on':'')} onClick=${()=>saveIa({enabled:!ia.enabled})} style="cursor:pointer">
@@ -1786,11 +1786,28 @@ function Reglages(){
       <div class="set-note">Filet de sécurité hors-ligne : un fichier à garder ou transférer à la main.</div>
     </div>
 
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Pont cerveau · actions du jour</span></div>
+      <label class="btn" style="display:block;text-align:center;cursor:pointer">⤒ Importer actions_du_jour.json<input type="file" accept="application/json" style="display:none" onChange=${e=>{
+        const f=e.target.files[0]; if(!f) return;
+        const r=new FileReader();
+        r.onload=async()=>{
+          try{
+            const res=await importTachesMerge(JSON.parse(r.result));
+            setMsg(`Pont cerveau ✓ — ${res.added} tâche${res.added>1?'s':''} ajoutée${res.added>1?'s':''}${res.skipped?` · ${res.skipped} doublon${res.skipped>1?'s':''} ignoré${res.skipped>1?'s':''}`:''}`);
+          }catch(err){ setMsg('⚠ '+err.message); }
+          e.target.value='';
+        };
+        r.readAsText(f);
+      }}/></label>
+      <div class="set-note">Fusionne les tâches venues du second cerveau dans Mémoire — n'efface RIEN (contrairement à l'import JSON ci-dessus, qui remplace tout).</div>
+    </div>
+
     ${msg?html`<div class="set-msg">${msg}</div>`:''}
 
     <div class="set-note" style="margin-top:1rem">⚠ Sécurité v1 : ta clé secrète d'espace protège tes données — choisis-la longue et unique. La clé anon Supabase est publique par nature. Pas de chiffrement bout-en-bout en v1.</div>
 
-    <div class="foot">Zebracorn OS · Réglages · v0.1</div>
+    <div class="foot">Zebracorn OS · Réglages · v0.3</div>
   </div>`;
 }
 

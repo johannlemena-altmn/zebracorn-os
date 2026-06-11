@@ -357,6 +357,32 @@ async function exportAll() {
   return dump;
 }
 
+// Import-merge du pont cerveau (actions_du_jour.json) : AJOUTE sans rien effacer.
+// Dédoublonnage par titre contre les tâches non faites existantes.
+async function importTachesMerge(dump) {
+  if (dump?._de !== 'zebracorn-cerveau' || !Array.isArray(dump.taches)) {
+    throw new Error('Format inattendu — fichier actions_du_jour.json du cerveau requis');
+  }
+  const existantes = await db.taches.filter(t => !t.fait).toArray();
+  const titres = new Set(existantes.map(t => t.titre.trim().toLowerCase()));
+  let added = 0, skipped = 0;
+  for (const t of dump.taches) {
+    if (!t.titre?.trim() || titres.has(t.titre.trim().toLowerCase())) { skipped++; continue; }
+    await db.taches.add({
+      titre: t.titre.trim(),
+      prio: t.prio === 'bleu' ? 'bleu' : 'rouge',
+      echeance: t.echeance || null,
+      chantierId: t.chantierId || null,
+      date: t.date || null,
+      fait: false,
+      cree: t.cree || new Date().toISOString(),
+    });
+    titres.add(t.titre.trim().toLowerCase());
+    added++;
+  }
+  return { added, skipped };
+}
+
 async function importAll(dump) {
   await db.transaction('rw', SYNC_TABLES.map(t => db.table(t)), async () => {
     for (const t of SYNC_TABLES) {
