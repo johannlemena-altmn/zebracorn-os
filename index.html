@@ -240,59 +240,95 @@ function AmwapModal({onClose,onSave}){
 }
 
 /* ── Maintenant ─────────────────────────────── */
+function autoMode(){
+  const d=new Date(),h=d.getHours(),wd=d.getDay();
+  if(wd===0||wd===6) return 'libre';
+  if((h>=12&&h<14)||h>=19||h<6) return 'relache';
+  return 'fort';
+}
+const MODE_LBL={fort:'fort 06-19h',relache:'relâché',libre:'libre week-end'};
+
 function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
-  const [mode,setMode]=useState('fort');
-  const [selQ,setSelQ]=useState(()=>pickQ('fort'));
-  function changeMode(m){ setMode(m); setSelQ(pickQ(m)); }
+  const [override,setOverride]=useState(null);
+  const mode=override||autoMode();
+  const [selQ,setSelQ]=useState(()=>pickQ(autoMode()));
   const [intent,setIntent]=useState('');
-  const [intentSaved,setIntentSaved]=useState(false);
-  const [dayTasks,setDayTasks]=useState([]);
+  const [intentSet,setIntentSet]=useState(false);
+  const [nextTask,setNextTask]=useState(null);
+  const [nbWaiting,setNbWaiting]=useState(0);
+  const [actOk,setActOk]=useState(false);
+  const [capTxt,setCapTxt]=useState('');
+  const [capOk,setCapOk]=useState(false);
   const [routs,setRouts]=useState([false,false,false]);
   const [streaks,setStreaks]=useState([0,0,0]);
   const [week,setWeek]=useState([]);
+  const [month,setMonth]=useState([]);
   const [caps,setCaps]=useState([]);
   const [amwapOpen,setAmwapOpen]=useState(false);
   const [amwapYest,setAmwapYest]=useState(null);
-  const [cap,setCap]=useState(getCap());
+  const [cap,setCap]=useState(CAP_EMPTY);
   const [hsCount,setHsCount]=useState(0);
   const [revue,setRevue]=useState(getRevue);
-  const [revueOpen,setRevueOpen]=useState(()=>new Date().getDay()===5&&!getRevue().done);
   const [gcalEvts,setGcalEvts]=useState(null);
   const [livreEnCours,setLivreEnCours]=useState(null);
   const [resurfItems,setResurfItems]=useState([]);
-  const [expandTaskId,setExpandTaskId]=useState(null);
-  const [expandNotes,setExpandNotes]=useState('');
-  const [editNotesId,setEditNotesId]=useState(null);
+  const pliDefault=new Date().getDay()===5&&!getRevue().done;
   const typed=useTypewriter(selQ);
   const now=useClock();
 
-  const load=useCallback(async()=>{
-    setIntent(await getTodayIntention());
-    setWeek(await getWeekData());
+  const loadNext=useCallback(async()=>{
     const undone=await getTaches({fait:false});
-    setDayTasks([...undone.filter(t=>t.prio==='rouge'),...undone.filter(t=>t.prio==='bleu')].slice(0,3));
+    const ordered=[...undone.filter(t=>t.prio==='rouge'),...undone.filter(t=>t.prio==='bleu')];
+    setNextTask(ordered[0]||null); setNbWaiting(Math.max(0,ordered.length-1));
+  },[]);
+
+  const load=useCallback(async()=>{
+    const it=await getTodayIntention(); setIntent(it); setIntentSet(!!it.trim());
+    setWeek(await getWeekData());
+    await loadNext();
     setRouts(await Promise.all(DEF_ROUTINES.map(r=>getRoutineCheck(r.key))));
     setStreaks(await Promise.all(DEF_ROUTINES.map(r=>getStreak(r.key))));
     setCaps((await getInbox()).slice(0,4));
     const surf=await getResurfaceCandidates();
-    const surfSeed=parseInt(new Date().toISOString().slice(0,10).replace(/-/g,''));
-    setResurfItems(seededShuffle(surf,surfSeed).slice(0,3));
+    const seed=parseInt(new Date().toISOString().slice(0,10).replace(/-/g,''));
+    setResurfItems(seededShuffle(surf,seed).slice(0,3));
     const yest=new Date(); yest.setDate(yest.getDate()-1);
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
-    setCap(await getCap());
-    setHsCount(await getHorsScopeMois());
+    setCap(await getCap()); setHsCount(await getHorsScopeMois());
     setLivreEnCours(await getLivreEnCours());
+    try{
+      const rows=await db.intentions.toArray();
+      const days=new Set(rows.filter(r=>r.texte&&r.texte.trim()).map(r=>r.date.slice(0,10)));
+      const cells=[]; const d0=new Date();
+      for(let i=27;i>=0;i--){ const d=new Date(d0); d.setDate(d0.getDate()-i);
+        const k=d.toISOString().slice(0,10); cells.push({k,f:days.has(k),t:i===0}); }
+      setMonth(cells);
+    }catch(e){ setMonth([]); }
     loadGcalEvents().then(setGcalEvts).catch(()=>{});
-  },[]);
+  },[loadNext]);
   useEffect(()=>{ load(); },[load]);
 
-  async function blurIntent(){
-    await saveIntention(intent); setWeek(await getWeekData());
-    if(intent.trim()){ setIntentSaved(true); setTimeout(()=>setIntentSaved(false),2200); }
+  async function ancrer(){
+    if(!intent.trim()) return;
+    await saveIntention(intent); setIntentSet(true); setWeek(await getWeekData());
   }
-  async function togTask(id){ const t=dayTasks.find(x=>x.id===id); await toggleTacheDone(id,!t.fait); setDayTasks(dayTasks.map(x=>x.id===id?{...x,fait:!x.fait}:x)); }
-  function toggleExpandTask(id,notes){ if(expandTaskId===id){setExpandTaskId(null);setExpandNotes('');}else{setExpandTaskId(id);setExpandNotes(notes||'');} }
-  async function sauveTaskNotes(id,val){ await setTacheNotes(id,val); setDayTasks(prev=>prev.map(t=>t.id===id?{...t,notes:val||null}:t)); }
+  function rerollQ(){ setSelQ(pickQ(mode)); }
+  function cycleMode(){
+    const order=[null,'fort','relache','libre'];
+    const nxt=order[(order.indexOf(override)+1)%4];
+    setOverride(nxt); setSelQ(pickQ(nxt||autoMode()));
+  }
+  async function doneNext(){
+    if(!nextTask||actOk) return;
+    await toggleTacheDone(nextTask.id,true); setActOk(true);
+    setTimeout(async()=>{ setActOk(false); await loadNext(); },1400);
+  }
+  async function capter(){
+    if(!capTxt.trim()) return;
+    await addCapture('note',capTxt.trim(),'',{});
+    setCapTxt(''); setCapOk(true); setTimeout(()=>setCapOk(false),1800);
+    setCaps((await getInbox()).slice(0,4));
+  }
   async function togRout(i){
     if(i===2&&!routs[2]){ setAmwapOpen(true); return; }
     const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x));
@@ -304,181 +340,140 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
     await toggleRoutineCheck(DEF_ROUTINES[2].key,true);
     const s=await getStreak(DEF_ROUTINES[2].key); setStreaks(p=>p.map((x,j)=>j===2?s:x));
   }
-
   function updRevue(k,v){ const r={...revue,[k]:v}; setRevue(r); saveRevue(r); }
-  function cloreRevue(){ const r={...revue,done:true}; setRevue(r); saveRevue(r); setRevueOpen(false); }
-
-  async function markRevu(id){
-    await updateCaptureLastSurfaced(id);
-    setResurfItems(prev=>prev.filter(x=>x.id!==id));
-  }
+  function cloreRevue(){ const r={...revue,done:true}; setRevue(r); saveRevue(r); }
+  async function markRevu(id){ await updateCaptureLastSurfaced(id); setResurfItems(p=>p.filter(x=>x.id!==id)); }
   async function traiterResurface(item){
-    if(item.statut!=='inbox'){
-      await updateCaptureStatut(item.id,'inbox');
-      setResurfItems(prev=>prev.map(x=>x.id===item.id?{...x,statut:'inbox'}:x));
-    }
+    if(item.statut!=='inbox') await updateCaptureStatut(item.id,'inbox');
     onGoCapture();
   }
 
-  const done=dayTasks.filter(t=>t.fait).length;
+  const best=streaks.length?Math.max(...streaks):0;
   const idone=week.filter(d=>d.done).length;
 
   return html`<div class="scroll">
-    <div class="hdr"><div class="brand">Zebracorn OS</div><div class="date-lbl">${fmtDate(now)} · ${fmtTime(now)}</div></div>
+    <div class="hdr"><div class="brand">Zebracorn OS</div><div class="date-lbl">${fmtDate(now)} · ${fmtTime(now)}${best>0?` · 🔥 ${best}j`:''}</div></div>
     <div class="h1">Maintenant.</div>
-    <div class="greet">Avant de scroller — une intention, un geste.</div>
-
-    <div class="modes">
-      ${Object.keys(RAIL_Q).map(m=>html`<button class=${'mode'+(mode===m?' on':'')} onClick=${()=>changeMode(m)} key=${m}>${m==='fort'?'Intercept fort':m==='relache'?'Relâché':'Libre'}</button>`)}
-    </div>
 
     <div class="rail">
-      <div class="rail-k">◇ Le rail · ${mode==='fort'?'matin/journée':mode==='relache'?'pause':'week-end'}</div>
-      <div class="rail-q">${typed}${typed.length<selQ.length?html`<span class="cursor"/>`:''}</div>
-      <div class="rail-input-wrap">
-        <input value=${intent} onInput=${e=>setIntent(e.target.value)} onBlur=${blurIntent} onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} placeholder="Mon intention — tape + Entrée pour fixer…"/>
-        ${intentSaved?html`<span class="intent-confirm">✓ noté</span>`:''}
+      <div class="rail-top">
+        <div class="rail-k">◇ Le rail</div>
+        <div class="rail-ctrl">
+          <button class="mode-auto" onClick=${rerollQ} title="Autre question (variation)">🎲</button>
+          <button class="mode-auto" onClick=${cycleMode} title="Auto selon l'heure — tape pour forcer">${override?'forcé':'auto'} · ${MODE_LBL[mode]}</button>
+        </div>
       </div>
-      ${intent.trim()&&!intentSaved?html`<div class="rail-hint">Appuie sur Entrée pour ancrer l'intention</div>`:''}
-    </div>
-    ${cap.intention?html`<div class="cap-annuel">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
-    ${cap.objectifsMois?html`<div class="cap-annuel" style="margin-top:-0.8rem;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}${cap.objectifsMois.split('\n').filter(l=>l.trim()).length>1?' +…':''}</em></div>`:''}
-
-    ${gcalEvts?.length>0?html`<div class="gcal-block">
-      <div class="gcal-hdr">◇ Aujourd'hui</div>
-      ${gcalEvts.slice(0,6).map((e,i)=>html`<div class="gcal-ev" key=${i}>
-        <span class="gcal-time">${fmtGcalTime(e.dtstart)}</span>
-        <span class="gcal-ti">${e.summary}</span>
-      </div>`)}
-    </div>`:gcalEvts!==null&&gcalEvts.length===0?html`<div class="hint" style="margin-bottom:.8rem">◇ Agenda Google · aucun événement aujourd'hui</div>`:''}
-
-    <div class="track">
-      <div class="kpi"><div class="kpi-n">${streaks.length?Math.max(...streaks):0}<small> j</small></div><div class="kpi-l">Meilleure série</div></div>
-      <div class="week-box">
-        <div class="week-l">Intentions tenues · ${idone}/7</div>
-        <div class="days">${week.map((d,i)=>html`<div class=${'day'+(d.done?' f3':'')+(d.isToday?' today':'')} key=${i}><b/><span>${DAYS[(new Date(d.date+'T12:00:00')).getDay()][0]}</span></div>`)}</div>
-      </div>
+      ${intentSet?html`
+        <div class="intent-set" onClick=${()=>setIntentSet(false)} title="Modifier l'intention">
+          <span class="tick">✓ ancrée</span><span class="txt">${intent}</span>
+        </div>
+      `:html`
+        <div class="rail-q">${typed}${typed.length<selQ.length?html`<span class="cursor"/>`:''}</div>
+        <input value=${intent} onInput=${e=>setIntent(e.target.value)}
+          onKeyDown=${e=>e.key==='Enter'&&e.target.blur()} onBlur=${ancrer}
+          placeholder="Mon intention — Entrée pour ancrer…"/>
+      `}
     </div>
 
-    <div class="sec">
-      <div class="sec-h"><span class="sec-t">3 tâches clés du jour</span><span class="sec-c">${done}/${dayTasks.length||3}</span></div>
-      ${dayTasks.length===0?html`<div class="empty-state">Pose tes priorités dans « Semaine » →</div>`:''}
-      ${dayTasks.map((t,i)=>{
-        const isExp=expandTaskId===t.id;
-        const isEdit=editNotesId===t.id;
-        const parsed=parseNotes(t.notes);
-        const todos=parsed.filter(l=>l.type==='todo');
-        const doneC=todos.filter(l=>l.done).length;
-        return html`<div class=${'task'+(t.fait?' done':'')+(isExp?' expanded':'')} key=${t.id}>
-          <div class="box" onClick=${()=>togTask(t.id)}/>
-          <span class="t-txt" onClick=${()=>toggleExpandTask(t.id,t.notes)}>${t.prio==='rouge'?'🔴':'🔵'} ${t.titre}</span>
-          <span class="t-toggle" onClick=${()=>toggleExpandTask(t.id,t.notes)}>
-            ${todos.length?html`<span class="t-count">${doneC}/${todos.length}</span>`:''}
-            ${isExp?'▾':'▸'}
-          </span>
-          ${isExp?html`<div class="task-notes">
-            ${t.chantierId?html`<div style="padding-bottom:6px"><span class="task-ch-link" onClick=${e=>{e.stopPropagation();pushNav&&pushNav({type:'chantier',id:t.chantierId,from:'Maintenant'});}}>◎ Voir le chantier →</span></div>`:''}
-            ${isEdit||!t.notes?html`
-              <textarea class="task-notes-ta" rows="5" value=${expandNotes}
-                onInput=${e=>setExpandNotes(e.target.value)}
-                onBlur=${async()=>{await sauveTaskNotes(t.id,expandNotes);setEditNotesId(null);}}
-                placeholder=${'[ ] sous-tâche\n[ ] autre tâche\n— ou note libre…'}
-                autofocus/>
-            `:html`
-              <div class="subtask-list">
-                ${parsed.map((line,idx)=>line.type==='todo'?html`
-                  <div class=${'subtask'+(line.done?' done':'')} onClick=${async e=>{e.stopPropagation();const n=toggleSubtaskLine(t.notes,idx);await sauveTaskNotes(t.id,n);setDayTasks(prev=>prev.map(x=>x.id===t.id?{...x,notes:n}:x));}} key=${idx}>
-                    <span class="st-cb">${line.done?'☑':'☐'}</span>
-                    <span class="st-txt">${line.text}</span>
-                  </div>
-                `:line.text?html`<div class="note-line" key=${idx}>${line.text}</div>`:null)}
-                <button class="edit-notes-btn" onClick=${e=>{e.stopPropagation();setEditNotesId(t.id);setExpandNotes(t.notes||'');}}>✎ éditer</button>
+    ${nextTask?html`<div class=${'next'+(actOk?' fait':'')}>
+      <div class=${'next-dot '+(nextTask.prio==='rouge'?'rouge':'bleu')}/>
+      <div class="next-body">
+        <div class="next-k">La prochaine action</div>
+        <div class="next-t" onClick=${()=>nextTask.chantierId&&pushNav&&pushNav({type:'chantier',id:nextTask.chantierId,from:'Maintenant'})}>${nextTask.titre}</div>
+        <div class="next-meta">${nextTask.prio==='rouge'?'🔴':'🔵'}${nextTask.echeance?` · éch. ${nextTask.echeance.slice(5)}`:''}${nbWaiting>0?html` · <span class="next-more" onClick=${onGoSem}>${nbWaiting} autre${nbWaiting>1?'s':''} dans Mémoire →</span>`:''}</div>
+      </div>
+      <button class="next-go" onClick=${doneNext} aria-label="Fait">✓</button>
+    </div>`:html`<div class="next"><div class="next-body"><div class="next-k">La prochaine action</div><div class="next-t" style="color:var(--ink3)">Rien en attente — pose une priorité dans Mémoire →</div></div></div>`}
+    ${actOk?html`<div class="act-ok">✓ fait · la chaîne tient 🔥</div>`:''}
+
+    <div class="capt">
+      <input value=${capTxt} onInput=${e=>setCapTxt(e.target.value)}
+        onKeyDown=${e=>e.key==='Enter'&&capter()} placeholder="Capter une idée, un lien… (1 geste)"/>
+      <button onClick=${capter}>Capter</button>
+    </div>
+    ${capOk?html`<div class="capt-ok">✓ capturé → inbox Flux</div>`:''}
+
+    <details class="pli" open=${pliDefault}>
+      <summary><span>le reste de la journée</span><span class="chev">▾</span></summary>
+      <div class="pli-grid">
+
+        ${gcalEvts?.length>0?html`<div class="gcal-block" style="margin:0">
+          <div class="gcal-hdr">◇ Aujourd'hui</div>
+          ${gcalEvts.slice(0,6).map((e,i)=>html`<div class="gcal-ev" key=${i}>
+            <span class="gcal-time">${fmtGcalTime(e.dtstart)}</span>
+            <span class="gcal-ti">${e.summary}</span>
+          </div>`)}
+        </div>`:''}
+
+        ${cap.intention?html`<div class="cap-annuel" style="margin:0">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
+        ${cap.objectifsMois?html`<div class="cap-annuel" style="margin:0;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}</em></div>`:''}
+
+        <div class="card-pli">
+          <div class="sec-t" style="margin-bottom:6px">◇ La chaîne · intentions ${idone}/7</div>
+          ${best>0?html`<div class="big-n">${best}<small>j · meilleure série</small></div>`:''}
+          <div class="days">${week.map((d,i)=>html`<div class=${'day'+(d.done?' f3':'')+(d.isToday?' today':'')} key=${i}><b/><span>${DAYS[(new Date(d.date+'T12:00:00')).getDay()][0]}</span></div>`)}</div>
+          ${month.length?html`<div class="hm">${month.map(c=>html`<i class=${(c.f?'f':'')+(c.t?' t':'')} key=${c.k}/>`)}</div>`:''}
+        </div>
+
+        <div class="card-pli">
+          <div class="sec-t" style="margin-bottom:8px">Routines · ne casse pas la chaîne</div>
+          ${DEF_ROUTINES.map((r,i)=>html`<div class=${'rout'+(routs[i]?' on':'')} onClick=${()=>togRout(i)} key=${r.key}><div class="dot"/><span class="r-txt">${r.nom}</span><span class="r-mom">${r.moment}</span>${streaks[i]>0?html`<span class="streak">🔥 ${streaks[i]}</span>`:''}</div>`)}
+          ${amwapYest?html`<div class="amwap-recap"><span style="color:var(--ink3)">Hier · </span>${amwapYest.v1}${amwapYest.v2?' · '+amwapYest.v2:''}</div>`:''}
+        </div>
+
+        ${resurfItems.length>0?html`<div class="card-pli">
+          <div class="sec-t" style="margin-bottom:8px">📍 Resurfacer · ${resurfItems.length} du jour</div>
+          ${resurfItems.map(item=>html`<div class="item" style="border-left:3px solid var(--ac);padding-left:10px" key=${item.id}>
+            <div class="item-top">
+              <span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
+              <div style="flex:1;min-width:0">
+                <div class="item-ti">${item.contenu.slice(0,70)}${item.contenu.length>70?'…':''}</div>
+                <div class="item-src">${relDate(item.date)} · ${item.statut==='inbox'?'à traiter':item.statut}</div>
               </div>
-            `}
-          </div>`:null}
-        </div>`;
-      })}
-    </div>
+            </div>
+            <div class="item-b">
+              <button class="btn pri" style="flex:1" onClick=${()=>traiterResurface(item)}>→ Traiter</button>
+              <button class="btn" onClick=${()=>markRevu(item.id)}>✓ Revu</button>
+            </div>
+          </div>`)}
+        </div>`:''}
 
-    <div class="sec">
-      <div class="sec-h"><span class="sec-t">Routines · ne casse pas la chaîne</span></div>
-      ${DEF_ROUTINES.map((r,i)=>html`<div class=${'rout'+(routs[i]?' on':'')} onClick=${()=>togRout(i)} key=${r.key}><div class="dot"/><span class="r-txt">${r.nom}</span><span class="r-mom">${r.moment}</span>${streaks[i]>0?html`<span class="streak">🔥 ${streaks[i]}</span>`:''}</div>`)}
-      ${amwapYest?html`<div class="amwap-recap"><span style="color:var(--ink3)">Hier · </span>${amwapYest.v1}${amwapYest.v2?' · '+amwapYest.v2:''}${amwapYest.v3?' · '+amwapYest.v3:''}</div>`:''}
-    </div>
+        <div class="card-pli">
+          <div class="sec-h" style="cursor:pointer;margin-bottom:0" onClick=${()=>{}}>
+            <span class="sec-t" style=${new Date().getDay()===5&&!revue.done?'color:var(--ac)':''}>${new Date().getDay()===5?'⬡ Revue · vendredi':'Revue · semaine'}</span>
+            <span class="sec-c">${revue.done?'✓ close':''}</span>
+          </div>
+          ${!revue.done?html`<div class="revue-box" style="margin-top:8px">
+            ${REVUE_QS.map((q,i)=>html`<div key=${i}>
+              <div class="revue-q">${q}</div>
+              <textarea class="notes-ta" rows=2 value=${revue['r'+(i+1)]}
+                onInput=${e=>updRevue('r'+(i+1),e.target.value)} placeholder="…"/>
+            </div>`)}
+            <button class="save-btn" style="width:100%;margin-top:4px" onClick=${cloreRevue} disabled=${!revue.r1.trim()}>Clore la semaine ✓</button>
+          </div>`:''}
+        </div>
+
+        <div class="read" onClick=${()=>livreEnCours&&pushNav?pushNav({type:'livre',id:livreEnCours.id,from:'Maintenant'}):onGoSem()} role="button">
+          <div class="read-ic">${livreEnCours?'📖':'🌙'}</div>
+          <div style="flex:1">
+            <div class="read-t">${livreEnCours?livreEnCours.titre:'Lecture avant le coucher'}</div>
+            <div class="read-s">${livreEnCours?(livreEnCours.pages?`${livreEnCours.pagesLues||0}/${livreEnCours.pages} p. · ce soir`:'En cours · ce soir'):'Ce soir : 20 pages au lieu du tel'}</div>
+          </div>
+          <span class="read-chevron">›</span>
+        </div>
+
+        ${(caps.length>0||inboxCount>0)?html`<div class="card-pli">
+          <div class="sec-h" style="margin-bottom:6px"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
+          <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
+          ${hsCount>0?html`<div class="hint" style="margin-top:6px;color:var(--ac)">📍 ${hsCount} hors-scope ce mois</div>`:''}
+        </div>`:''}
+
+        <div class="quote" style="margin:0">« La liberté n'est pas un libre arbitre héroïque ; c'est une liberté praticable. »<small>Pilier Spinoza</small></div>
+      </div>
+    </details>
 
     ${amwapOpen?html`<${AmwapModal} onClose=${()=>setAmwapOpen(false)} onSave=${onAmwapSave}/>`:''}
-
-    <div class="sec">
-      <div class="sec-h" style="cursor:pointer" onClick=${()=>setRevueOpen(o=>!o)}>
-        <span class="sec-t" style=${new Date().getDay()===5&&!revue.done?'color:var(--ac)':''}>
-          ${new Date().getDay()===5?'⬡ Revue · vendredi':'Revue · semaine'}
-        </span>
-        <span class="sec-c">${revue.done?'✓ close':revueOpen?'▲':'▼'}</span>
-      </div>
-      ${revueOpen?html`<div class="revue-box">
-        ${REVUE_QS.map((q,i)=>html`<div key=${i}>
-          <div class="revue-q">${q}</div>
-          <textarea class="notes-ta" rows=2 value=${revue['r'+(i+1)]}
-            onInput=${e=>updRevue('r'+(i+1),e.target.value)}
-            onBlur=${e=>updRevue('r'+(i+1),e.target.value)}
-            placeholder="…"/>
-        </div>`)}
-        <div style="display:flex;gap:6px;margin-top:4px">
-          <button class="save-btn" style="flex:1" onClick=${cloreRevue} disabled=${!revue.r1.trim()}>Clore la semaine ✓</button>
-          ${revue.done?html`<button class="btn" style="flex:0 0 auto;font-size:11px" onClick=${()=>{const r={...revue,done:false};setRevue(r);saveRevue(r);}}>Rouvrir</button>`:''}
-        </div>
-      </div>`:''}
-    </div>
-
-    <div class="sec">
-      <div class="sec-h"><span class="sec-t">Soir · vers le sommeil</span></div>
-      <div class="read" onClick=${()=>livreEnCours&&pushNav?pushNav({type:'livre',id:livreEnCours.id,from:'Maintenant'}):onGoSem()} role="button" aria-label="Aller à la lecture">
-        <div class="read-ic">${livreEnCours?'📖':'🌙'}</div>
-        <div style="flex:1">
-          <div class="read-t">${livreEnCours?livreEnCours.titre:'Lecture avant le coucher'}</div>
-          <div class="read-s">${livreEnCours?(livreEnCours.pages?`${livreEnCours.pagesLues||0}/${livreEnCours.pages} p. · continuer ce soir`:'En cours · continuer ce soir'):'Objectif : 20 pages · au lieu du tel après 22 h'}</div>
-          ${livreEnCours&&livreEnCours.pages?html`<div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style=${'width:'+Math.round((livreEnCours.pagesLues||0)/livreEnCours.pages*100)+'%;background:var(--ac2)'}/></div>`:''}
-        </div>
-        <span class="read-chevron">›</span>
-      </div>
-    </div>
-
-    <div class="quote">« La liberté n'est pas un libre arbitre héroïque ; c'est une liberté praticable. »<small>Ressurgi de — Pilier Spinoza</small></div>
-
-    ${resurfItems.length>0?html`<div class="sec">
-      <div class="sec-h">
-        <span class="sec-t">📍 Resurfacer</span>
-        <span class="sec-c" style="color:var(--ink3)">${resurfItems.length} du jour</span>
-      </div>
-      <div class="hint" style="margin-bottom:10px;font-style:italic">Capturées il y a 7+ jours — toujours pertinent ?</div>
-      ${resurfItems.map(item=>html`<div class="item" style="border-left:3px solid var(--ac);padding-left:10px" key=${item.id}>
-        <div class="item-top">
-          ${item.type==='croquis'
-            ?html`<img class="item-thumb" src=${item.dataUrl} alt="📐" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0"/>`
-            :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
-          <div style="flex:1;min-width:0">
-            <div class="item-ti">${item.contenu.slice(0,80)}${item.contenu.length>80?'…':''}</div>
-            <div class="item-src">
-              ${relDate(item.date)} · ${item.statut==='inbox'?'à traiter':item.statut==='traité'?'traité':'plus tard'}
-              ${item.actorAnalysis?html` · <span class="actor-ic">⊙</span>`:''}
-              ${item.source?html` · ${item.source}`:''}
-            </div>
-          </div>
-        </div>
-        <div class="item-b">
-          <button class="btn pri" style="flex:1" onClick=${()=>traiterResurface(item)}>→ Traiter</button>
-          <button class="btn" onClick=${()=>markRevu(item.id)}>✓ Revu</button>
-        </div>
-      </div>`)}
-    </div>`:''}
-
-    ${(caps.length>0||inboxCount>0)?html`<div class="sec">
-      <div class="sec-h"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
-      <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
-      ${hsCount>0?html`<div class="hint" style="margin-top:6px;color:var(--ac)">📍 ${hsCount} hors-scope ce mois</div>`:''}
-    </div>`:''}
-
-    <div class="foot">Zebracorn OS · v0.1 · ${fmtDate(now)}</div>
+    <div class="foot">Zebracorn OS · v0.2 « le rail d'abord » · ${fmtDate(now)}</div>
   </div>`;
 }
 

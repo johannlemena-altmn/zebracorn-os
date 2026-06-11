@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "zebracorn-os",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", ".", "--listen", "4242"],
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4242"],
       "port": 4242
     }
   ]

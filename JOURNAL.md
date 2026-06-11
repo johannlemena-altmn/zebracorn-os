@@ -5,6 +5,64 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — Maquette v2.1 : gamification sobre + tab bar (pré-validation)
+
+- **Fait** : application de DESIGN_PRINCIPES_v2 sur la maquette. Ajouts : 🎲 dé de
+  variation sur le rail (rotation des questions = moteur-de-variation rendu tangible) ;
+  chip 🔥 série dans le header ; micro-célébration à la complétion (« ✓ fait · 1/1 ·
+  la chaîne tient ») ; carte « La chaîne » du pli refondue (grand chiffre Fraunces +
+  heatmap 30 j façon Did I Do) ; tab bar 3 espaces AVEC labels (pictos provisoires :
+  à dessiner à la main par Johann, leçon Basti Ui).
+- **Pourquoi** : la gamification retenue est celle qui montre le réel (chaîne, heatmap)
+  et celle qui varie (dé), pas des badges de plus. Tout le reste des principes (un CTA,
+  monochrome, textes ferrés) était déjà respecté.
+- **DoD** : testé preview mobile : dé rotation OK, célébration OK, heatmap 30 cellules,
+  3 tabs labellisés, zéro erreur console. Connu/accepté : le header wrappe sur 2 lignes
+  en 375 px (à resserrer en R1).
+- **Prochain** : validation Johann → R0 (guide débutant réécrit dans R0_INTERCEPT.md,
+  avec patron générique réutilisable) → R1 code.
+
+---
+
+## 2026-06-10 — Maquette « Maintenant v2 » + guide R0 (refonte, phase design)
+
+- **Fait** : `maquette_maintenant_v2.html` (statique, données simulées, tokens du design
+  system, dark/light). 3 blocs au-dessus du pli : rail (mode AUTO par l'heure, chip
+  override), LA prochaine action (une seule, la 1re rouge ; faite → la suivante remonte),
+  capture immédiate (sans changer d'écran). Tout le reste (agenda, cap, tracker,
+  resurfacing, lecture) sous un pli <details> fermé par défaut. `R0_INTERCEPT.md` : guide
+  pas-à-pas Raccourcis iOS (alarme → ouvrir l'app ; Instagram/YouTube → détour par le
+  rail ; vérif Share Target) + DoD mesurable à 3 jours.
+- **Pourquoi** : validation Johann du plan refonte (R0 + « une seule tâche »). La maquette
+  matérialise « le rail d'abord » : l'écran entier tient en UNE hauteur d'iPhone (vs ~4
+  avant), cohérent avec un moment d'usage de 30 s. Mode auto = friction de choix supprimée.
+- **DoD** : testé preview 375×812 — dark ET light fidèles aux tokens ; intention + Entrée
+  → rail replié « ✓ ancrée » ; tâche cochée → suivante affichée ; pli ouvre/ferme ;
+  capture → confirmation ; zéro erreur console.
+- **Prochain** : Johann valide visuellement la maquette (sur iPhone idéalement) + exécute
+  R0 ce soir. Puis R1 en session de code : refondre l'écran Maintenant d'index.html sur ce
+  modèle + modes auto + extraction nutrition (1 commit par tranche).
+
+---
+
+## 2026-06-10 — Revue produit + plan de refonte v1 (profil product designer)
+
+- **Fait** : `REVUE_REFONTE_v1.md` à la racine. Fondée sur les données réelles du backup
+  (0 intention, 0 routine, 0/10 tâches, 2 captures vs 26 incréments) + lecture du code.
+  5 problèmes priorisés (P1 pas d'Intercept actif → tout le reste est secondaire ;
+  P2 Maintenant = dashboard 12 blocs au lieu d'un rail 30 s ; P3 choix de mode manuel ;
+  P4 capture à 2 taps ; P5 nutrition = 23 % du code hors boucle). Refonte « le rail
+  d'abord » : 3 espaces (Maintenant 3 blocs + pli / Flux / Mémoire), Corps extrait,
+  phases R0 (Intercept, config) → R1 (réduction) → R2 (pont cerveau : import-merge car
+  importAll REMPLACE tout + export markdown) → R3 (conditionnée à 7 j d'usage mesuré).
+- **Pourquoi** : le ratio construction/usage est inversé ; la refonte vise la bascule
+  vers l'usage, pas plus de modules. Moratoire features rituels tant que métriques à zéro.
+- **DoD** : revue écrite, plan phasé, critères de déclenchement définis. AUCUN code touché
+  (méthode : maquette à valider avant).
+- **Prochain** : validation Johann → maquette HTML Maintenant v2 → R1.
+
+---
+
 ## 2026-06-09 — Architecture navigation + UX polish
 
 - **Fait** :

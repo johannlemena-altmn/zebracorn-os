@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Maquette · Maintenant v2 — le rail d'abord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#faf8f3;--bg2:#f2eee5;--bg3:#e9e3d6;
+  --ink:#24211c;--ink2:#5c574d;--ink3:#9a9384;
+  --border:rgba(36,33,28,.10);--border2:rgba(36,33,28,.20);
+  --ac:#c2552f;--ac2:#8a6d2f;--ok:#3f7d5a;
+  --r:12px;--rl:18px;
+  --fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif;--fm:'JetBrains Mono',ui-monospace,monospace;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1813;--bg2:#221f18;--bg3:#2c2820;
+  --ink:#f0ece2;--ink2:#b3ab9a;--ink3:#746d5d;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.16);
+  --ac:#e0764a;--ac2:#c2a35a;--ok:#4f9a70;
+}}
+body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.45;display:flex;justify-content:center;min-height:100svh}
+.phone{width:100%;max-width:430px;background:var(--bg);min-height:100svh;display:flex;flex-direction:column;box-shadow:0 0 44px rgba(0,0,0,.14)}
+.scroll{flex:1;overflow-y:auto;padding:1.1rem 1.1rem 2rem}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem}
+.brand{font-family:var(--fm);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
+.date-lbl{font-family:var(--fm);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em}
+.h1{font-family:var(--fs);font-size:38px;font-weight:500;letter-spacing:-1px;line-height:1;margin:.15rem 0 1rem}
+
+/* ── BLOC 1 · le rail (mode automatique) ── */
+.rail{position:relative;background:radial-gradient(120% 120% at 0% 0%,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--rl);padding:20px 18px 16px;margin-bottom:.9rem;overflow:hidden}
+.rail::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--ac),var(--ac2));animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+.rail-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.rail-k{font-family:var(--fm);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ac)}
+.mode-auto{font-family:var(--fm);font-size:8.5px;color:var(--ink3);letter-spacing:.06em;border:1px solid var(--border);border-radius:20px;padding:3px 9px;background:transparent;cursor:pointer}
+.rail-q{font-family:var(--fs);font-style:italic;font-size:23px;font-weight:400;line-height:1.25;margin-bottom:14px}
+.rail input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:11px;padding:11px 13px;color:var(--ink);font-family:var(--fb);font-size:14px;outline:none}
+.rail input:focus{border-color:var(--ac)}
+.intent-set{display:none;align-items:baseline;gap:8px}
+.intent-set .tick{color:var(--ok);font-family:var(--fm);font-size:11px}
+.intent-set .txt{font-size:15px;font-weight:500}
+.rail.done .rail-q,.rail.done input{display:none}
+.rail.done .intent-set{display:flex}
+
+/* ── BLOC 2 · LA prochaine action ── */
+.next{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:.9rem;display:flex;gap:13px;align-items:center}
+.next .dot{width:10px;height:10px;border-radius:50%;background:#c0392b;flex-shrink:0}
+.next .body{flex:1;min-width:0}
+.next .k{font-family:var(--fm);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.next .t{font-family:var(--fs);font-size:17px;line-height:1.25}
+.next .meta{font-family:var(--fm);font-size:9px;color:var(--ink3);margin-top:4px}
+.next .go{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;color:var(--ink2);font-size:18px;cursor:pointer;flex-shrink:0;transition:.15s}
+.next.fait{opacity:.55}.next.fait .t{text-decoration:line-through}
+.next.fait .go{background:var(--ok);border-color:var(--ok);color:#fff}
+
+/* ── BLOC 3 · capture immédiate ── */
+.capt{display:flex;gap:8px;margin-bottom:1.4rem}
+.capt input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;color:var(--ink);font-family:var(--fb);font-size:14px;outline:none}
+.capt input:focus{border-color:var(--ac)}
+.capt button{font-family:var(--fm);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--bg);border:none;border-radius:11px;padding:0 16px;cursor:pointer;font-weight:600}
+.capt-ok{font-family:var(--fm);font-size:10px;color:var(--ok);margin:-1rem 0 1.2rem;display:none}
+
+/* ── Le pli ── */
+details.pli{border-top:1px solid var(--border);padding-top:.4rem}
+details.pli summary{list-style:none;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:8px;padding:.6rem 0;font-family:var(--fm);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+details.pli summary::-webkit-details-marker{display:none}
+details.pli summary .chev{transition:transform .2s}
+details.pli[open] summary .chev{transform:rotate(180deg)}
+.pli-grid{display:flex;flex-direction:column;gap:.8rem;padding-bottom:1rem}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.card .k{font-family:var(--fm);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.card .row{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);padding:2px 0}
+.card .row b{color:var(--ink);font-weight:500}
+.card .mono{font-family:var(--fm);font-size:10px;color:var(--ac)}
+.days{display:flex;gap:5px;margin-top:4px}
+.day{flex:1;height:26px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:8px;color:var(--ink3)}
+.day.f{background:var(--ok);color:#fff}
+.day.today{outline:1.5px solid var(--ac)}
+.note{font-family:var(--fm);font-size:8.5px;color:var(--ink3);text-align:center;letter-spacing:.06em;margin-top:1.2rem;line-height:1.8}
+
+/* ── Gamification sobre ── */
+.big-n{font-family:var(--fs);font-size:36px;font-weight:500;line-height:1;margin:2px 0 8px}
+.big-n small{font-family:var(--fm);font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;margin-left:6px}
+.hm{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-top:8px}
+.hm i{height:9px;border-radius:2px;background:var(--bg3)}
+.hm i.f{background:var(--ok)}
+.hm i.t{outline:1.5px solid var(--ac)}
+.act-ok{font-family:var(--fm);font-size:10px;color:var(--ok);margin:-.5rem 0 .9rem;display:none;animation:pop .3s var(--ease-spring)}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ── Tab bar (labels obligatoires, pictos provisoires → à dessiner à la main) ── */
+.tabs{display:flex;border-top:1px solid var(--border);background:var(--bg);padding:8px 0 14px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--fm);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);cursor:pointer}
+.tab .ti{font-size:17px;line-height:1}
+.tab.on{color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="phone"><div class="scroll">
+
+  <div class="hdr"><div class="brand">Zebracorn OS · maquette v2.1</div><div class="date-lbl">Mer 11 juin · 07:12 · 🔥 3 j</div></div>
+  <div class="h1">Maintenant.</div>
+
+  <!-- BLOC 1 · le rail. Mode choisi par l'heure ; 🎲 = autre question (moteur de variation). -->
+  <div class="rail" id="rail">
+    <div class="rail-top">
+      <div class="rail-k">◇ Le rail</div>
+      <div style="display:flex;gap:6px">
+        <button class="mode-auto" id="dice" title="Autre question (variation)">🎲</button>
+        <button class="mode-auto" id="mode" title="Auto selon l'heure — tape pour forcer">auto · fort 07-12h</button>
+      </div>
+    </div>
+    <div class="rail-q">Qu'est-ce qui mérite tes 30 prochaines secondes&nbsp;?</div>
+    <input id="intent" placeholder="Mon intention — Entrée pour ancrer…"/>
+    <div class="intent-set"><span class="tick">✓ ancrée</span><span class="txt" id="intent-txt"></span></div>
+  </div>
+
+  <!-- BLOC 2 · LA prochaine action (la 1re rouge du backlog, une seule) -->
+  <div class="next" id="next">
+    <div class="dot"></div>
+    <div class="body">
+      <div class="k">La prochaine action</div>
+      <div class="t">Activer la clé API + tester le Filtre IA sur 1 capture</div>
+      <div class="meta">🔴 échéance · ◎ zebracorn-os · 2 autres attendent dans Mémoire →</div>
+    </div>
+    <button class="go" id="go" aria-label="Fait">✓</button>
+  </div>
+
+  <!-- BLOC 3 · capture immédiate, sans changer d'écran -->
+  <div class="capt">
+    <input id="cap" placeholder="Capter une idée, un lien… (1 geste)"/>
+    <button id="capbtn">Capter</button>
+  </div>
+  <div class="capt-ok" id="capok">✓ capturé → inbox Flux</div>
+  <div class="act-ok" id="actok">✓ fait · 1/1 aujourd'hui · la chaîne tient 🔥</div>
+
+  <!-- LE PLI · tout le reste descend ici, fermé par défaut -->
+  <details class="pli">
+    <summary><span>le reste de la journée</span><span class="chev">▾</span></summary>
+    <div class="pli-grid">
+      <div class="card"><div class="k">◇ Agenda</div>
+        <div class="row"><span class="mono">09:00</span><b>Stand-up LED</b></div>
+        <div class="row"><span class="mono">14:30</span><b>Point CEE dossiers bloqués</b></div>
+      </div>
+      <div class="card"><div class="k">◇ Cap 2026</div>
+        <div class="row"><b style="font-family:var(--fs);font-style:italic">Relier savoir, terrain et récit en un seul organisme.</b></div>
+      </div>
+      <div class="card"><div class="k">◇ La chaîne</div>
+        <div class="big-n">3<small>j · meilleure série</small></div>
+        <div class="days"><div class="day f">L</div><div class="day f">M</div><div class="day">M</div><div class="day f">J</div><div class="day">V</div><div class="day">S</div><div class="day today">D</div></div>
+        <div class="hm">
+          <i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i></i>
+          <i class="f"></i><i class="f"></i><i></i><i class="f"></i><i></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="t"></i>
+        </div>
+      </div>
+      <div class="card"><div class="k">📍 Resurfacer · 1 capture dort</div>
+        <div class="row"><b>PDF · Méthode des prix hédoniques…</b><span class="mono">→ traiter</span></div>
+      </div>
+      <div class="card"><div class="k">📖 Ce soir · lecture</div>
+        <div class="row"><b>Bienvenue en 2055</b><span class="mono">p.48 · 22 %</span></div>
+      </div>
+    </div>
+  </details>
+
+  <div class="note">3 blocs au-dessus du pli · mode auto · une seule action · 🎲 variation ·<br/>chaîne + heatmap = la seule gamification · pictos tab bar : à dessiner à la main</div>
+
+</div>
+<div class="tabs">
+  <div class="tab on"><span class="ti">◍</span><span>Maintenant</span></div>
+  <div class="tab"><span class="ti">✎</span><span>Flux</span></div>
+  <div class="tab"><span class="ti">▤</span><span>Mémoire</span></div>
+</div>
+</div>
+<script>
+// Interactions de démonstration (données simulées)
+const intent=document.getElementById('intent'),rail=document.getElementById('rail');
+intent.addEventListener('keydown',e=>{if(e.key==='Enter'&&intent.value.trim()){
+  document.getElementById('intent-txt').textContent=intent.value.trim();rail.classList.add('done');}});
+document.getElementById('go').addEventListener('click',()=>{
+  const n=document.getElementById('next'),ok=document.getElementById('actok');
+  n.classList.add('fait');ok.style.display='block';
+  setTimeout(()=>{n.querySelector('.t').textContent='Préparer l’oral DRAP/BAPEC (semaine du 15)';
+    n.querySelector('.meta').textContent='🔴 échéance 15/06 · 1 autre attend dans Mémoire →';
+    n.classList.remove('fait');ok.style.display='none';},1600);});
+const QS=['Qu\'est-ce qui mérite tes 30 prochaines secondes ?',
+  'Quelle est LA chose qui rendrait la journée bonne ?',
+  'Tu cherches quoi, là, en prenant ce téléphone ?',
+  'Un geste de 30 s vaut mieux que 30 min de scroll. Lequel ?'];
+let qi=0;
+document.getElementById('dice').addEventListener('click',()=>{
+  qi=(qi+1)%QS.length;document.querySelector('.rail-q').textContent=QS[qi];});
+const modes=['auto · fort 07-12h','forcé · relâché','forcé · libre'];let mi=0;
+document.getElementById('mode').addEventListener('click',e=>{mi=(mi+1)%3;e.target.textContent=modes[mi];});
+document.getElementById('capbtn').addEventListener('click',()=>{const c=document.getElementById('cap');
+  if(!c.value.trim())return;c.value='';const ok=document.getElementById('capok');
+  ok.style.display='block';setTimeout(()=>ok.style.display='none',1800);});
+</script>
+</body>
+</html>
