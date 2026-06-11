@@ -5,6 +5,29 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.2 « le rail d'abord » LIVRÉE (R1, push main → Vercel)
+
+- **Fait** : refonte réelle de l'écran Maintenant dans index.html (−185/+737 sur 8
+  fichiers, le composant Maintenant passe de 14,3k à 13k chars malgré les ajouts) :
+  3 blocs (rail mode-auto par l'heure + 🎲 variation + état « ✓ ancrée » ; UNE prochaine
+  action avec célébration et rotation ; capture note inline) + pli <details> contenant
+  agenda, cap, chaîne (grand chiffre + heatmap 28 j depuis db.intentions), routines+AMWAP,
+  revue hebdo (auto-ouverte le vendredi), resurfacing, lecture, inbox, quote. CSS v0.2
+  ajouté (tokens motion existants réutilisés). Fix R0 : boucle infinie de l'automatisation
+  « App ouverte → Ouvrir » documentée et remplacée par le pattern MENU dans R0_INTERCEPT.md.
+- **Pourquoi** : maquette v2.1 validée par Johann (avec « une seule tâche »). Le mode
+  auto suit le scope §5 (12-14 h et soir = relâché, week-end = libre, sinon fort).
+- **DoD** : preview mobile : rendu 1 écran, vraie tâche du backlog affichée (« Talents
+  for the Planet », 9 en attente), capture → IndexedDB confirmée APRÈS reload (puis
+  nettoyée), pli 3 cartes, heatmap 28 cellules, dé OK, zéro erreur console. Merge
+  claude/motion-feel-v2 → main, push 175c18d → Vercel auto-deploy.
+- **Données** : aucune migration Dexie, aucune table touchée → données intactes.
+  Recommandé à Johann : Réglages → Pousser (Supabase) après la première ouverture.
+- **Prochain** : R0 sur l'iPhone (guide corrigé) ; extraction nutrition (Corps) en
+  session dédiée ; pictos main levée ; resserrer le header 375 px.
+
+---
+
 ## 2026-06-11 — Maquette v2.1 : gamification sobre + tab bar (pré-validation)
 
 - **Fait** : application de DESIGN_PRINCIPES_v2 sur la maquette. Ajouts : 🎲 dé de
