@@ -24,7 +24,6 @@ import { h, render } from 'https://esm.sh/preact@10';
 import { useState, useEffect, useCallback } from 'https://esm.sh/preact@10/hooks';
 import htm from 'https://esm.sh/htm@3';
 import { getSyncConfig, saveSyncConfig, syncConfigured, lastSync, pushAll, pullAll } from './sync.js';
-import { Nutrition } from './nutrition.js';
 const html = htm.bind(h);
 
 /* ── constantes ─────────────────────────────── */
@@ -1801,8 +1800,6 @@ function App(){
       ? html`<${Semaine}/>`
       : tab==='reglages'
       ? html`<${Reglages}/>`
-      : tab==='sport'
-      ? html`<${Nutrition}/>`
       : html`<${Capture} onCapture=${refresh} pushNav=${pushNav}/>`
     }
     ${topNav?html`
@@ -1825,9 +1822,6 @@ function App(){
       <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
         <span class="tlbl">Flux</span>
-      </button>
-      <button class=${tab==='sport'?'on':''} onClick=${()=>setTab('sport')}>
-        <span class="tico">⬡</span><span class="tlbl">Corps</span>
       </button>
       <button class=${tab==='reglages'?'on':''} onClick=${()=>setTab('reglages')}>
         <span class="tico">⊙</span><span class="tlbl">Régl.</span>

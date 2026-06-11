@@ -50,6 +50,29 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.3 tranche 3 : extraction du module Corps → Reprise-Sport
+
+- **Fait** : le module nutrition sort de Zebracorn OS (P5 de la revue : 23 % du code
+  hors boucle). Déposé dans `~/Desktop/Reprise-Sport/` : `nutrition.js` (composant
+  complet), `nutrition-db.js` (data-layer Dexie + `importFromZebracornBackup()`),
+  `nutrition.css` (styles .nutri-*, ~12 ko extraits de styles.css), `NOTE_NUTRITION.md`
+  (dépendances + comment récupérer les données + conception à faire avant intégration).
+  Côté Zebracorn : import retiré, onglet Corps supprimé (nav à 4), branche `sport`
+  retirée, helpers nutrition supprimés de db.js, `git rm nutrition.js`.
+- **Données : AUCUNE perte.** Les schémas Dexie v7/v8 (repas, courses,
+  aliments_custom) restent déclarés, SYNC_TABLES inchangé → les données existantes
+  sur l'iPhone restent en IndexedDB, dans la sync Supabase et dans l'export JSON
+  (Réglages → Exporter, c'est la voie pour les rapatrier dans Reprise-Sport).
+- **Pourquoi** : l'identité de l'app = capture/jugement/mémoire. Le corps a son
+  app (Reprise-Sport). L'intégration là-bas se fera en session dédiée, conception
+  d'abord (interview JTBD — grill en cours avec Johann).
+- **DoD** : preview mobile — 4 onglets (Maintenant · Mémoire · Flux · Régl.),
+  les 4 écrans rendent, `node --check db.js` OK, zéro erreur/warning console,
+  tâches réelles toujours affichées (persistance intacte). −933 lignes JS, −12 ko CSS.
+- **Prochain** : tranche 4 — Réglages, 3 métriques d'usage en grands chiffres Fraunces.
+
+---
+
 ## 2026-06-11 — v0.2.1 : polish fidélité maquette (retour vidéo iPhone)
 
 - **Fait** : tab bar monochrome (◍ ▤ ◇ ⬡ ⊙ + labels complets, actif terracotta — les
