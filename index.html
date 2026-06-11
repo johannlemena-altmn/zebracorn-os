@@ -1478,9 +1478,21 @@ function Reglages(){
   const [gcalUrl,setGcalUrl]=useState(()=>localStorage.getItem('zc_gcal_url')||'');
   const [gcalTest,setGcalTest]=useState('');
   const [ia,setIa]=useState(()=>getFiltreIaSettings());
+  const [usage,setUsage]=useState(null);
   function saveIa(patch){ const u={...ia,...patch}; setIa(u); saveFiltreIaSettings(u); }
   const last=lastSync();
   useEffect(()=>{ getStats().then(setStats); getCap().then(setCap); },[]);
+  useEffect(()=>{(async()=>{
+    try{
+      const since=Date.now()-7*86400000;
+      const caps=await db.captures.toArray();
+      const c7=caps.filter(c=>c.date&&new Date(c.date).getTime()>=since).length;
+      const ints=await db.intentions.toArray();
+      const i7=new Set(ints.filter(r=>r.texte&&r.texte.trim()&&new Date(r.date).getTime()>=since).map(r=>r.date.slice(0,10))).size;
+      const actor=caps.filter(c=>c.actorAnalysis?.own?.trim()).length;
+      setUsage({capJ:c7/7,i7,actor});
+    }catch(e){ setUsage(null); }
+  })();},[]);
 
   const upd=(k,v)=>setCfg(c=>({...c,[k]:v}));
   function save(){ saveSyncConfig(cfg.url.trim(),cfg.key.trim(),cfg.space.trim()); setMsg('Configuration enregistrée ✓'); }
@@ -1609,6 +1621,25 @@ function Reglages(){
     <div class="hdr"><div class="brand">Zebracorn OS · Réglages</div><div class="date-lbl">${fmtDate(now)}</div></div>
     <div class="h1">Réglages.</div>
     <div class="greet">Synchronise tes appareils. Tes données restent à toi.</div>
+
+    ${usage?html`<div class="sec">
+      <div class="sec-h"><span class="sec-t">Usage réel · 7 jours</span></div>
+      <div class="usage-row">
+        <div class="usage-cell">
+          <div class="big-n" style="margin:0 0 6px">${usage.capJ>=10?Math.round(usage.capJ):usage.capJ.toFixed(1).replace('.',',').replace(',0','')}</div>
+          <div class="usage-l">captures / jour</div>
+        </div>
+        <div class="usage-cell">
+          <div class="big-n" style="margin:0 0 6px">${usage.i7}<small style="margin-left:2px">/7</small></div>
+          <div class="usage-l">intentions / semaine</div>
+        </div>
+        <div class="usage-cell">
+          <div class="big-n" style="margin:0 0 6px">${usage.actor}</div>
+          <div class="usage-l">ACTOR complétés</div>
+        </div>
+      </div>
+      <div class="set-note">La prochaine revue produit se fait sur ces chiffres — pas au ressenti.</div>
+    </div>`:''}
 
     <div class="sec">
       <div class="sec-h"><span class="sec-t">Cap 2026 · North Star</span></div>

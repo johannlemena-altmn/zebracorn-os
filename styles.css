@@ -434,6 +434,11 @@ button:active,.mode-auto:active{transform:scale(.95);}
 details.pli summary:active{color:var(--ac);}
 .next-t{cursor:pointer;}
 
+/* ── v0.3 Réglages : métriques d'usage (leçon Monolog — chiffres graphiques) ── */
+.usage-row{display:flex;gap:8px;}
+.usage-cell{flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:14px 12px 12px;}
+.usage-l{font-family:var(--fm);font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);line-height:1.4;}
+
 /* ── v0.3 Mémoire : dots de priorité (remplacent 🔴🔵🟢) ── */
 .pdot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}
 .pdot.rouge{background:#c0392b;}.pdot.bleu{background:#2f6f8a;}.pdot.vert{background:var(--ok);}

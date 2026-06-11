@@ -73,6 +73,26 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.3 tranche 4 : métriques d'usage dans Réglages
+
+- **Fait** : section « Usage réel · 7 jours » en tête de Réglages — 3 grands chiffres
+  Fraunces (`big-n`, leçon Monolog : le chiffre comme élément graphique) : captures/jour
+  (moyenne 7 j, virgule fr), intentions/semaine (jours distincts avec intention, /7),
+  ACTOR complétés (captures avec position Own remplie). Phrase-principe en dessous :
+  « La prochaine revue produit se fait sur ces chiffres — pas au ressenti. »
+- **Pourquoi** : c'est l'instrument du moratoire (REVUE §3) : R3 ne se déclenche que
+  sur des métriques non nulles. Les zéros affichés aujourd'hui sont le constat honnête.
+- **DoD** : preview mobile dark + light — calcul vérifié avec données temporaires
+  (1 capture → « 0,1 », 1 intention → « 1/7 »), puis nettoyées de la DB. Zéro erreur
+  console.
+- **Note** : grill Reprise-Sport clos en parallèle — conception nutrition validée et
+  gravée dans `Reprise-Sport/NOTE_NUTRITION.md` (phases qualitatives + log binaire +
+  fiches Yuka consultatives ; session de build dédiée à venir).
+- **Prochain** : tranche 5 — import-merge `actions_du_jour.json` (pont cerveau,
+  bloquant connu : importAll REMPLACE tout).
+
+---
+
 ## 2026-06-11 — v0.2.1 : polish fidélité maquette (retour vidéo iPhone)
 
 - **Fait** : tab bar monochrome (◍ ▤ ◇ ⬡ ⊙ + labels complets, actif terracotta — les
