@@ -5,6 +5,24 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.2.1 : polish fidélité maquette (retour vidéo iPhone)
+
+- **Fait** : tab bar monochrome (◍ ▤ ◇ ⬡ ⊙ + labels complets, actif terracotta — les
+  emojis 🌱🧠🥗 cassaient le monochrome, leçon Basti Ui) ; animation d'entrée de page
+  (pageIn 240 ms à chaque changement d'onglet → toutes les pages en profitent) ; retours
+  tactiles globaux (boutons scale .95, cartes/routines/items scale .985 + fond, tokens
+  motion existants) ; cartes du pli plus lisibles en mode clair (border2 + ombre légère) ;
+  header resserré (date nowrap 9px).
+- **Pourquoi** : vidéo iPhone de Johann : le déploiement était bon mais le feel ne
+  suivait pas la maquette (onglets colorés, navigation sèche, cartes plates en clair).
+- **DoD** : preview mobile light : fidèle à la maquette (vérifié screenshot), zéro
+  erreur console. Pas de refonte des écrans Mémoire/Flux/Réglages (prochaine session) :
+  ils héritent quand même des transitions, retours tactiles et de la nouvelle nav.
+- **Prochain** : refonte écrans restants + extraction Corps (session dédiée) ; pictos
+  main levée de Johann pour remplacer les glyphes provisoires.
+
+---
+
 ## 2026-06-11 — v0.2 « le rail d'abord » LIVRÉE (R1, push main → Vercel)
 
 - **Fait** : refonte réelle de l'écran Maintenant dans index.html (−185/+737 sur 8

@@ -537,3 +537,23 @@ details.pli[open] summary .chev{transform:rotate(180deg);}
 .hm i{height:9px;border-radius:2px;background:var(--bg3);}
 .hm i.f{background:var(--ok);}
 .hm i.t{outline:1.5px solid var(--ac);}
+
+/* ── v0.2.1 polish : transitions + retours tactiles + cartes lisibles ── */
+.scroll{animation:pageIn var(--t-page) var(--ease-out);}
+@keyframes pageIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
+button,.task,.rout,.chip,.item,.read,.card-pli,.next,.mode-auto{transition:transform var(--t-tap) var(--ease-out),background var(--t-tap) ease,border-color var(--t-tap) ease;}
+button:active,.mode-auto:active{transform:scale(.95);}
+.task:active,.rout:active,.read:active,.item:active,.chip:active{transform:scale(.985);background:var(--bg3);}
+.next-go:active{transform:scale(.88);}
+.capt button:active{transform:scale(.93);}
+.tabnav button{transition:transform var(--t-tap) var(--ease-out),color var(--t-state) ease;}
+.tabnav button:active{transform:translateY(1px) scale(.94);}
+.tico{font-size:17px;line-height:1;}
+.tabnav button.on .tico{color:var(--ac);}
+.tabnav button.on{color:var(--ac);}
+.card-pli{border-color:var(--border2);box-shadow:0 1px 3px rgba(36,33,28,.05);}
+@media(prefers-color-scheme:dark){.card-pli{box-shadow:none;}}
+.hdr{flex-wrap:nowrap;gap:8px;}
+.date-lbl{white-space:nowrap;font-size:9px;}
+details.pli summary:active{color:var(--ac);}
+.next-t{cursor:pointer;}

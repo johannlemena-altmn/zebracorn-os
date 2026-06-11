@@ -1789,20 +1789,20 @@ function App(){
     `:''}
     <nav class=${'tabnav'+(topNav?' hidden':'')}>
       <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
-        <span class="tico">🌱</span><span class="tlbl">Maint.</span>
+        <span class="tico">◍</span><span class="tlbl">Maintenant</span>
       </button>
       <button class=${tab==='semaine'?'on':''} onClick=${()=>setTab('semaine')}>
-        <span class="tico">🧠</span><span class="tlbl">Mém.</span>
+        <span class="tico">▤</span><span class="tlbl">Mémoire</span>
       </button>
       <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
         <span class="tico" style="position:relative">◇${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
         <span class="tlbl">Flux</span>
       </button>
       <button class=${tab==='sport'?'on':''} onClick=${()=>setTab('sport')}>
-        <span class="tico">🥗</span><span class="tlbl">Corps</span>
+        <span class="tico">⬡</span><span class="tlbl">Corps</span>
       </button>
       <button class=${tab==='reglages'?'on':''} onClick=${()=>setTab('reglages')}>
-        <span class="tico">⚙</span><span class="tlbl">Régl.</span>
+        <span class="tico">⊙</span><span class="tlbl">Régl.</span>
       </button>
     </nav>
   </div>`;
