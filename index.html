@@ -518,6 +518,7 @@ function Capture({onCapture,pushNav}){
   const [file,setFile]=useState(null);
   const [fileWarn,setFileWarn]=useState('');
   const [linkCh,setLinkCh]=useState(null);
+  const [linkOpen,setLinkOpen]=useState(false);
   const [chList,setChList]=useState([]);
   const [livreList,setLivreList]=useState([]);
   const [linkLivre,setLinkLivre]=useState(null);
@@ -718,12 +719,12 @@ function Capture({onCapture,pushNav}){
   const STEP_DONE={A:!!(actorDraft.aim?.trim()),C:!!(actorDraft.compress?.trim()),T:!!(actorDraft.faits?.trim()||actorDraft.interp?.trim()||actorDraft.croyances?.trim()),O:!!(actorDraft.own?.trim()),R:!!(actorDraft.runTexte?.trim())};
   const actorProgress=Object.values(STEP_DONE).filter(Boolean).length;
   return html`<div class="scroll">
-    <div class="hdr"><div class="brand">Zebracorn OS · Capture</div><div class="date-lbl">${fmtDate(now)}</div></div>
-    <div class="h1">Capturer.</div>
-    <div class="greet">Capte en 1 geste. Le jugement vient après. ✶</div>
+    <div class="hdr"><div class="brand">Zebracorn OS · Flux</div><div class="date-lbl">${fmtDate(now)}</div></div>
+    <div class="h1">Flux.</div>
+    <div class="greet">Capte en 1 geste. Le jugement vient après.</div>
 
     <div class="composer">
-      <div class="types" style="flex-wrap:wrap">${['note','lien','pdf','video','fichier','croquis'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>{setType(t);setFile(null);setFileWarn('');}} key=${t}>${T_ICONS[t]} ${T_LBLS[t]}</button>`)}</div>
+      <div class="types" style="flex-wrap:wrap">${['note','lien','pdf','video','fichier','croquis'].map(t=>html`<button class=${'type-btn'+(type===t?' on':'')} onClick=${()=>{setType(t);setFile(null);setFileWarn('');}} key=${t}>${T_LBLS[t]}</button>`)}</div>
       ${type==='fichier'||type==='croquis'
         ?html`<label class="file-drop">
           <span class="fd-ic">${file?'✓':T_ICONS[type]}</span>
@@ -735,19 +736,23 @@ function Capture({onCapture,pushNav}){
         ${file&&file.type.startsWith('image/')?html`<img src=${URL.createObjectURL(file)} style="width:100%;border-radius:8px;margin-top:8px;max-height:160px;object-fit:cover;"/>`:''}`
         :html`<textarea value=${content} onInput=${e=>setContent(e.target.value)} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>`
       }
-      ${chList.length>0?html`<div class="link-wrap">
-        <span class="link-lbl">◎ Projet</span>
-        ${chList.slice(0,5).map(c=>html`<button class=${'ch-pill'+(linkCh===c.id?' on':'')} onClick=${()=>setLinkCh(linkCh===c.id?null:c.id)} key=${c.id}>${c.titre.slice(0,22)}</button>`)}
-      </div>`:''}
-      ${livreList.length>0?html`<div class="link-wrap">
-        <span class="link-lbl">📚 Livre</span>
-        ${livreList.slice(0,4).map(l=>html`<button class=${'ch-pill'+(linkLivre===l.id?' on':'')} onClick=${()=>setLinkLivre(linkLivre===l.id?null:l.id)} key=${l.id}>${l.titre.slice(0,22)}</button>`)}
-      </div>`:''}
+      ${(chList.length>0||livreList.length>0)?html`
+        ${linkOpen?html`
+          ${chList.length>0?html`<div class="link-wrap">
+            <span class="link-lbl">◎ Projet</span>
+            ${chList.slice(0,5).map(c=>html`<button class=${'ch-pill'+(linkCh===c.id?' on':'')} onClick=${()=>setLinkCh(linkCh===c.id?null:c.id)} key=${c.id}>${c.titre.slice(0,22)}</button>`)}
+          </div>`:''}
+          ${livreList.length>0?html`<div class="link-wrap">
+            <span class="link-lbl">Livre</span>
+            ${livreList.slice(0,4).map(l=>html`<button class=${'ch-pill'+(linkLivre===l.id?' on':'')} onClick=${()=>setLinkLivre(linkLivre===l.id?null:l.id)} key=${l.id}>${l.titre.slice(0,22)}</button>`)}
+          </div>`:''}
+        `:''}
+      `:''}
       <div class="composer-b">
+        ${(chList.length>0||livreList.length>0)?html`<button class=${'hs-btn'+(linkOpen||linkCh||linkLivre?' on':'')} onClick=${()=>setLinkOpen(o=>!o)} title="Relier à un projet ou un livre">◎${(linkCh?1:0)+(linkLivre?1:0)>0?' '+((linkCh?1:0)+(linkLivre?1:0)):''}</button>`:''}
         <input class="taginp" value=${tag} onInput=${e=>setTag(e.target.value)} placeholder="# tag (optionnel)" onKeyDown=${e=>e.key==='Enter'&&save()}/>
         <button class="save-btn" onClick=${save} disabled=${saving||((type==='fichier'||type==='croquis')?!file:!content.trim())}>${saving?'…':(type==='fichier'||type==='croquis')?'Importer':'Capter'}</button>
       </div>
-      <div class="hint">⌁ Aucune friction à l'entrée — la réflexion (ACTOR) se fait plus tard.</div>
     </div>
 
     <div class="sec-h"><span class="sec-t">À traiter</span><span class="sec-c">${inbox.length}</span></div>
@@ -790,7 +795,7 @@ function Capture({onCapture,pushNav}){
           <div class="links-hdr">
             <span class="sec-t">Liens</span>
             <button class="btn" style="font-size:10px;padding:4px 10px" onClick=${e=>{e.stopPropagation();ouvrirPicker(item.id);}}>
-              ${linkPickerId===item.id?'↑ Fermer':'🔗 Lier'}
+              ${linkPickerId===item.id?'↑ Fermer':'+ Lier'}
             </button>
           </div>
           ${linkedCaps.length===0?html`<div class="hint" style="font-size:10px;margin:0">Aucun lien — relie des captures connexes</div>`:''}
@@ -814,7 +819,7 @@ function Capture({onCapture,pushNav}){
         </div>
         <div class="q-link-section">
           <div class="q-link-hdr">
-            <span class="sec-t">❓ Question vivante</span>
+            <span class="sec-t">Question vivante</span>
             <button class="btn" style="font-size:10px;padding:4px 10px" onClick=${e=>{e.stopPropagation();item.questionId?linkToQuestion(item.id,null):setQPickerId(qPickerId===item.id?null:item.id);}}>
               ${item.questionId?'✕ Dissocier':'+ Lier'}
             </button>
@@ -850,8 +855,12 @@ function Capture({onCapture,pushNav}){
       </div>`;
     })}
 
+    <details class="pli" style=${(later.length+done.length+corpus.length)===0?'display:none':''}>
+      <summary><span>le reste du flux · ${later.length+done.length+corpus.length}</span><span class="chev">▾</span></summary>
+      <div class="pli-grid">
+
     ${later.length>0?html`
-      <div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Plus tard</span><span class="sec-c" style="color:var(--ink3)">${later.length}</span></div>
+      <div class="sec-h"><span class="sec-t">Plus tard</span><span class="sec-c" style="color:var(--ink3)">${later.length}</span></div>
       ${later.map(item=>html`<div class="item" style="opacity:.82" key=${item.id}>
         <div class="item-top">
           ${item.type==='croquis'
@@ -871,7 +880,7 @@ function Capture({onCapture,pushNav}){
       </div>`)}
     `:''}
 
-    ${done.length>0?html`<div class="sec-h" style="margin-top:1.4rem"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
+    ${done.length>0?html`<div class="sec-h"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
     ${done.slice(0,10).map(item=>html`<div class="item" key=${item.id}>
       <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
       <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,200)}${item.contenu.length>200?'…':''}</div>
@@ -893,7 +902,7 @@ function Capture({onCapture,pushNav}){
       if(!hsMois.length) return '';
       return html`<div class="sec" style="margin-top:.4rem">
         <div class="sec-h" style="cursor:pointer" onClick=${()=>setHsOpen(o=>!o)}>
-          <span class="sec-t">📍 Revue hors-scope · ${new Date().toLocaleDateString('fr-FR',{month:'long'})}</span>
+          <span class="sec-t">Revue hors-scope · ${new Date().toLocaleDateString('fr-FR',{month:'long'})}</span>
           <span class="sec-c">${hsMois.length} ${hsOpen?'▲':'▼'}</span>
         </div>
         ${hsOpen?html`<div>
@@ -908,7 +917,7 @@ function Capture({onCapture,pushNav}){
     })()}
 
     ${corpus.length>0?html`
-      <div class="sec-h" style="margin-top:1.4rem">
+      <div class="sec-h">
         <span class="sec-t">⊙ Corpus ACTOR</span>
         <span class="sec-c">${corpus.length}</span>
       </div>
@@ -936,7 +945,10 @@ function Capture({onCapture,pushNav}){
       })}
     `:''}
 
-    <div class="foot">Zebracorn OS · Capture · v0.1</div>
+      </div>
+    </details>
+
+    <div class="foot">Zebracorn OS · Flux · v0.3</div>
 
     ${actorId&&actorItem?html`
       <div class="actor-backdrop" onClick=${()=>{setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}></div>

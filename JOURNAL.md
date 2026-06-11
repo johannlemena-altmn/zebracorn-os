@@ -29,6 +29,27 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-11 — v0.3 tranche 2 : refonte écran Flux (alléger, friction calibrée)
+
+- **Fait** : écran Capturer → **Flux**. Temps 1 réduit à deux choses : le composer
+  et l'inbox « À traiter ». Composer allégé : types **sans emojis** (texte mono),
+  rattachements projet/livre **repliés derrière un bouton ◎** dans la barre du
+  composer (badge compteur si actif) — le lien peut aussi se faire plus tard au
+  jugement ; hint redondant supprimé. « Plus tard », « Traités », revue hors-scope
+  et Corpus ACTOR passent **sous un pli** « le reste du flux · n » (masqué si vide).
+  ACTOR, liens entre captures, questions vivantes : inchangés sur le fond.
+- **Pourquoi** : friction calibrée du scope — zéro à l'entrée (capter), choisie au
+  jugement. L'écran montrait 5 sections empilées ; le moment d'usage « je trie mon
+  inbox » n'a besoin que de l'inbox.
+- **DoD** : preview mobile light + dark — capter une note → apparaît dans À traiter
+  (badge nav 1), Traiter sans note → bascule dans le pli « · 1 » section Traités,
+  donnée en **IndexedDB vérifiée**, pli masqué quand vide, zéro erreur console.
+  Capture-test nettoyée. (Note outillage : `preview_click` peut viser un nœud
+  re-rendu par Preact — cliquer via eval `.click()` fait foi.)
+- **Prochain** : tranche 3 — extraction Corps (export données puis retrait onglet).
+
+---
+
 ## 2026-06-11 — v0.2.1 : polish fidélité maquette (retour vidéo iPhone)
 
 - **Fait** : tab bar monochrome (◍ ▤ ◇ ⬡ ⊙ + labels complets, actif terracotta — les
