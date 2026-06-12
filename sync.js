@@ -59,6 +59,7 @@ export async function pushAll() {
   const { error } = await sbc.from(ROW).upsert(rows, { onConflict: 'space_id,table_name' });
   if (error) throw new Error(error.message);
   localStorage.setItem('zc_last_push', new Date().toISOString());
+  localStorage.removeItem('zc_dirty'); // le cloud est à jour
 }
 
 // Récupère le cloud et écrase l'état local (puis l'app se recharge).

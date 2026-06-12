@@ -437,6 +437,17 @@ details.pli summary:active{color:var(--ac);}
 /* ── v0.3 Pictos main levée (dessins Johann) ── */
 .tico svg{width:21px;height:21px;display:block;}
 
+/* ── v0.3 Fluidité iOS (vidéo 12/06) ─────────────────────────
+   1. Safe-area : le contenu ne passe plus sous la Dynamic Island.
+   2. Appui instantané : transition 0s à l'enfoncement, animée au relâcher —
+      le doigt sent la réponse immédiatement (feel app native). */
+.scroll{padding-top:calc(1.1rem + env(safe-area-inset-top,0px));}
+.nav-back-bar{padding-top:calc(12px + env(safe-area-inset-top,0px));}
+.modal-sh,.actor-sheet{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));}
+button:active,.mode-auto:active,.task:active,.rout:active,.read:active,.item:active,.chip:active,
+.next-go:active,.capt button:active,.tabnav button:active,.subtask:active,.prio-pill:active{transition-duration:0s;}
+@media(prefers-reduced-motion:reduce){.scroll{animation:none;}}
+
 /* ── v0.3 Réglages : métriques d'usage (leçon Monolog — chiffres graphiques) ── */
 .usage-row{display:flex;gap:8px;}
 .usage-cell{flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:14px 12px 12px;}

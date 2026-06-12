@@ -5,6 +5,36 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-12 — v0.3.1 : pictos main levée + fixes vidéo iPhone (perte de données, titres, feel)
+
+- **Fait** :
+  1. **Pictos tab bar** : les 4 dessins de Johann (IMG_8205 — sablier, cerveau,
+     entonnoir, engrenage) vectorisés en SVG inline `stroke:currentColor` (l'actif
+     passe en terracotta sans CSS dédié). L'identité dessin-récit est dans l'app.
+  2. **Perte de données corrigée (bug le plus grave, vu sur vidéo)** : le
+     pull-on-open écrasait le local quand iOS tuait la PWA avant le push de
+     fermeture. Triple fix : hooks Dexie → flag `zc_dirty` à chaque écriture
+     locale (suspendu pendant importAll) ; **push auto debounced 4 s** après
+     toute écriture (la donnée part avant de quitter) ; au boot, si `zc_dirty`
+     → push (local en avance) sinon pull. + listener `pagehide` en renfort.
+  3. **Brouillon ACTOR** : fermer la feuille (✕/backdrop) sauvegarde désormais
+     le brouillon (sans déclencher l'appel IA connexions) — avant, perte sèche.
+  4. **Titres de liens** : `api/title.js` (Vercel, extraction og:title/<title>,
+     cache 24 h) + `fetchTitleFor` après capture (jamais bloquant) + `capTitle()`
+     partout (inbox, chips, corpus, pickers, titre ACTOR). Fallback sans titre :
+     « Lien · domaine ». L'URL reste la donnée d'analyse, visible dépliée.
+  5. **Feel natif** : `viewport-fit=cover` + status-bar translucent + safe-area
+     top sur .scroll/.nav-back-bar (fini le contenu sous la Dynamic Island = les
+     « rebords qui buguent ») ; listener `touchstart` (iOS n'applique pas :active
+     sans lui) ; appui **instantané** (transition 0s à l'enfoncement, animée au
+     relâcher) ; prefers-reduced-motion respecté.
+- **DoD** : preview mobile — flag dirty posé à l'écriture ✓, capture lien →
+  « Lien · lowtechlab.org » + domaine ✓ (titre réel viendra de l'API en prod),
+  ACTOR : aim saisi puis fermeture backdrop → retrouvé en DB ✓, zéro erreur
+  console, données nettoyées. Sync push/pull réel à confirmer sur iPhone.
+- **Prochain** : Johann re-teste sur iPhone (capture → quitter → rouvrir ;
+  titres de liens en prod) ; tester le Filtre IA de bout en bout.
+
 ## 2026-06-11 — v0.3 tranche 1 : refonte écran Mémoire (ex-Semaine)
 
 - **Fait** : écran Mémoire au langage v0.2 — maquette statique d'abord

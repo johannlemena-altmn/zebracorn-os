@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zebracorn">
   <meta name="theme-color" content="#c2552f">
   <title>Zebracorn OS</title>
@@ -187,6 +188,26 @@ async function loadGcalEvents(){
     }catch{}
   }
   return all.sort((a,b)=>a.dtstart<b.dtstart?-1:1);
+}
+
+/* ── Titres de liens : l'URL est la donnée, le titre est l'affichage ── */
+function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch{ return ''; } }
+function capTitle(item){
+  if(item.titre) return item.titre;
+  if((item.type==='lien'||item.type==='video')&&/^https?:\/\//i.test(item.contenu||'')){
+    const h=hostOf(item.contenu);
+    return h?`Lien · ${h}`:item.contenu;
+  }
+  return item.contenu;
+}
+// Récupère le titre en arrière-plan après capture d'un lien (jamais bloquant).
+async function fetchTitleFor(id,url){
+  try{
+    const r=await fetch(`/api/title?url=${encodeURIComponent(url)}`);
+    const {title}=await r.json();
+    if(title) await db.captures.update(id,{titre:title});
+    return title||null;
+  }catch{ return null; }
 }
 
 /* ── helpers ────────────────────────────────── */
@@ -466,7 +487,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
             <div class="item-top">
               <span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
               <div style="flex:1;min-width:0">
-                <div class="item-ti">${item.contenu.slice(0,70)}${item.contenu.length>70?'…':''}</div>
+                <div class="item-ti">${capTitle(item).slice(0,70)}${capTitle(item).length>70?'…':''}</div>
                 <div class="item-src">${relDate(item.date)} · ${item.statut==='inbox'?'à traiter':item.statut}</div>
               </div>
             </div>
@@ -503,7 +524,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
 
         ${(caps.length>0||inboxCount>0)?html`<div class="card-pli">
           <div class="sec-h" style="margin-bottom:6px"><span class="sec-t">Capté · inbox</span><span class="sec-c" style="cursor:pointer" onClick=${onGoCapture}>${inboxCount}</span></div>
-          <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${c.contenu.slice(0,30)}</span>`)}</div>
+          <div>${caps.map(c=>html`<span class="chip" onClick=${onGoCapture} key=${c.id}>${T_ICONS[c.type]||'📝'} ${capTitle(c).slice(0,30)}</span>`)}</div>
           ${hsCount>0?html`<div class="hint" style="margin-top:6px;color:var(--ac)">📍 ${hsCount} hors-scope ce mois</div>`:''}
         </div>`:''}
 
@@ -610,7 +631,10 @@ function Capture({onCapture,pushNav}){
     }
     if(!content.trim()||saving)return;
     setSaving(true);
-    await addCapture(type,content.trim(),tag.trim(),{...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
+    const newId=await addCapture(type,content.trim(),tag.trim(),{...(linkCh?{chantierId:linkCh}:{}),...(linkLivre?{livreId:linkLivre}:{})});
+    if((type==='lien'||type==='video')&&/^https?:\/\//i.test(content.trim())){
+      fetchTitleFor(newId,content.trim()).then(t=>{ if(t) load(); });
+    }
     setContent(''); setTag(''); setLinkCh(null); setLinkLivre(null); setSaving(false);
     await load(); if(onCapture)onCapture();
   }
@@ -730,7 +754,7 @@ function Capture({onCapture,pushNav}){
     setInbox(prev=>prev.map(x=>{if(x.id!==currentId)return x;const cur=x.linkedIds||[];return{...x,linkedIds:cur.includes(targetId)?cur:[...cur,targetId]};}));
   }
 
-  async function sauveActor(id){
+  async function sauveActor(id,{connect=true}={}){
     const a={
       aim:actorDraft.aim, compress:actorDraft.compress,
       test:{faits:actorDraft.faits,interp:actorDraft.interp,croyances:actorDraft.croyances,valeurs:actorDraft.valeurs,question:actorDraft.question},
@@ -741,7 +765,15 @@ function Capture({onCapture,pushNav}){
     setInbox(prev=>prev.map(x=>x.id===id?{...x,actorAnalysis:a}:x));
     setCorpus(await getActorCorpus());
     setActorSaved(true);
-    if(filtreIa.enabled&&a.compress?.trim()&&a.own?.trim()) genConnections(id,a);
+    if(connect&&filtreIa.enabled&&a.compress?.trim()&&a.own?.trim()) genConnections(id,a);
+  }
+  // Fermer la feuille ACTOR sauvegarde TOUJOURS le brouillon s'il a du contenu
+  // (avant : ✕/backdrop jetaient le travail en cours — perte silencieuse).
+  async function closeActor(){
+    if(actorId&&(actorDraft.aim?.trim()||actorDraft.compress?.trim()||actorDraft.own?.trim()||actorDraft.faits?.trim()||actorDraft.runTexte?.trim())){
+      try{ await sauveActor(actorId,{connect:false}); }catch(e){}
+    }
+    setActorId(null); setActorSaved(false); setConnectSuggestions(null);
   }
   async function markLater(id){
     if(actorId===id&&(actorDraft.aim||actorDraft.compress||actorDraft.own)){
@@ -811,9 +843,10 @@ function Capture({onCapture,pushNav}){
             ?html`<div class="item-pdf">📄</div>`
             :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
           <div style="flex:1;min-width:0">
-            <div class="item-ti">${isExpanded?item.contenu:(item.contenu.slice(0,100)+(item.contenu.length>100?'…':''))}</div>
+            <div class="item-ti">${isExpanded?capTitle(item):(capTitle(item).slice(0,100)+(capTitle(item).length>100?'…':''))}</div>
+            ${isExpanded&&item.titre&&isURL?html`<div class="item-src" style="text-transform:none;letter-spacing:0;margin-top:2px;word-break:break-all">${item.contenu.slice(0,90)}${item.contenu.length>90?'…':''}</div>`:''}
             <div class="item-src">
-              ${item.source?item.source+' · ':''}${relDate(item.date)}
+              ${item.source?item.source+' · ':''}${isURL&&hostOf(item.contenu)?hostOf(item.contenu)+' · ':''}${relDate(item.date)}
               ${item.linkedIds?.length?html` · <span style="color:var(--bleu)">🔗 ${item.linkedIds.length}</span>`:''}
               ${item.actorAnalysis?html` · <span class="actor-ic">⊙</span>`:''}
             </div>
@@ -840,7 +873,7 @@ function Capture({onCapture,pushNav}){
           ${linkedCaps.length===0?html`<div class="hint" style="font-size:10px;margin:0">Aucun lien — relie des captures connexes</div>`:''}
           ${linkedCaps.map(lc=>html`<div class="link-item" key=${lc.id}>
             <span style="font-size:13px;flex-shrink:0">${T_ICONS[lc.type]||'📝'}</span>
-            <span class="link-ti">${lc.contenu.slice(0,65)}${lc.contenu.length>65?'…':''}</span>
+            <span class="link-ti">${capTitle(lc).slice(0,65)}${capTitle(lc).length>65?'…':''}</span>
             <button class="del-btn" onClick=${e=>{e.stopPropagation();toggleLien(item.id,lc.id);}}>×</button>
           </div>`)}
           ${linkPickerId===item.id?html`<div class="picker-list">
@@ -848,7 +881,7 @@ function Capture({onCapture,pushNav}){
               const already=linkedCaps.some(l=>l.id===pc.id);
               return html`<div class="picker-item" key=${pc.id}>
                 <span style="font-size:12px;flex-shrink:0">${T_ICONS[pc.type]||'📝'}</span>
-                <span class="link-ti">${pc.contenu.slice(0,52)}${pc.contenu.length>52?'…':''}</span>
+                <span class="link-ti">${capTitle(pc).slice(0,52)}${capTitle(pc).length>52?'…':''}</span>
                 <button class=${'btn'+(already?' pri':'')} style="font-size:10px;padding:4px 9px" onClick=${e=>{e.stopPropagation();toggleLien(item.id,pc.id);}}>
                   ${already?'✓ Lié':'Lier'}
                 </button>
@@ -909,7 +942,7 @@ function Capture({onCapture,pushNav}){
             :item.type==='fichier'
             ?html`<div class="item-pdf">📄</div>`
             :html`<span class="item-ic">${T_ICONS[item.type]||'📝'}</span>`}
-          <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink2)">${item.contenu.slice(0,120)}${item.contenu.length>120?'…':''}</div>
+          <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink2)">${capTitle(item).slice(0,120)}${capTitle(item).length>120?'…':''}</div>
           <div class="item-src">${item.source?item.source+' · ':''}${relDate(item.date)}</div></div>
         </div>
         <div class="item-b">
@@ -922,7 +955,7 @@ function Capture({onCapture,pushNav}){
     ${done.length>0?html`<div class="sec-h"><span class="sec-t">Traités</span><span class="sec-c">${done.length}</span></div>
     ${done.slice(0,10).map(item=>html`<div class="item" key=${item.id}>
       <div class="item-top"><span class="item-ic">${T_ICONS[item.type]||'📝'}</span>
-      <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink3)">${item.contenu.slice(0,200)}${item.contenu.length>200?'…':''}</div>
+      <div style="flex:1;min-width:0"><div class="item-ti" style="color:var(--ink3)">${capTitle(item).slice(0,200)}${capTitle(item).length>200?'…':''}</div>
       <div class="item-src"><span class="done-tag">✓ Traité</span> · ${relDate(item.date)}</div>
       ${item.annotation?html`<div class="annot-badge">${item.annotation}</div>`:''}</div>
       <button class=${'del-btn'+(confirmDelId===item.id?' danger-btn':'')} onClick=${()=>supprimerCapture(item.id)}>${confirmDelId===item.id?'✕':'×'}</button>
@@ -967,7 +1000,7 @@ function Capture({onCapture,pushNav}){
           <div style="display:flex;align-items:flex-start;gap:8px">
             <span style="font-size:13px;flex-shrink:0">${T_ICONS[item.type]||'📝'}</span>
             <div style="flex:1;min-width:0">
-              <div class="item-ti" style="font-size:12px;color:var(--ink2)">${item.contenu.slice(0,90)}${item.contenu.length>90?'…':''}</div>
+              <div class="item-ti" style="font-size:12px;color:var(--ink2)">${capTitle(item).slice(0,90)}${capTitle(item).length>90?'…':''}</div>
               ${a.own?html`<div class="corpus-own">${a.own.slice(0,160)}${a.own.length>160?'…':''}</div>`:''}
               <div class="corpus-meta">
                 ${a.run?.type?html`<span class="corpus-run">${a.run.type}</span>`:''}
@@ -990,12 +1023,12 @@ function Capture({onCapture,pushNav}){
     <div class="foot">Zebracorn OS · Flux · v0.3</div>
 
     ${actorId&&actorItem?html`
-      <div class="actor-backdrop" onClick=${()=>{setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}></div>
+      <div class="actor-backdrop" onClick=${closeActor}></div>
       <div class="actor-sheet">
         <div class="actor-sheet-handle"></div>
         <div class="actor-panel-hdr">
-          <span class="actor-panel-title">⊙ ACTOR — ${actorItem.contenu.slice(0,45)}${actorItem.contenu.length>45?'…':''}</span>
-          <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${()=>{setActorId(null);setActorSaved(false);setConnectSuggestions(null);}}>✕</button>
+          <span class="actor-panel-title">⊙ ACTOR — ${capTitle(actorItem).slice(0,45)}${capTitle(actorItem).length>45?'…':''}</span>
+          <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${closeActor}>✕</button>
         </div>
         <div style="padding:10px 12px 0">
         ${['A','C','T','O','R'].map(s=>{
@@ -1867,7 +1900,10 @@ function App(){
     if(url&&url.trim()){
       const isNLM=url.includes('notebooklm.google');
       const src=isNLM?'NotebookLM':(title?.trim()||'');
-      addCapture('lien',url.trim(),src,{...(isNLM?{nlm:true}:{})}).then(()=>{ refresh(); setTab('capture'); });
+      addCapture('lien',url.trim(),src,{...(isNLM?{nlm:true}:{}),...(title?.trim()?{titre:title.trim()}:{})}).then(id=>{
+        if(!title?.trim()) fetchTitleFor(id,url.trim());
+        refresh(); setTab('capture');
+      });
       history.replaceState(null,'',location.pathname);
     } else if(txt&&txt.trim()){
       addCapture('note',txt.trim(),'',{}).then(()=>{ refresh(); setTab('capture'); });
@@ -1877,8 +1913,13 @@ function App(){
   useEffect(()=>{
     if(!syncConfigured()) return;
     const fn=()=>{ if(document.hidden) pushAll().catch(()=>{}); };
+    const ph=()=>{ pushAll().catch(()=>{}); };
     document.addEventListener('visibilitychange',fn);
-    return()=>document.removeEventListener('visibilitychange',fn);
+    window.addEventListener('pagehide',ph);
+    // Push auto : toute écriture locale déclenche un push debounced (4 s) —
+    // la donnée part AVANT que iOS ne tue la PWA, plus de perte à la fermeture.
+    window.zcOnDirty=()=>{ clearTimeout(window._zcPushT); window._zcPushT=setTimeout(()=>pushAll().catch(()=>{}),4000); };
+    return()=>{ document.removeEventListener('visibilitychange',fn); window.removeEventListener('pagehide',ph); window.zcOnDirty=null; };
   },[]);
 
   return html`<div class="phone">
@@ -1919,7 +1960,14 @@ function App(){
 }
 
 if(syncConfigured()&&(lastSync().push||lastSync().pull)){
-  try{ await pullAll(); }catch(e){}
+  // Garde anti-écrasement : si des écritures locales n'ont pas été poussées
+  // (zc_dirty), le local est EN AVANCE sur le cloud → on pousse au lieu de
+  // tirer. Le pull-on-open aveugle effaçait les captures faites juste avant
+  // de quitter l'app (bug perte de données, vidéo du 12/06).
+  try{
+    if(localStorage.getItem('zc_dirty')) await pushAll();
+    else await pullAll();
+  }catch(e){}
 }
 await seedOnce();
 await seedOnce_v2();
@@ -1927,6 +1975,9 @@ await seedQuestionsOnce();
 await seedLivresOnce();
 await seedChantiersEte2026();
 render(html`<${App}/>`, document.getElementById('root'));
+
+// iOS Safari n'applique :active qu'avec un listener touch — feedback tactile réel.
+document.addEventListener('touchstart',()=>{},{passive:true});
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').then(reg=>{

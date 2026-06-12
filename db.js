@@ -384,13 +384,19 @@ async function importTachesMerge(dump) {
 }
 
 async function importAll(dump) {
-  await db.transaction('rw', SYNC_TABLES.map(t => db.table(t)), async () => {
-    for (const t of SYNC_TABLES) {
-      if (!Array.isArray(dump[t])) continue;
-      await db.table(t).clear();
-      if (dump[t].length) await db.table(t).bulkPut(dump[t]);
-    }
-  });
+  _importing = true; // un import/pull ne doit pas marquer l'appareil « en avance »
+  try {
+    await db.transaction('rw', SYNC_TABLES.map(t => db.table(t)), async () => {
+      for (const t of SYNC_TABLES) {
+        if (!Array.isArray(dump[t])) continue;
+        await db.table(t).clear();
+        if (dump[t].length) await db.table(t).bulkPut(dump[t]);
+      }
+    });
+    localStorage.removeItem('zc_dirty');
+  } finally {
+    _importing = false;
+  }
 }
 
 // ── Cap annuel (North Star) ────────────────────────────────────────────────
@@ -567,3 +573,19 @@ function getFiltreIaSettings() {
 function saveFiltreIaSettings(settings) {
   localStorage.setItem(IA_KEY, JSON.stringify(settings));
 }
+
+// ── Suivi des écritures locales (sync non destructive) ──────────────────────
+// Toute écriture marque l'appareil « en avance » (zc_dirty). Le boot ne tire le
+// cloud QUE si rien n'est en attente ; sinon il pousse. Le flag est levé par
+// pushAll/pullAll (sync.js). window.zcOnDirty permet le push auto debounced.
+let _importing = false;
+function zcMarkDirty() {
+  if (_importing) return;
+  localStorage.setItem('zc_dirty', new Date().toISOString());
+  if (typeof window.zcOnDirty === 'function') window.zcOnDirty();
+}
+db.tables.forEach(t => {
+  t.hook('creating', () => { zcMarkDirty(); });
+  t.hook('updating', () => { zcMarkDirty(); });
+  t.hook('deleting', () => { zcMarkDirty(); });
+});
