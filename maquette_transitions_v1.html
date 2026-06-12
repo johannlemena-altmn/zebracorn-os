@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Maquette — Transitions v1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+  /* ── Reset ── */
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+
+  /* ── Tokens (copiés du design system Zebracorn OS) ── */
+  :root{
+    --bg:#faf8f3;--bg2:#f2eee5;--bg3:#e9e3d6;
+    --ink:#24211c;--ink2:#5c574d;--ink3:#9a9384;
+    --border:rgba(36,33,28,0.10);--border2:rgba(36,33,28,0.20);
+    --ac:#c2552f;--ac2:#8a6d2f;--ok:#3f7d5a;
+    --r:12px;--rl:18px;
+    --fs:'Fraunces',Georgia,serif;
+    --fb:'Inter',system-ui,sans-serif;
+    --fm:'JetBrains Mono',ui-monospace,monospace;
+    /* motion */
+    --t-tap:90ms;--t-state:280ms;--t-page:240ms;
+    --ease-out:cubic-bezier(.22,1,.36,1);
+    --ease-spring:cubic-bezier(.34,1.4,.64,1);
+  }
+  /* Light/dark pilotés par l'attribut data-theme (toggle de test) */
+  :root[data-theme="dark"]{
+    --bg:#1a1813;--bg2:#221f18;--bg3:#2c2820;
+    --ink:#f0ece2;--ink2:#b3ab9a;--ink3:#746d5d;
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+    --ac:#e0764a;--ac2:#c2a35a;--ok:#4f9a70;
+  }
+
+  body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.45;display:flex;justify-content:center;min-height:100svh;}
+  .phone{width:100%;max-width:430px;background:var(--bg);height:100svh;display:flex;flex-direction:column;position:relative;box-shadow:0 0 44px rgba(0,0,0,.14);overflow:hidden;}
+
+  /* ── Stage : conteneur des écrans (les écrans sont superposés pendant la transition) ── */
+  .stage{flex:1;position:relative;overflow:hidden;}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);}
+  .screen .scroll{flex:1;overflow-y:auto;padding:1.1rem 1.1rem 5.5rem;}
+  /* Par défaut un écran inactif est sorti du flux et invisible */
+  .screen[hidden]{display:none;}
+
+  /* ── Typographie / shell (repris du design system) ── */
+  .brand{font-family:var(--fm);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);}
+  .date-lbl{font-family:var(--fm);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;}
+  .h1{font-family:var(--fs);font-size:38px;font-weight:500;letter-spacing:-1px;line-height:1;margin:.15rem 0 .2rem;}
+  .greet{font-size:13px;color:var(--ink2);margin-bottom:1rem;}
+  .sec{margin-bottom:1.3rem;}
+  .sec-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.55rem;}
+  .sec-t{font-family:var(--fm);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);}
+  .sec-c{font-family:var(--fm);font-size:11px;color:var(--ac);font-weight:600;}
+  .foot{font-family:var(--fm);font-size:9px;color:var(--ink3);text-align:center;letter-spacing:.1em;text-transform:uppercase;padding-top:.5rem;}
+
+  /* ── Cartes factices ── */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;}
+  .card-t{font-family:var(--fs);font-size:17px;font-weight:500;margin-bottom:4px;}
+  .card-d{font-size:13px;color:var(--ink2);}
+  .prog-bar{height:5px;border-radius:4px;background:var(--bg3);overflow:hidden;margin-top:10px;}
+  .prog-fill{height:100%;background:var(--ac);border-radius:4px;}
+  .ch-prog{font-family:var(--fm);font-size:10px;color:var(--ink3);margin-top:7px;}
+  /* Carte chantier cliquable (drill-down) */
+  .card.click{cursor:pointer;transition:transform var(--t-tap) var(--ease-out);}
+  .card.click:active{transform:scale(.985);}
+  .card.click .chev{float:right;color:var(--ink3);font-size:13px;}
+
+  .pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .pill{font-family:var(--fm);font-size:11px;padding:6px 11px;border-radius:20px;border:1px solid var(--border);color:var(--ink2);background:var(--bg2);}
+  .pill.on{background:var(--ac);color:#fff;border-color:transparent;}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);font-size:14px;}
+  .row:last-child{border-bottom:none;}
+  .row .v{margin-left:auto;color:var(--ink3);font-family:var(--fm);font-size:11px;}
+
+  /* ── Drill-down : page détail (pattern .nav-page) ── */
+  .nav-page{position:absolute;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;
+            box-shadow:-12px 0 24px rgba(0,0,0,.18);}
+  .nav-page .scroll{flex:1;overflow-y:auto;padding:0 1.1rem 2rem;}
+  .backbar{display:flex;align-items:center;height:48px;padding:0 1.1rem;flex-shrink:0;}
+  .back-btn{font-family:var(--fb);font-size:14px;font-weight:500;color:var(--ac);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;padding:6px 4px;}
+  .back-btn:active{opacity:.6;}
+  /* Poignée de bord (zone de swipe), invisible mais explicite à l'inspection */
+  .edge-grab{position:absolute;top:0;left:0;width:24px;height:100%;z-index:210;}
+
+  /* ── Tab bar (pattern .tabnav) ── */
+  .tabnav{position:absolute;bottom:0;left:0;width:100%;background:var(--bg);border-top:1px solid var(--border);
+          display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100;}
+  .tabnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;
+                 padding:6px 4px;border-radius:10px;color:var(--ink3);
+                 transition:color var(--t-state) var(--ease-out),transform var(--t-tap) var(--ease-out);}
+  .tabnav button.on{color:var(--ac);}
+  .tabnav button:active{transform:translateY(1px) scale(.94);transition-duration:0s;}
+  .tabnav .tico{transition:transform var(--t-state) var(--ease-spring);}
+  .tabnav button.on .tico{transform:translateY(-1px);}
+  .tabnav .tlbl{font-family:var(--fm);font-size:9px;letter-spacing:.05em;}
+  .tico svg{width:24px;height:24px;display:block;}
+
+  /* ── Bandeau de test (titre + toggle thème) ── */
+  .testbar{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--bg2);
+           border-bottom:1px solid var(--border);flex-shrink:0;}
+  .testbar .tt{font-family:var(--fm);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
+  .theme-tog{background:none;border:1px solid var(--border);border-radius:20px;width:34px;height:26px;cursor:pointer;font-size:14px;line-height:1;}
+
+  /* ── prefers-reduced-motion : aucun mouvement latéral, crossfade seul ── */
+  @media(prefers-reduced-motion:reduce){
+    .screen,.nav-page{transition:opacity 120ms linear !important;}
+  }
+  </style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="testbar">
+    <span class="tt">Maquette · Transitions v1</span>
+    <button class="theme-tog" id="themeTog" aria-label="Basculer thème">🌙</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- ── Écran 0 : Maintenant ── -->
+    <section class="screen" data-i="0">
+      <div class="scroll">
+        <div class="hdr"><span class="brand">Zebracorn OS · Maintenant</span><span class="date-lbl">JEU. 12 JUIN</span></div>
+        <div class="h1">Maintenant.</div>
+        <div class="greet">Une seule chose compte là, tout de suite.</div>
+        <div class="card">
+          <div class="card-t">Session DRAP — partie 2</div>
+          <div class="card-d">Bloc de 90 min. Cadrer le diagnostic stratégique.</div>
+          <div class="prog-bar"><div class="prog-fill" style="width:40%"></div></div>
+          <div class="ch-prog">→ étape 2/5 · démarré il y a 12 min</div>
+        </div>
+        <div class="card">
+          <div class="card-t">Prochain rendez-vous</div>
+          <div class="card-d">Appel Kyaneos · 16:30 · préparer 3 questions.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Écran 1 : Capturer ── -->
+    <section class="screen" data-i="1" hidden>
+      <div class="scroll">
+        <div class="hdr"><span class="brand">Zebracorn OS · Capturer</span><span class="date-lbl">JEU. 12 JUIN</span></div>
+        <div class="h1">Capturer.</div>
+        <div class="greet">Vide ta tête, trie plus tard.</div>
+        <div class="pill-row">
+          <span class="pill on">Tâche</span><span class="pill">Idée</span><span class="pill">Lien</span><span class="pill">Note</span>
+        </div>
+        <div class="card">
+          <div class="card-t">Capture rapide</div>
+          <div class="card-d">« Relire le chapitre low-tech avant vendredi. »</div>
+        </div>
+        <div class="card">
+          <div class="card-t">3 captures en attente</div>
+          <div class="card-d">À trier vers Mémoire en fin de journée.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Écran 2 : Mémoire (cartes chantier cliquables → drill-down) ── -->
+    <section class="screen" data-i="2" hidden>
+      <div class="scroll">
+        <div class="hdr"><span class="brand">Zebracorn OS · Mémoire</span><span class="date-lbl">JEU. 12 JUIN</span></div>
+        <div class="h1">Mémoire.</div>
+        <div class="greet">La profondeur attend, calme.</div>
+        <div class="sec">
+          <div class="sec-h"><span class="sec-t">Chantiers</span><span class="sec-c">2</span></div>
+          <div class="card click" data-fiche="0">
+            <span class="chev">›</span>
+            <div class="card-t">Zebracorn OS — refonte v0.2</div>
+            <div class="prog-bar"><div class="prog-fill" style="width:60%"></div></div>
+            <div class="ch-prog">→ Refondre l'écran Mémoire · 3/5 étapes</div>
+          </div>
+          <div class="card click" data-fiche="1">
+            <span class="chev">›</span>
+            <div class="card-t">Candidatures alternance 2026</div>
+            <div class="prog-bar"><div class="prog-fill" style="width:80%"></div></div>
+            <div class="ch-prog">→ Relances semaine 25 · 8/10 étapes</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-t">Bibliothèque</div>
+          <div class="card-d">L'âge des low-tech · 112/280 p.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Écran 3 : Réglages ── -->
+    <section class="screen" data-i="3" hidden>
+      <div class="scroll">
+        <div class="hdr"><span class="brand">Zebracorn OS · Réglages</span><span class="date-lbl">JEU. 12 JUIN</span></div>
+        <div class="h1">Réglages.</div>
+        <div class="greet">Ajuster l'outil à ta vie, pas l'inverse.</div>
+        <div class="card">
+          <div class="row">Thème<span class="v">Système</span></div>
+          <div class="row">Rappels<span class="v">Activés</span></div>
+          <div class="row">Synchronisation<span class="v">Wi-Fi</span></div>
+        </div>
+        <div class="card">
+          <div class="row">Version<span class="v">v0.2.0</span></div>
+          <div class="row">Stockage local<span class="v">2,1 Mo</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── Tab bar ── -->
+  <nav class="tabnav" id="tabnav"></nav>
+</div>
+
+<!-- Pictos SVG main levée (repris tels quels de index.html) -->
+<template id="ic-maintenant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 3.3 Q12 4.3 18.4 3.2"/><path d="M6.8 3.7 C7.2 7.4 10.1 9.6 11.9 12 C10 14.5 7.1 16.6 6.8 20.2"/><path d="M17.2 3.6 C16.9 7.3 13.9 9.7 12.1 12 C14 14.4 17 16.5 17.3 20.3"/><path d="M5.5 20.7 Q12 19.8 18.5 20.8"/><path d="M12 13.2 V15.6"/><path d="M10 18.6 Q12 17.2 14 18.7"/></svg></template>
+<template id="ic-memoire"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.6 C10.7 2.9 8.1 3.1 7.3 5 C5.3 5.1 4.1 7.3 5.1 8.9 C3.7 10.3 4.3 12.8 6.1 13.5 C6.3 15.6 8.5 16.8 10.3 15.9 C10.9 16.7 11.6 17.1 12 17.1"/><path d="M12 4.6 C13.3 2.9 15.9 3.1 16.7 5 C18.7 5.1 19.9 7.3 18.9 8.9 C20.3 10.3 19.7 12.8 17.9 13.5 C17.7 15.6 15.5 16.8 13.7 15.9 C13.1 16.7 12.4 17.1 12 17.1"/><path d="M12 4.8 C11.8 8.5 12.2 13.5 12 17"/><path d="M8.3 8.6 Q9.7 9.3 9.2 10.8"/><path d="M15.7 8.6 Q14.3 9.3 14.8 10.8"/></svg></template>
+<template id="ic-flux"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 3.6 C6.4 6 9.4 7.4 11.3 8"/><path d="M12 3 V7.8"/><path d="M19.2 3.6 C17.6 6 14.6 7.4 12.7 8"/><path d="M7.9 9.6 H16.1 L12.6 14.2 H11.6 Z"/><circle cx="8.9" cy="17.1" r="1" fill="currentColor" stroke="none"/><circle cx="12.1" cy="19.6" r="1" fill="currentColor" stroke="none"/><circle cx="15.3" cy="17.1" r="1" fill="currentColor" stroke="none"/></svg></template>
+<template id="ic-reglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12.2" r="6"/><circle cx="12" cy="12.2" r="2.7"/><path d="M12 6.2 V3.9"/><path d="M12 18.2 V20.5"/><path d="M6 12.2 H3.8"/><path d="M18 12.2 H20.2"/><path d="M7.8 8 L6.2 6.4"/><path d="M16.2 8 L17.8 6.4"/><path d="M7.8 16.4 L6.2 18"/><path d="M16.2 16.4 L17.8 18"/></svg></template>
+
+<script>
+(() => {
+  'use strict';
+  const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const DUR = 240, EASE = 'cubic-bezier(.22,1,.36,1)';
+  const stage = document.getElementById('stage');
+  const screens = [...stage.querySelectorAll('.screen')];
+  const tabs = [
+    { lbl: 'Maintenant', ic: 'ic-maintenant' },
+    { lbl: 'Capturer',  ic: 'ic-flux' },
+    { lbl: 'Mémoire',   ic: 'ic-memoire' },
+    { lbl: 'Réglages',  ic: 'ic-reglages' },
+  ];
+  let current = 0;
+  let animating = false; // verrou pour ignorer les clics rapides pendant une transition d'onglet
+
+  // ── Construction de la tab bar ──
+  const nav = document.getElementById('tabnav');
+  tabs.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="tico">${document.getElementById(t.ic).innerHTML}</span><span class="tlbl">${t.lbl}</span>`;
+    b.classList.toggle('on', i === current);
+    b.addEventListener('click', () => goTab(i));
+    nav.appendChild(b);
+  });
+  const navBtns = [...nav.children];
+
+  // ── Transition d'onglet directionnelle ──
+  function goTab(i) {
+    if (i === current || animating) return; // clic rapide : ignoré proprement tant qu'une anim tourne
+    const dir = i > current ? 1 : -1;        // 1 = on va vers la droite (entrant depuis la droite)
+    const from = screens[current], to = screens[i];
+    navBtns[current].classList.remove('on');
+    navBtns[i].classList.add('on');
+    current = i;
+
+    if (reduce) { // crossfade instantané, aucun mouvement latéral
+      from.hidden = true; to.hidden = false; return;
+    }
+    animating = true;
+    to.hidden = false;
+    to.style.willChange = from.style.willChange = 'transform, opacity';
+    // Position de départ : entrant hors écran du bon côté
+    to.style.transition = 'none';
+    to.style.transform = `translateX(${dir * 100}%)`;
+    to.style.opacity = '1';
+    void to.offsetWidth; // reflow pour ancrer l'état initial avant d'animer
+
+    const tr = `transform ${DUR}ms ${EASE}, opacity ${DUR}ms ${EASE}`;
+    to.style.transition = tr; from.style.transition = tr;
+    to.style.transform = 'translateX(0)';
+    from.style.transform = `translateX(${dir * -30}%)`; // parallaxe légère du sortant
+    from.style.opacity = '.6';
+
+    // Cleanup piloté par un timer (déterministe) plutôt que transitionend, qui peut
+    // être manqué si une nouvelle transition interrompt l'élément avant la fin.
+    setTimeout(() => {
+      from.hidden = true;
+      [from, to].forEach(s => { s.style.transition = s.style.transform = s.style.opacity = s.style.willChange = ''; });
+      animating = false;
+    }, DUR + 20);
+  }
+
+  // ── Drill-down : fiche chantier ──
+  const fiches = [
+    { t: 'Zebracorn OS — refonte v0.2', d: 'Refonte progressive de l\'app, écran par écran.', steps: ['Refondre l\'écran Mémoire', 'Maquette transitions', 'Drill-down chantiers', 'Tests mobile', 'Mise en ligne v0.2'] },
+    { t: 'Candidatures alternance 2026', d: 'Book de 11 livrables, 10 envois prêts.', steps: ['Cartographier les orgas', 'Rédiger les livrables', 'Préparer les envois', 'Relances semaine 25'] },
+  ];
+  let fichePage = null;
+
+  document.querySelectorAll('.card[data-fiche]').forEach(c => {
+    c.addEventListener('click', () => openFiche(+c.dataset.fiche));
+  });
+
+  function openFiche(idx) {
+    if (fichePage || animating) return; // pas de drill-down pendant une transition d'onglet
+    const f = fiches[idx];
+    const below = screens[current];
+    const page = document.createElement('div');
+    page.className = 'nav-page';
+    page.innerHTML = `
+      <div class="edge-grab" aria-hidden="true"></div>
+      <div class="backbar"><button class="back-btn">‹ Mémoire</button></div>
+      <div class="scroll">
+        <div class="h1" style="font-size:30px">${f.t}</div>
+        <div class="greet">${f.d}</div>
+        <div class="card"><div class="card-t">Étapes</div>
+          ${f.steps.map((s, j) => `<div class="row">${j < 3 ? '✓ ' : '○ '}${s}<span class="v">${j < 3 ? 'fait' : '—'}</span></div>`).join('')}
+        </div>
+        <div class="card"><div class="card-t">Prochaine action</div><div class="card-d">${f.steps[3] || 'Clôturer le chantier.'}</div></div>
+      </div>`;
+    stage.appendChild(page);
+    fichePage = page;
+
+    const W = stage.clientWidth;
+    const close = () => closeFiche(below);
+    page.querySelector('.back-btn').addEventListener('click', close);
+
+    if (reduce) { // pas de slide : apparition simple
+      below.style.transition = 'opacity 120ms'; below.style.opacity = '.6';
+      attachDrag(page, below, W); return;
+    }
+    // Slide d'entrée depuis la droite + recul parallaxe de l'écran dessous
+    page.style.transition = 'none'; page.style.transform = 'translateX(100%)';
+    below.style.willChange = page.style.willChange = 'transform, opacity';
+    void page.offsetWidth;
+    page.style.transition = `transform ${DUR}ms ${EASE}`;
+    below.style.transition = `transform ${DUR}ms ${EASE}, opacity ${DUR}ms ${EASE}`;
+    page.style.transform = 'translateX(0)';
+    below.style.transform = 'translateX(-30%)'; below.style.opacity = '.6';
+    page.addEventListener('transitionend', () => {
+      page.style.willChange = ''; attachDrag(page, below, W);
+    }, { once: true });
+  }
+
+  function closeFiche(below, fast) {
+    const page = fichePage; if (!page) return;
+    fichePage = null;
+    const W = stage.clientWidth;
+    if (reduce) { page.remove(); below.style.opacity = ''; below.style.transition = ''; return; }
+    const d = fast || DUR;
+    page.style.transition = `transform ${d}ms ${EASE}`;
+    below.style.transition = `transform ${d}ms ${EASE}, opacity ${d}ms ${EASE}`;
+    page.style.transform = 'translateX(100%)';
+    below.style.transform = 'translateX(0)'; below.style.opacity = '1';
+    setTimeout(() => {
+      page.remove();
+      below.style.transition = below.style.transform = below.style.opacity = below.style.willChange = '';
+    }, d + 20);
+  }
+
+  // ── Swipe / drag depuis le bord gauche pour fermer la fiche ──
+  function attachDrag(page, below, W) {
+    let startX = 0, dragging = false, lastX = 0, lastT = 0, vx = 0;
+    const EDGE = 24, THRESH = 0.35;
+
+    const start = (x) => {
+      if (x > EDGE) return false;           // doit démarrer dans la zone de bord
+      dragging = true; startX = lastX = x; lastT = performance.now();
+      page.style.transition = below.style.transition = 'none'; // suivi direct du doigt
+      page.style.willChange = below.style.willChange = 'transform, opacity';
+      return true;
+    };
+    const move = (x) => {
+      if (!dragging) return;
+      const dx = Math.max(0, x - startX);
+      const p = dx / W;                      // progression 0→1
+      page.style.transform = `translateX(${dx}px)`;
+      below.style.transform = `translateX(${-30 + 30 * p}%)`; // revient proportionnellement
+      below.style.opacity = (0.6 + 0.4 * p).toFixed(3);
+      const now = performance.now();
+      vx = (x - lastX) / Math.max(1, now - lastT); // px/ms
+      lastX = x; lastT = now;
+    };
+    const end = (x) => {
+      if (!dragging) return; dragging = false;
+      page.style.willChange = below.style.willChange = '';
+      const dx = Math.max(0, x - startX);
+      // Complète si déplacement > 35% OU vélocité franche vers la droite
+      if (dx > W * THRESH || vx > 0.5) closeFiche(below, 180);
+      else snapBack(page, below);
+    };
+
+    // Tactile
+    page.addEventListener('touchstart', e => { if (start(e.touches[0].clientX)) {} }, { passive: true });
+    page.addEventListener('touchmove',  e => { if (dragging) { move(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+    page.addEventListener('touchend',   e => end((e.changedTouches[0] || {}).clientX || lastX));
+    // Souris (pour tester en preview)
+    page.addEventListener('mousedown', e => { if (start(e.clientX)) e.preventDefault(); });
+    window.addEventListener('mousemove', e => move(e.clientX));
+    window.addEventListener('mouseup',   e => end(e.clientX));
+  }
+
+  function snapBack(page, below) {
+    page.style.transition = `transform 160ms ${EASE}`;
+    below.style.transition = `transform 160ms ${EASE}, opacity 160ms ${EASE}`;
+    page.style.transform = 'translateX(0)';
+    below.style.transform = 'translateX(-30%)'; below.style.opacity = '.6';
+  }
+
+  // ── Toggle thème (aide de test) ──
+  const tog = document.getElementById('themeTog');
+  tog.addEventListener('click', () => {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+    tog.textContent = dark ? '🌙' : '☀️';
+  });
+  // État initial du toggle aligné sur la préférence système
+  if (matchMedia('(prefers-color-scheme:dark)').matches) {
+    document.documentElement.setAttribute('data-theme', 'dark'); tog.textContent = '☀️';
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+</script>
+</body>
+</html>

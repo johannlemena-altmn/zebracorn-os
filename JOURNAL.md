@@ -5,6 +5,31 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-12 — Maquette transitions slide directionnel (validation en attente)
+
+- **Fait** : `maquette_transitions_v1.html` (statique, autonome, zéro dépendance,
+  413 lignes) — 4 faux écrans + tab bar pictos main levée. Changement d'onglet :
+  l'entrant glisse depuis la direction du tab choisi (index supérieur = depuis la
+  droite, inférieur = miroir), le sortant part en parallaxe −30 % + opacity .6,
+  240 ms `--ease-out` (tokens motion existants, rien de nouveau). Drill-down
+  carte chantier → page détail slide droite (z-index 200) + retour bouton ET
+  swipe-bord-gauche (suivi du doigt, seuil 35 % ou vélocité > 0,5 px/ms ;
+  équivalent souris pour la preview). Toggle ☀/🌙 de test.
+- **Pourquoi** : donner le sens spatial natif iOS sans dépendance — incrément
+  « Prochain » acté en v0.3.2. Transform/opacity uniquement, `will-change`
+  temporaire, `prefers-reduced-motion` → crossfade sans mouvement latéral.
+- **DoD (sous-agent, preview mobile 390×844 dark+light)** : directions vérifiées
+  par mesure des matrices de transform (0→2 : entrant +127→0 px, sortant
+  −117 px ; 2→0 : miroir) ; 4 clics d'onglets rapides → un seul écran stable
+  (verrou `animating`) ; swipe-bord simulé souris OK ; zéro erreur console.
+  Bug corrigé avant livraison : cleanup `transitionend` manqué en cas
+  d'interruption → remplacé par `setTimeout(DUR+20)` déterministe.
+  Reduced-motion non exerçable en preview (limite outillage) ; swipe tactile
+  réel à confirmer sur iPhone.
+- **Prochain** : validation Johann sur la maquette, PUIS port dans index.html
+  (session fraîche) — brancher goTab sur la pile d'onglets Preact et le pattern
+  `.nav-page` existant.
+
 ## 2026-06-12 — v0.3.2 : feuille ACTOR (swipe + z-index) · Mémoire réordonnable · fiche refermable
 
 - **Fait** :
