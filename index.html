@@ -767,6 +767,22 @@ function Capture({onCapture,pushNav}){
     setActorSaved(true);
     if(connect&&filtreIa.enabled&&a.compress?.trim()&&a.own?.trim()) genConnections(id,a);
   }
+  // Swipe-down sur la poignée/le header → la feuille suit le doigt, et au-delà
+  // du seuil elle glisse hors écran puis ferme (= sauvegarde via closeActor).
+  function sheetDragStart(e){
+    const sh=e.currentTarget.closest('.actor-sheet'); if(!sh) return;
+    const y0=e.touches[0].clientY; let dy=0;
+    sh.style.transition='none';
+    const move=ev=>{ dy=Math.max(0,ev.touches[0].clientY-y0); sh.style.transform=`translateX(-50%) translateY(${dy}px)`; if(ev.cancelable)ev.preventDefault(); };
+    const end=()=>{
+      document.removeEventListener('touchmove',move); document.removeEventListener('touchend',end);
+      sh.style.transition='transform 220ms cubic-bezier(.22,1,.36,1)';
+      if(dy>90){ sh.style.transform='translateX(-50%) translateY(105%)'; setTimeout(()=>{ closeActor(); },200); }
+      else { sh.style.transform='translateX(-50%)'; setTimeout(()=>{ sh.style.transform=''; sh.style.transition=''; },240); }
+    };
+    document.addEventListener('touchmove',move,{passive:false});
+    document.addEventListener('touchend',end);
+  }
   // Fermer la feuille ACTOR sauvegarde TOUJOURS le brouillon s'il a du contenu
   // (avant : ✕/backdrop jetaient le travail en cours — perte silencieuse).
   async function closeActor(){
@@ -1025,10 +1041,12 @@ function Capture({onCapture,pushNav}){
     ${actorId&&actorItem?html`
       <div class="actor-backdrop" onClick=${closeActor}></div>
       <div class="actor-sheet">
+        <div class="actor-grip" onTouchStart=${sheetDragStart}>
         <div class="actor-sheet-handle"></div>
         <div class="actor-panel-hdr">
           <span class="actor-panel-title">⊙ ACTOR — ${capTitle(actorItem).slice(0,45)}${capTitle(actorItem).length>45?'…':''}</span>
           <button class="btn" style="font-size:10px;padding:3px 8px" onClick=${closeActor}>✕</button>
+        </div>
         </div>
         <div style="padding:10px 12px 0">
         ${['A','C','T','O','R'].map(s=>{
@@ -1321,7 +1339,7 @@ function FicheLivre({id,onBack}){
 
 const PRIO_PILLS = [['rouge','Échéance'],['bleu','Semaine'],['vert','Chantier']];
 
-function Semaine(){
+function Semaine({pushNav,navDepth}){
   const [taches,setTaches]   = useState([]);
   const [chantiers,setChant] = useState([]);
   const [chProg,setChProg]   = useState({});
@@ -1360,6 +1378,8 @@ function Semaine(){
     setCapObjectifs((cap.objectifs||'').split('\n').map(s=>s.trim()).filter(Boolean));
   },[]);
   useEffect(()=>{ load(); },[load]);
+  // Au retour d'une fiche (pile nav vidée), recharger : étapes/prochaine ont pu changer.
+  useEffect(()=>{ if(navDepth===0) load(); },[navDepth,load]);
 
   async function add(){
     if(!titre.trim()) return;
@@ -1378,14 +1398,47 @@ function Semaine(){
   async function archiveQ(id){ await archiveQuestion(id); await load(); }
   async function restoreQ(id){ await restoreQuestion(id); await load(); }
 
+  // Fiches ouvertes via la pile nav globale (nav-back-bar) — avant : rendu
+  // inline SANS bouton retour, la fiche était impossible à refermer (bug vidéo).
+  const ouvrirChantier=id=>pushNav?pushNav({type:'chantier',id,from:'Mémoire'}):setFicheId(id);
+  const ouvrirLivre=id=>pushNav?pushNav({type:'livre',id,from:'Mémoire'}):setFicheLivreId(id);
   if(ficheId!==null) return html`<${FicheChantier} id=${ficheId} onBack=${()=>{setFicheId(null);load();}}/>`;
   if(ficheLivreId!==null) return html`<${FicheLivre} id=${ficheLivreId} onBack=${()=>{setFicheLivreId(null);load();}}/>`;
 
+  // Ordre manuel (drag ⠿) : ordre asc, les sans-ordre derrière (récent d'abord).
+  const byOrdre = arr=>[...arr].sort((a,b)=>((a.ordre??1e9)-(b.ordre??1e9))||((a.cree<b.cree)?1:-1));
   const rouge = sortByEch(taches.filter(t=>t.prio==='rouge'));
-  const bleu  = sortByEch(taches.filter(t=>t.prio==='bleu'));
+  const bleu  = byOrdre(taches.filter(t=>t.prio==='bleu'));
+  const chantiersOrd = byOrdre(chantiers);
   const now = new Date();
 
-  const groupeTaches = (arr, dot, titreSec, sous) => html`<div class="sec">
+  // Drag-réordonner au doigt (poignée ⠿) — la carte suit, l'index d'arrivée se
+  // calcule sur les centres des cartes voisines, l'ordre persiste en DB.
+  function dragReorder(e,id,items,table){
+    const card=e.currentTarget.closest('.task,.chantier-card'); if(!card) return;
+    const wrap=card.parentElement;
+    const pt=e.touches?e.touches[0]:e; const y0=pt.clientY;
+    card.style.transition='none'; card.style.zIndex='40'; card.style.position='relative';
+    const isTouch=!!e.touches;
+    const move=ev=>{ const p=ev.touches?ev.touches[0]:ev; card.style.transform=`translateY(${p.clientY-y0}px)`; if(ev.cancelable)ev.preventDefault(); };
+    const end=async()=>{
+      document.removeEventListener(isTouch?'touchmove':'mousemove',move);
+      document.removeEventListener(isTouch?'touchend':'mouseup',end);
+      const r=card.getBoundingClientRect(); const myMid=r.top+r.height/2;
+      const others=[...wrap.children].filter(c=>c!==card&&c.dataset&&c.dataset.did);
+      const newIdx=others.filter(o=>{const or=o.getBoundingClientRect();return or.top+or.height/2<myMid;}).length;
+      card.style.transform='';card.style.zIndex='';card.style.position='';card.style.transition='';
+      const fromIdx=items.findIndex(x=>x.id===id);
+      if(fromIdx<0||newIdx===fromIdx) return;
+      const arr=items.filter(x=>x.id!==id); arr.splice(newIdx,0,items[fromIdx]);
+      await Promise.all(arr.map((x,i)=>db.table(table).update(x.id,{ordre:i})));
+      await load();
+    };
+    document.addEventListener(isTouch?'touchmove':'mousemove',move,{passive:false});
+    document.addEventListener(isTouch?'touchend':'mouseup',end);
+  }
+
+  const groupeTaches = (arr, dot, titreSec, sous, drag=false) => html`<div class="sec">
     <div class="sec-h"><span class="sec-t"><span class=${'pdot '+dot}/>${titreSec}</span><span class="sec-c">${arr.length}</span></div>
     ${arr.length===0?html`<div class="empty-state">${sous}</div>`:''}
     ${arr.map(t=>{
@@ -1395,7 +1448,8 @@ function Semaine(){
       const parsed=parseNotes(t.notes);
       const todos=parsed.filter(l=>l.type==='todo');
       const doneC=todos.filter(l=>l.done).length;
-      return html`<div class=${'task'+(t.fait?' done':'')+(isExp?' expanded':'')} key=${t.id}>
+      return html`<div class=${'task'+(t.fait?' done':'')+(isExp?' expanded':'')} key=${t.id} data-did=${t.id}>
+        ${drag?html`<span class="drag-h" onTouchStart=${e=>dragReorder(e,t.id,arr,'taches')} onMouseDown=${e=>dragReorder(e,t.id,arr,'taches')}>⠿</span>`:''}
         <div class="box" onClick=${()=>togTache(t.id,!t.fait)}/>
         <span class="t-txt" onClick=${()=>toggleExpandTache(t.id,t.notes)}>${t.titre}</span>
         ${t.capObjectif&&!isExp?html`<span class="cap-obj-chip" title=${t.capObjectif}>🎯 ${t.capObjectif.slice(0,20)}${t.capObjectif.length>20?'…':''}</span>`:''}
@@ -1463,15 +1517,15 @@ function Semaine(){
     </div>
 
     ${groupeTaches(rouge,'rouge','Cette échéance',"rien d'urgent ✶")}
-    ${groupeTaches(bleu,'bleu','Cette semaine','rien à caser ✶')}
+    ${groupeTaches(bleu,'bleu','Cette semaine','rien à caser ✶',true)}
 
     <div class="sec">
-      <div class="sec-h"><span class="sec-t"><span class="pdot vert"/>Chantiers</span><span class="sec-c">${chantiers.length}</span></div>
-      ${chantiers.length===0?html`<div class="empty-state">aucun chantier ✶</div>`:''}
-      ${chantiers.map(c=>{
+      <div class="sec-h"><span class="sec-t"><span class="pdot vert"/>Chantiers</span><span class="sec-c">${chantiersOrd.length}</span></div>
+      ${chantiersOrd.length===0?html`<div class="empty-state">aucun chantier ✶</div>`:''}
+      ${chantiersOrd.map(c=>{
         const p=chProg[c.id];
-        return html`<div class="chantier-card" style="cursor:pointer" onClick=${()=>setFicheId(c.id)} key=${c.id}>
-          <div class="ch-top"><span class="ch-ti">${c.titre}</span><span class="t-del" onClick=${e=>{e.stopPropagation();delChant(c.id);}}>✕</span></div>
+        return html`<div class="chantier-card" style="cursor:pointer" onClick=${()=>ouvrirChantier(c.id)} key=${c.id} data-did=${c.id}>
+          <div class="ch-top"><span class="drag-h" onTouchStart=${e=>{e.stopPropagation();dragReorder(e,c.id,chantiersOrd,'chantiers');}} onMouseDown=${e=>{e.stopPropagation();dragReorder(e,c.id,chantiersOrd,'chantiers');}} onClick=${e=>e.stopPropagation()}>⠿</span><span class="ch-ti">${c.titre}</span><span class="t-del" onClick=${e=>{e.stopPropagation();delChant(c.id);}}>✕</span></div>
           ${p?.total>0?html`<div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style=${'width:'+Math.round(p.done/p.total*100)+'%'}/></div>`:''}
           <div class="ch-prog">${c.prochaine?('→ '+c.prochaine):'Ouvre pour ajouter la 1ʳᵉ étape →'}${p?.total>0?` · ${p.done}/${p.total} étapes`:''}</div>
         </div>`;
@@ -1514,7 +1568,7 @@ function Semaine(){
         <div class="card-pli">
           <div class="sec-h" style="margin-bottom:8px"><span class="sec-t">Bibliothèque</span><span class="sec-c">${livres.length}</span></div>
           ${livres.length===0?html`<div class="empty-state">aucun livre — ajoute le premier ↓</div>`:''}
-          ${livres.map(l=>html`<div class="livre-card" onClick=${()=>setFicheLivreId(l.id)} key=${l.id}>
+          ${livres.map(l=>html`<div class="livre-card" onClick=${()=>ouvrirLivre(l.id)} key=${l.id}>
             <div class="ch-top">
               <span class="ch-ti">${l.titre}</span>
               <span class="livre-statut" style=${'color:'+(l.statut==='lu'?'var(--ok)':l.statut==='en-cours'?'var(--ac2)':'var(--ink3)')}>
@@ -1926,7 +1980,7 @@ function App(){
     ${tab==='maintenant'
       ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')} onGoSem=${()=>setTab('semaine')} pushNav=${pushNav}/>`
       : tab==='semaine'
-      ? html`<${Semaine}/>`
+      ? html`<${Semaine} pushNav=${pushNav} navDepth=${navStack.length}/>`
       : tab==='reglages'
       ? html`<${Reglages}/>`
       : html`<${Capture} onCapture=${refresh} pushNav=${pushNav}/>`

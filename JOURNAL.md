@@ -5,6 +5,29 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-12 — v0.3.2 : feuille ACTOR (swipe + z-index) · Mémoire réordonnable · fiche refermable
+
+- **Fait** :
+  1. **Feuille ACTOR** : passe AU-DESSUS de la tab bar (z-index 120 vs 100 — le
+     bouton Sauvegarder était recouvert, vidéo 02:51) + **swipe-down** sur la
+     poignée/le header : la feuille suit le doigt, seuil 90 px → glisse hors
+     écran et ferme (= sauvegarde, closeActor).
+  2. **Mémoire — ordre manuel** : poignée ⠿ sur les tâches « Cette semaine » et
+     les cartes chantiers ; drag au doigt (touch + souris), index d'arrivée
+     calculé sur les centres des cartes, champ `ordre` persisté en DB. Tri :
+     ordre asc, sans-ordre derrière. « Cette échéance » reste triée par échéance
+     (le deadline décide, pas la main).
+  3. **Fiche chantier/livre refermable** : Mémoire ouvrait les fiches en rendu
+     inline SANS retour (bug « je ne peux plus refermer ») → elles passent par
+     la pile nav globale (`pushNav`, back bar « ← Mémoire ») + reload au retour.
+- **DoD** : preview mobile — drag bleu : ordre changé ET persistant au reload ✓ ;
+  fiche chantier : ouverture nav-page, retour « Mémoire », fermeture ✓ ; feuille
+  ACTOR : « Sauvegarder · 1/5 » entièrement visible au-dessus de la nav ✓ ;
+  zéro erreur console ; captures-test nettoyées. Swipe à confirmer sur iPhone.
+- **Prochain** : transitions slide directionnel type iOS (maquette dédiée).
+
+---
+
 ## 2026-06-12 — v0.3.1 : pictos main levée + fixes vidéo iPhone (perte de données, titres, feel)
 
 - **Fait** :
