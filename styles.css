@@ -434,6 +434,9 @@ button:active,.mode-auto:active{transform:scale(.95);}
 details.pli summary:active{color:var(--ac);}
 .next-t{cursor:pointer;}
 
+/* ── v0.3 Pictos main levée (dessins Johann) ── */
+.tico svg{width:21px;height:21px;display:block;}
+
 /* ── v0.3 Réglages : métriques d'usage (leçon Monolog — chiffres graphiques) ── */
 .usage-row{display:flex;gap:8px;}
 .usage-cell{flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:14px 12px 12px;}
