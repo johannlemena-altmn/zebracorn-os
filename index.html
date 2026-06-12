@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=transitions2">
 </head>
 <body>
 <div id="root"></div>
@@ -22,7 +22,7 @@
 <script src="db.js"></script>
 <script type="module">
 import { h, render } from 'https://esm.sh/preact@10';
-import { useState, useEffect, useCallback } from 'https://esm.sh/preact@10/hooks';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'https://esm.sh/preact@10/hooks';
 import htm from 'https://esm.sh/htm@3';
 import { getSyncConfig, saveSyncConfig, syncConfigured, lastSync, pushAll, pullAll } from './sync.js';
 const html = htm.bind(h);
@@ -1938,6 +1938,52 @@ function Reglages(){
   </div>`;
 }
 
+/* ── Transitions slide directionnel (port maquette_transitions_v1) ───────────
+   Ordre spatial des onglets : un index supérieur entre depuis la droite, un
+   index inférieur en miroir. Transform/opacity uniquement, tokens motion
+   existants (--t-page 240 ms, --ease-out). */
+const TAB_ORDER=['maintenant','semaine','capture','reglages'];
+const PAGE_DUR=240, PAGE_EASE='cubic-bezier(.22,1,.36,1)';
+const prefersReduce=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* Conteneur des écrans d'onglet : pendant 240 ms l'écran sortant ET l'entrant
+   sont montés (position:absolute) pour animer entrée+sortie ; le sortant est
+   démonté au cleanup. Verrou déterministe par setTimeout (transitionend peut
+   être manqué si un clic rapide réinterrompt l'élément). */
+function Stage({tab,render,lockRef,stageRef}){
+  // `leaving` = écran sortant. Marqué dès que `tab` change, via un layout effect
+  // (synchrone, avant paint) → l'ancien onglet reste monté le temps de la transition,
+  // les DEUX écrans coexistent, puis le sortant est démonté au cleanup.
+  // dir : +1 onglet à droite (entrant depuis la droite), -1 miroir.
+  const [leaving,setLeaving]=useState(null); // {tab, dir} ou null
+  const prevTab=useRef(tab);
+  const timer=useRef(0);
+
+  useLayoutEffect(()=>{
+    if(tab===prevTab.current) return;
+    const from=prevTab.current;
+    prevTab.current=tab;
+    if(prefersReduce()){ setLeaving(null); return; } // crossfade CSS, pas de double rendu latéral
+    const dir=TAB_ORDER.indexOf(tab)>TAB_ORDER.indexOf(from)?1:-1;
+    lockRef.current=true; // verrou anti-clics-rapides
+    setLeaving({tab:from,dir});
+    // Cleanup déterministe (PAS transitionend/animationend, manqué si interrompu) :
+    // démonte l'écran sortant et lève le verrou après la durée du slide.
+    clearTimeout(timer.current);
+    timer.current=setTimeout(()=>{ lockRef.current=false; setLeaving(null); },PAGE_DUR+40);
+  },[tab]);
+
+  // Les animations sont pilotées par des classes CSS (keyframes) posées dans le JSX :
+  // elles survivent aux re-renders Preact et ne dépendent pas de styles inline
+  // imposés impérativement (qui étaient clobberés/throttlés → entrant figé à 100%).
+  const entCls=leaving?(leaving.dir>0?'ent-r':'ent-l'):''; // entrant
+  const leaCls=leaving?(leaving.dir>0?'lea-r':'lea-l'):''; // sortant (parallaxe)
+  return html`<div class="stage" ref=${stageRef}>
+    ${leaving?html`<div class=${'screen '+leaCls} key=${'leave-'+leaving.tab}>${render(leaving.tab)}</div>`:''}
+    <div class=${'screen '+entCls} key=${'cur-'+tab}>${render(tab)}</div>
+  </div>`;
+}
+
 /* ── App ─────────────────────────────────────── */
 function App(){
   const [tab,setTab]=useState('maintenant');
@@ -1947,6 +1993,58 @@ function App(){
   const popNav=useCallback(()=>setNavStack(p=>p.slice(0,-1)),[]);
   const topNav=navStack.length>0?navStack[navStack.length-1]:null;
   const refresh=useCallback(async()=>setCount(await getInboxCount()),[]);
+  // Verrou de transition d'onglet : ignore les clics rapides tant qu'une anim tourne
+  const tabLock=useRef(false);
+  const goTab=useCallback(t=>{ if(!tabLock.current) setTab(t); },[]);
+  const navPageRef=useRef(null), stageElRef=useRef(null);
+  // Drill-down : parallaxe de l'écran dessous + retour par swipe-bord-gauche.
+  useEffect(()=>{
+    const page=navPageRef.current, stage=stageElRef.current;
+    if(!page||!stage) return;
+    stage.classList.add('nav-below'); // recul -30% / opacity .6 (CSS transition)
+    if(prefersReduce()){ return()=>stage.classList.remove('nav-below'); }
+    const W=stage.clientWidth||window.innerWidth, EDGE=24, THRESH=0.35;
+    let startX=0,dragging=false,lastX=0,lastT=0,vx=0;
+    const start=x=>{ if(x>EDGE) return false; dragging=true; startX=lastX=x; lastT=performance.now();
+      page.style.transition=stage.style.transition='none'; page.style.willChange=stage.style.willChange='transform, opacity'; return true; };
+    const move=x=>{ if(!dragging) return; const dx=Math.max(0,x-startX); const p=dx/W;
+      page.style.transform=`translateX(${dx}px)`;
+      stage.style.transform=`translateX(${-30+30*p}%)`; stage.style.opacity=(0.6+0.4*p).toFixed(3);
+      const now=performance.now(); vx=(x-lastX)/Math.max(1,now-lastT); lastX=x; lastT=now; };
+    const finish=()=>{ // rejoue le chemin du bouton « ← » puis nettoie les styles inline
+      page.style.transition=`transform 180ms ${PAGE_EASE}`; page.style.transform='translateX(100%)';
+      stage.style.transition=`transform 180ms ${PAGE_EASE}, opacity 180ms ${PAGE_EASE}`;
+      stage.style.transform='translateX(0)'; stage.style.opacity='1';
+      setTimeout(()=>{ stage.style.transition=stage.style.transform=stage.style.opacity=stage.style.willChange=''; popNav(); },190); };
+    const snap=()=>{ page.style.transition=`transform 160ms ${PAGE_EASE}`; page.style.transform='translateX(0)';
+      stage.style.transition=`transform 160ms ${PAGE_EASE}, opacity 160ms ${PAGE_EASE}`; stage.style.transform=''; stage.style.opacity='';
+      page.style.willChange=stage.style.willChange=''; };
+    const end=x=>{ if(!dragging) return; dragging=false; const dx=Math.max(0,x-startX);
+      if(dx>W*THRESH||vx>0.5) finish(); else snap(); };
+    const ts=e=>{ start(e.touches[0].clientX); };
+    const tm=e=>{ if(dragging){ move(e.touches[0].clientX); e.preventDefault(); } };
+    const te=e=>end((e.changedTouches[0]||{}).clientX??lastX);
+    const md=e=>{ if(start(e.clientX)) e.preventDefault(); };
+    const mm=e=>move(e.clientX), mu=e=>end(e.clientX);
+    page.addEventListener('touchstart',ts,{passive:true});
+    page.addEventListener('touchmove',tm,{passive:false});
+    page.addEventListener('touchend',te);
+    page.addEventListener('mousedown',md);
+    window.addEventListener('mousemove',mm); window.addEventListener('mouseup',mu);
+    return()=>{ stage.classList.remove('nav-below');
+      stage.style.transition=stage.style.transform=stage.style.opacity=stage.style.willChange='';
+      page.removeEventListener('touchstart',ts); page.removeEventListener('touchmove',tm); page.removeEventListener('touchend',te);
+      page.removeEventListener('mousedown',md); window.removeEventListener('mousemove',mm); window.removeEventListener('mouseup',mu); };
+  },[topNav?navStack.length:0]);
+  const renderScreen=useCallback(t=>
+    t==='maintenant'
+      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>goTab('capture')} onGoSem=${()=>goTab('semaine')} pushNav=${pushNav}/>`
+    :t==='semaine'
+      ? html`<${Semaine} pushNav=${pushNav} navDepth=${navStack.length}/>`
+    :t==='reglages'
+      ? html`<${Reglages}/>`
+      : html`<${Capture} onCapture=${refresh} pushNav=${pushNav}/>`
+  ,[inboxCount,navStack.length,goTab,pushNav,refresh]);
   useEffect(()=>{ refresh(); },[refresh]);
   useEffect(()=>{
     const p=new URLSearchParams(window.location.search);
@@ -1977,16 +2075,10 @@ function App(){
   },[]);
 
   return html`<div class="phone">
-    ${tab==='maintenant'
-      ? html`<${Maintenant} inboxCount=${inboxCount} onGoCapture=${()=>setTab('capture')} onGoSem=${()=>setTab('semaine')} pushNav=${pushNav}/>`
-      : tab==='semaine'
-      ? html`<${Semaine} pushNav=${pushNav} navDepth=${navStack.length}/>`
-      : tab==='reglages'
-      ? html`<${Reglages}/>`
-      : html`<${Capture} onCapture=${refresh} pushNav=${pushNav}/>`
-    }
+    <${Stage} tab=${tab} render=${renderScreen} lockRef=${tabLock} stageRef=${stageElRef}/>
     ${topNav?html`
-      <div class="nav-page">
+      <div class="nav-page" ref=${navPageRef}>
+        <div class="edge-grab" aria-hidden="true"></div>
         <div class="nav-back-bar">
           <button class="nav-back-btn" onClick=${popNav}>${topNav.from||'Retour'}</button>
         </div>
@@ -1996,17 +2088,17 @@ function App(){
       </div>
     `:''}
     <nav class=${'tabnav'+(topNav?' hidden':'')}>
-      <button class=${tab==='maintenant'?'on':''} onClick=${()=>setTab('maintenant')}>
+      <button class=${tab==='maintenant'?'on':''} onClick=${()=>goTab('maintenant')}>
         <span class="tico">${TAB_ICONS.maintenant}</span><span class="tlbl">Maintenant</span>
       </button>
-      <button class=${tab==='semaine'?'on':''} onClick=${()=>setTab('semaine')}>
+      <button class=${tab==='semaine'?'on':''} onClick=${()=>goTab('semaine')}>
         <span class="tico">${TAB_ICONS.memoire}</span><span class="tlbl">Mémoire</span>
       </button>
-      <button class=${tab==='capture'?'on':''} onClick=${()=>setTab('capture')}>
+      <button class=${tab==='capture'?'on':''} onClick=${()=>goTab('capture')}>
         <span class="tico" style="position:relative">${TAB_ICONS.flux}${inboxCount>0?html`<span class="badge">${inboxCount}</span>`:''}</span>
         <span class="tlbl">Flux</span>
       </button>
-      <button class=${tab==='reglages'?'on':''} onClick=${()=>setTab('reglages')}>
+      <button class=${tab==='reglages'?'on':''} onClick=${()=>goTab('reglages')}>
         <span class="tico">${TAB_ICONS.reglages}</span><span class="tlbl">Régl.</span>
       </button>
     </nav>

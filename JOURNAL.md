@@ -5,6 +5,34 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-12 — v0.3.3 : transitions slide directionnel portées dans l'app
+
+- **Fait** : port de la maquette validée dans index.html + styles.css (+136/−16).
+  Changement d'onglet directionnel (entrant depuis la direction du tab choisi,
+  sortant en parallaxe −30 %/.6, 240 ms tokens existants) via composant `Stage` ;
+  drill-down `.nav-page` : parallaxe de l'écran dessous + **retour par
+  swipe-bord-gauche** (suit le doigt, seuil 35 % ou vélocité, même chemin de
+  code que le bouton ←). Reduced-motion : crossfade sans mouvement latéral.
+- **Pourquoi / décision clé** : un premier jet (pré-existant dans le worktree)
+  pilotait l'animation par styles inline impératifs + double rAF → écrasés par
+  les re-renders Preact, écran entrant figé à 100 %. Remplacé par des **classes
+  CSS keyframes** (`ent-r/ent-l/lea-r/lea-l`) : le navigateur tient la timeline,
+  indépendamment du JS. Verrou `tabLock` + cleanup `setTimeout(240+40)`
+  déterministe (jamais `animationend`, manqué si interrompu). `.phone` passe en
+  `height:100svh` (requis par les écrans superposés en absolu). Cache-buster
+  `styles.css?v=transitions2`.
+- **DoD (sous-agent Opus, preview 390×844 dark+light)** : directions 0→2 / 2→0
+  vérifiées (`getAnimations()`), un seul écran au repos, 4 clics rapides → état
+  stable ; drill-down + retour bouton ET swipe souris (snap-back sur drag
+  court) ; non-régression : capture persistée au reload (donnée test nettoyée),
+  feuille ACTOR, routines ; zéro erreur console. Le rendu interpolé du slide et
+  le swipe tactile réel restent à confirmer sur iPhone (preview headless gèle
+  la timeline CSS).
+- **Point de veille** : l'écran sortant est re-monté pendant les 240 ms (ses
+  données se rechargent en async) — pas d'artefact vu en preview ; si flash
+  visible sur iPhone, geler le contenu sortant (snapshot DOM) sera l'itération.
+- **Prochain** : test réel iPhone (feel du slide, swipe-back, reduced-motion).
+
 ## 2026-06-12 — Maquette transitions slide directionnel (validation en attente)
 
 - **Fait** : `maquette_transitions_v1.html` (statique, autonome, zéro dépendance,
