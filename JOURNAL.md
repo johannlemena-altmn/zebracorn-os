@@ -5,6 +5,45 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — Carré de veille « décision US / Fable·Opus » (réemploi chantier + question vivante)
+
+- **Fait** : un nouveau « carré » apparaît dans Mémoire — chantier **« Veille —
+  décision US sur les modèles frontière (Fable / Opus) »** (organe *vigie ·
+  adaptation*). Il porte la **question vivante** « Comment se préparer
+  objectivement à un durcissement qu'on ne contrôle pas ? » et 6 étapes = les
+  **scénarios prospectifs** à creuser : cadre épistémologique (faits / hypothèses
+  / inconnues), scénario A/B/C (les 3 pistes de Johann : Opus relevé vers Fable
+  avec plus de garde-fous · voie d'accès UE · contournement type VPN cf.
+  openclaw), signaux d'alerte précoces, plan d'adaptation par scénario. Seed
+  `seedVeilleAnthropic_2026()` dans `db.js`, câblé au boot après les autres seeds.
+- **Pourquoi / décision clé** : Johann veut « garder la question dans un carré sur
+  l'app » pour la creuser ensemble plus tard. Choix **frugal** : zéro nouveau
+  composant/écran — un chantier EST déjà un carré avec progression, étapes,
+  badges, et la section « Question qui guide » (ajoutée en v0.3.4). On réutilise
+  exactement le pattern `seedChantiersPlansABC_2026`. Les pistes A/B/C sont
+  étiquetées **« (piste J.) »** dans les étapes pour les marquer comme hypothèses,
+  pas comme faits. La `progression` résume factuellement l'annonce Fable 5 /
+  Mythos 5 + le renvoi à `anthropic.com/news/claude-fable-5-mythos-5`.
+- **DoD** : `node --check db.js` OK ; `seedVeilleAnthropic_2026` confirmée chargée
+  comme fonction globale via sonde headless (Playwright). **Limite honnête** : le
+  boot complet (rendu de la carte + lecture IndexedDB) n'a **pas** pu être exécuté
+  dans le conteneur cloud — le proxy réseau y bloque les CDN Dexie/Preact
+  (403 / CORS / cert), donc l'app ne démarre pas ici. La fonction étant un clone
+  structurel d'un seed déjà en prod (mêmes helpers, même garde anti-doublon par
+  titre + flag localStorage), le risque résiduel est faible, mais **à confirmer
+  sur l'appareil de Johann** (preview navigateur réel, où les CDN se chargent) :
+  carte présente dans Mémoire, fiche = 6 étapes (0/6) + « Question qui guide »
+  rendue.
+- **Prochain** : Johann vérifie le rendu sur device ; puis on creuse réellement la
+  question (cadre épistémo + scénarios). Le carré ne se déploiera qu'après merge
+  sur `main` (Vercel auto-deploy sur `main` ; ici on pousse seulement la branche
+  `claude/multi-project-june-13-p7rgh3`).
+- **Note environnement** : cette session tourne dans le conteneur cloud Claude
+  Code (seul `zebracorn-os` cloné). Les projets `~/Desktop/Reprise-Sport`,
+  `Ferryman`, `Murfy` ne sont **pas** accessibles ici → les tâches 1/2/3 de la
+  reprise et les `vercel deploy` correspondants doivent se faire depuis la session
+  Claude Code locale (Mac).
+
 ## 2026-06-13 — v0.3.4 : seed des chantiers stratégiques (Plans A/B/C) + question vivante sur la fiche
 
 - **Fait** : trois chantiers stratégiques pré-remplis arrivent automatiquement

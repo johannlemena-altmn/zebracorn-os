@@ -393,6 +393,51 @@ async function seedChantiersPlansABC_2026() {
   localStorage.setItem('zebracorn_seed_plansABC', 'done');
 }
 
+// Seed « carré » de veille (conversation du 2026-06-13) — sortie de Claude
+// Fable 5 / Mythos 5 chez Anthropic. Johann veut GARDER la question sous les
+// yeux dans l'app et la creuser plus tard. Réemploi total de la mécanique
+// chantier + question vivante : le carré = un chantier dont les étapes sont les
+// scénarios prospectifs et la « question qui guide » est la question
+// épistémologique. Les pistes notées (A/B/C) sont les HYPOTHÈSES de Johann, pas
+// des faits — formulées comme scénarios à explorer. Content-guardé par titre.
+async function seedVeilleAnthropic_2026() {
+  if (localStorage.getItem('zebracorn_seed_veille_anthropic')) return;
+
+  const titre = 'Veille — décision US sur les modèles frontière (Fable / Opus)';
+  const existing = await db.chantiers.toArray();
+  const titres = new Set(existing.map(c => (c.titre || '').trim().toLowerCase()));
+  if (titres.has(titre.trim().toLowerCase())) {
+    localStorage.setItem('zebracorn_seed_veille_anthropic', 'done');
+    return;
+  }
+
+  const id = await addChantier({ titre, prio: 'vert', organe: 'vigie · adaptation' });
+  await updateChantier(id, {
+    progression: "Anthropic a sorti Claude Fable 5 / Mythos 5 (même modèle de fond ; " +
+      "tier « Mythos » au-dessus d'Opus). Fable porte des mesures de sécurité " +
+      "dual-use ; Mythos est SANS ces mesures, réservé aux organisations approuvées. " +
+      "Un durcissement éventuel relève d'une décision du gouvernement US. " +
+      "À analyser froidement et scénariser pour rester adaptable. " +
+      "Réf. : anthropic.com/news/claude-fable-5-mythos-5.",
+    prochaine: "Poser le cadre épistémologique avec Claude : faits établis vs hypothèses vs inconnues",
+  });
+  for (const t of [
+    "Cadre épistémologique : séparer faits / hypothèses / inconnues sur la décision US",
+    "Scénario A (piste J.) — Anthropic relève Opus vers le niveau de Fable, mais avec plus de garde-fous",
+    "Scénario B (piste J.) — une voie d'accès pensée pour les Européens (offre/entité dédiée UE)",
+    "Scénario C (piste J.) — contournement type VPN (cf. openclaw, normalement interdit en UE) : risques & limites",
+    "Définir les signaux d'alerte précoces d'un durcissement",
+    "Plan d'adaptation par scénario : que faire concrètement si l'un se confirme",
+  ]) await addEtape(id, t);
+  await addQuestion({
+    intitule: "Comment se préparer objectivement à un durcissement qu'on ne contrôle pas ?",
+    intention: "Analyse épistémologique + scénarios prospectifs pour garder son pouvoir d'agir si l'accès aux modèles frontière se restreint.",
+    chantierId: id,
+  });
+
+  localStorage.setItem('zebracorn_seed_veille_anthropic', 'done');
+}
+
 // v3 — AMWAP : log de victoires quotidiennes
 db.version(3).stores({
   amwap: '++id, date',
