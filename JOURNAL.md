@@ -5,6 +5,49 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — Veille Fable/Mythos : recherche sourcée + carte recâblée sur le réel
+
+- **Fait** : creusé la question de veille avec une recherche sourcée (skill
+  `deep-research`, 5 angles parallèles). Découverte majeure : **le durcissement
+  redouté a eu lieu cette semaine** — Anthropic a lancé Fable 5 (~9/06, version
+  publique d'un modèle « Mythos » + couche de sécurité dure) puis, sur **ordre de
+  contrôle export du gouvernement US (~12/06)**, a **suspendu mondialement Fable 5
+  et Mythos 5 pour les non-US** (coupure globale faute de pouvoir filtrer les
+  ressortissants en temps réel ; Anthropic conteste). Réécrit le contenu de la
+  carte (`db.js`) pour passer d'un mode « scénariser un risque futur » à « suivre
+  un événement en cours + signaux de retour à la normale ».
+- **Pourquoi / décisions clés** :
+  - **Recherche sourcée d'abord** (choix de Johann) plutôt que mémoire : le sujet
+    est daté et sensible. Réserve épistémo assumée — pages primaires anthropic.com
+    en **403** depuis le conteneur ; le socle repose sur sources secondaires
+    **concordantes** (CNBC/Bloomberg/TechCrunch/Axios). Cœur solide, détails fins
+    (dates exactes, noms partenaires) à confirmer sur primaire.
+  - **Correction d'un cadrage** : la note initiale rangeait « openclaw » comme
+    contournement type VPN. Précision de Johann : openclaw & Polymarket sont des
+    **exemples** de contournement géo, pas le mécanisme ; la vraie question C =
+    « peut-on atteindre Fable 5 via VPN ? ». Insight factuel intégré : le blocage
+    n'est **pas** un géo-IP (que le VPN défait) mais une **coupure mondiale liée à
+    la nationalité** → un VPN US ne suffit a priori pas. L'analogie Polymarket ne
+    transfère pas proprement.
+  - **Recadrage des 3 pistes** par les faits : A → le verrou n'est pas la capacité
+    mais l'accès ; B → demi-réponse existante (résidence données UE via
+    Bedrock/Vertex/Azure) mais ne lève pas le blocage frontière US ; C → cf. limite
+    VPN ci-dessus.
+- **Implémentation** : seed `seedVeilleAnthropic_2026` réécrite en **UPSERT
+  idempotent** (nouveau flag `…_v2`). L'ancien seed était content-guardé → modifier
+  le texte n'aurait jamais atteint la carte déjà créée sur le device de Johann. Le
+  nouvel upsert met à jour progression/prochaine/question en place, et ne
+  **reconstruit les étapes que si aucune n'est cochée** (préserve la progression) ;
+  création complète sur device vierge.
+- **DoD** : `node --check db.js` OK ; flag v2, branche upsert (`find` par titre,
+  garde `some(e=>e.fait)`, `questions.where('chantierId')`) vérifiés présents ;
+  API Dexie cohérente avec le store `questions` indexé sur `chantierId`. **Limite**
+  honnête : pas exécuté en vrai navigateur (pas de headless en conteneur) — l'effet
+  upsert sur la base réelle de Johann est à constater au prochain boot.
+- **Prochain** : (1) Johann confirme au boot que la carte s'est bien mise à jour ;
+  (2) creuser le scénario C (faisabilité technique réelle du VPN face à une coupure
+  par nationalité) et les signaux de rétablissement, si la situation évolue.
+
 ## 2026-06-13 — Vendorisation des libs cœur (fin de la dépendance CDN runtime)
 
 - **Fait** : les 3 libs cœur (Dexie 3.2.7, Preact 10.29.2 + hooks, htm 3.1.1)

@@ -400,42 +400,74 @@ async function seedChantiersPlansABC_2026() {
 // scénarios prospectifs et la « question qui guide » est la question
 // épistémologique. Les pistes notées (A/B/C) sont les HYPOTHÈSES de Johann, pas
 // des faits — formulées comme scénarios à explorer. Content-guardé par titre.
-async function seedVeilleAnthropic_2026() {
-  if (localStorage.getItem('zebracorn_seed_veille_anthropic')) return;
+// v2 (13/06/2026) — la veille n'est plus prospective : le durcissement a eu lieu.
+// Recherche sourcée menée avec Claude (sources secondaires concordantes
+// CNBC/Bloomberg/TechCrunch/Axios ; pages primaires anthropic.com non vérifiées
+// = 403 en session). Réécriture en UPSERT idempotent : met à jour la carte
+// existante sur le device sans écraser la progression (ne reconstruit les étapes
+// que si AUCUNE n'est cochée), et crée la carte à neuf sur un device vierge.
+// Corrige aussi la conflation openclaw/VPN (cf. précision de Johann : openclaw &
+// Polymarket = exemples de contournement géo, pas le mécanisme ; la vraie
+// question C = « peut-on atteindre Fable 5 via VPN ? »).
+const VEILLE_TITRE = 'Veille — décision US sur les modèles frontière (Fable / Opus)';
+const VEILLE_PROGRESSION =
+  "⚡ MAJ 13/06/2026 — ce n'est plus prospectif, le durcissement a EU LIEU. " +
+  "Anthropic a lancé Fable 5 (~9/06 ; version publique d'un modèle « Mythos » coiffé " +
+  "d'une couche de sécurité dure cyber/bio/chimie), puis — sur ordre de contrôle export " +
+  "du gouvernement US (~12/06) — a SUSPENDU mondialement Fable 5 ET Mythos 5 pour les " +
+  "non-US. Coupure globale faute de pouvoir filtrer les ressortissants en temps réel. " +
+  "Anthropic conteste (« malentendu ») et dit travailler au rétablissement. " +
+  "À retenir : les modèles courants (Opus 4.8, Sonnet 4.6, Haiku 4.5) restent dispo en UE — " +
+  "le verrou n'est ni le NIVEAU du modèle ni l'UE en soi, c'est l'ACCÈS frontière, piloté " +
+  "par décision US ponctuelle (pas un régime de licence permanent : la règle Biden sur les " +
+  "poids de modèles a été abrogée mi-2025). Sources secondaires concordantes ; primaires non vérifiées.";
+const VEILLE_PROCHAINE =
+  "Posture face à un blocage déjà actif : surveiller le rétablissement de Fable pour les " +
+  "non-US ET sécuriser un socle de travail sur les modèles restés accessibles (Opus 4.8).";
+const VEILLE_ETAPES = [
+  "Cadre épistémo — séparer faits / zones grises / inconnues. FAIT clé : durcissement advenu (~12/06), plus une hypothèse",
+  "Scénario A — Fable = déjà un modèle Opus-niveau + couche de sécurité dure ; le vrai verrou est l'accès (géo/nationalité), pas la capacité",
+  "Scénario B — voie d'accès UE : demi-réponse existante (résidence des données via AWS Bedrock / Vertex / Azure) MAIS ne lève pas le blocage frontière (US) ; offre UE dédiée = hypothèse sans trace publique",
+  "Scénario C — VPN pour atteindre Fable 5 (façon contournement géo type Polymarket / accès openclaw) : LIMITE — le blocage n'est pas un géo-IP mais une coupure mondiale liée à la nationalité → un VPN US ne suffit a priori pas, et c'est hors-CGU (risque compte). À creuser",
+  "Signaux de retour à la normale : Fable rétabli pour les non-US ? sous quelles conditions ? quel calendrier ?",
+  "Plan d'adaptation : sécuriser un socle de travail sur les modèles encore accessibles (Opus 4.8) tant que Fable reste coupé",
+];
+const VEILLE_QUESTION = {
+  intitule: "Comment se préparer objectivement à un durcissement qu'on ne contrôle pas ?",
+  intention: "Le durcissement est désormais ACTIF (Fable/Mythos suspendus pour les non-US, ~12/06/2026). " +
+    "Garder son pouvoir d'agir : suivre le rétablissement, sécuriser un socle sur les modèles encore " +
+    "accessibles, et évaluer froidement les contournements (faits, pas fantasmes).",
+};
 
-  const titre = 'Veille — décision US sur les modèles frontière (Fable / Opus)';
+async function seedVeilleAnthropic_2026() {
+  if (localStorage.getItem('zebracorn_seed_veille_anthropic_v2')) return;
+
   const existing = await db.chantiers.toArray();
-  const titres = new Set(existing.map(c => (c.titre || '').trim().toLowerCase()));
-  if (titres.has(titre.trim().toLowerCase())) {
-    localStorage.setItem('zebracorn_seed_veille_anthropic', 'done');
+  const ch = existing.find(c => (c.titre || '').trim().toLowerCase() === VEILLE_TITRE.trim().toLowerCase());
+
+  if (ch) {
+    // Mise à jour en place de la carte déjà semée (sans perdre la progression).
+    await updateChantier(ch.id, { progression: VEILLE_PROGRESSION, prochaine: VEILLE_PROCHAINE });
+    const ets = await getEtapes(ch.id);
+    if (!ets.some(e => e.fait)) {
+      // aucune étape cochée → on peut rafraîchir le squelette en toute sécurité
+      await db.etapes.where('chantierId').equals(ch.id).delete();
+      for (const t of VEILLE_ETAPES) await addEtape(ch.id, t);
+    }
+    const q = await db.questions.where('chantierId').equals(ch.id).first();
+    if (q) await db.questions.update(q.id, { intitule: VEILLE_QUESTION.intitule, intention: VEILLE_QUESTION.intention });
+    else await addQuestion({ ...VEILLE_QUESTION, chantierId: ch.id });
+    localStorage.setItem('zebracorn_seed_veille_anthropic_v2', 'done');
     return;
   }
 
-  const id = await addChantier({ titre, prio: 'vert', organe: 'vigie · adaptation' });
-  await updateChantier(id, {
-    progression: "Anthropic a sorti Claude Fable 5 / Mythos 5 (même modèle de fond ; " +
-      "tier « Mythos » au-dessus d'Opus). Fable porte des mesures de sécurité " +
-      "dual-use ; Mythos est SANS ces mesures, réservé aux organisations approuvées. " +
-      "Un durcissement éventuel relève d'une décision du gouvernement US. " +
-      "À analyser froidement et scénariser pour rester adaptable. " +
-      "Réf. : anthropic.com/news/claude-fable-5-mythos-5.",
-    prochaine: "Poser le cadre épistémologique avec Claude : faits établis vs hypothèses vs inconnues",
-  });
-  for (const t of [
-    "Cadre épistémologique : séparer faits / hypothèses / inconnues sur la décision US",
-    "Scénario A (piste J.) — Anthropic relève Opus vers le niveau de Fable, mais avec plus de garde-fous",
-    "Scénario B (piste J.) — une voie d'accès pensée pour les Européens (offre/entité dédiée UE)",
-    "Scénario C (piste J.) — contournement type VPN (cf. openclaw, normalement interdit en UE) : risques & limites",
-    "Définir les signaux d'alerte précoces d'un durcissement",
-    "Plan d'adaptation par scénario : que faire concrètement si l'un se confirme",
-  ]) await addEtape(id, t);
-  await addQuestion({
-    intitule: "Comment se préparer objectivement à un durcissement qu'on ne contrôle pas ?",
-    intention: "Analyse épistémologique + scénarios prospectifs pour garder son pouvoir d'agir si l'accès aux modèles frontière se restreint.",
-    chantierId: id,
-  });
+  // Device vierge : création complète.
+  const id = await addChantier({ titre: VEILLE_TITRE, prio: 'vert', organe: 'vigie · adaptation' });
+  await updateChantier(id, { progression: VEILLE_PROGRESSION, prochaine: VEILLE_PROCHAINE });
+  for (const t of VEILLE_ETAPES) await addEtape(id, t);
+  await addQuestion({ ...VEILLE_QUESTION, chantierId: id });
 
-  localStorage.setItem('zebracorn_seed_veille_anthropic', 'done');
+  localStorage.setItem('zebracorn_seed_veille_anthropic_v2', 'done');
 }
 
 // v3 — AMWAP : log de victoires quotidiennes
