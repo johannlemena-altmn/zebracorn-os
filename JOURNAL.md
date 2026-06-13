@@ -5,6 +5,42 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — v0.3.4 : seed des chantiers stratégiques (Plans A/B/C) + question vivante sur la fiche
+
+- **Fait** : trois chantiers stratégiques pré-remplis arrivent automatiquement
+  dans Mémoire (seed `seedChantiersPlansABC_2026` dans db.js, câblé au boot après
+  `seedChantiersEte2026`) : **reVu** (8 étapes, organe « média · vigie »),
+  **Studio de rénovation frugale — coopétiteur de Murfy** (6 étapes), **Refonte
+  Reprise-Sport + nutrition** (3 étapes). Chacun avec `prochaine` action +
+  `progression` (où ça en est) + 1 **question vivante** liée. reVu seede en plus
+  une tâche 🔴 « Aller au rassemblement de soutien à Vu » échéance 2026-06-16
+  (elle remonte en « prochaine action » sur Maintenant). Nouvelle micro-feature :
+  la **fiche-chantier affiche sa question vivante liée** (section « Question qui
+  guide », entre la barre de progression et les étapes).
+- **Pourquoi / décision clé** : Johann a une arborescence de chantiers en tête
+  (3 plans issus de la session du 13/06) et ne veut pas « repartir de zéro » dans
+  l'app. Choix **frugal** : ne RIEN construire de neuf côté gamification — l'app a
+  déjà barre de progression (% d'étapes), badges sur `maxPct` (`⚒️ Mi-chantier`,
+  `🏆 Maître d'œuvre`), questions vivantes, livres, AMWAP, streaks. Seeder des
+  étapes **allume** ce dispositif. Le seul manque réel pour « apprentissage
+  intégré au chantier » : la question vivante existait mais ne s'affichait pas sur
+  la fiche → ajout de 6 lignes réutilisant `.q-card`. Seed **content-guardé par
+  titre** (comme `seedQuestionsOnce`/`seedLivresOnce`) → pas de doublon quand un
+  autre appareil se synchronise (le flag localStorage seul ne suffit pas en
+  multi-device). Pas de pont cerveau→app pour les chantiers : `importTachesMerge`
+  ne gère que les tâches ; le seed code-source est la voie propre.
+- **DoD (preview python http.server 4242)** : boot sans erreur console ; les 3
+  chantiers apparaissent dans Mémoire avec prochaine + compteurs (0/8, 0/6, 0/3) ;
+  tâche 🔴 16 juin créée et surfacée sur Maintenant ; fiche reVu = 8 étapes +
+  section « Question qui guide » rendue avec le bon intitulé/intention (vérifié via
+  requête identique à celle du composant + lecture DOM scoping `.sec`). Non
+  vérifié en headless : navigation par clic réel (le clic atterrit sur la poignée
+  de drag — sans incidence, le rendu est confirmé par eval).
+- **Prochain** : laisser vivre ; au besoin, surfacer aussi les livres liés sur la
+  fiche-chantier, ou permettre de créer une question vivante depuis la fiche.
+
+---
+
 ## 2026-06-12 — v0.3.3 : transitions slide directionnel portées dans l'app
 
 - **Fait** : port de la maquette validée dans index.html + styles.css (+136/−16).

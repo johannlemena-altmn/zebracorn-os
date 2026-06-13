@@ -1154,6 +1154,7 @@ function FicheChantier({id,onBack}){
   const [prochaine,setProchaine]=useState('');
   const [nouvelleEtape,setNouvelleEtape]=useState('');
   const [linkedCaps,setLinkedCaps]=useState([]);
+  const [chQuestions,setChQuestions]=useState([]);
 
   const load=useCallback(async()=>{
     const ch=await db.chantiers.get(id);
@@ -1161,6 +1162,7 @@ function FicheChantier({id,onBack}){
     setChantier(ch); setEtapes(et);
     if(ch) setProchaine(ch.prochaine||'');
     setLinkedCaps(await getCapturesByChantier(id));
+    setChQuestions((await getQuestions()).filter(q=>q.chantierId===id));
   },[id]);
   useEffect(()=>{ load(); },[load]);
 
@@ -1190,6 +1192,14 @@ function FicheChantier({id,onBack}){
     ${etapes.length>0?html`<div class="prog-wrap">
       <div class="set-note">${done}/${etapes.length} étapes · ${pct} %</div>
       <div class="prog-bar"><div class="prog-fill" style=${'width:'+pct+'%'}/></div>
+    </div>`:''}
+
+    ${chQuestions.length>0?html`<div class="sec">
+      <div class="sec-h"><span class="sec-t">Question qui guide</span></div>
+      ${chQuestions.map(q=>html`<div class="q-card" key=${q.id}>
+        <div class="q-intitule">${q.intitule}</div>
+        <div class="q-intention">${q.intention}</div>
+      </div>`)}
     </div>`:''}
 
     <div class="sec">
@@ -2120,6 +2130,7 @@ await seedOnce_v2();
 await seedQuestionsOnce();
 await seedLivresOnce();
 await seedChantiersEte2026();
+await seedChantiersPlansABC_2026();
 render(html`<${App}/>`, document.getElementById('root'));
 
 // iOS Safari n'applique :active qu'avec un listener touch — feedback tactile réel.

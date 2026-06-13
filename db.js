@@ -314,6 +314,85 @@ async function seedChantiersEte2026() {
   localStorage.setItem('zebracorn_seed_ete2026', 'done');
 }
 
+// Seed Plans A/B/C (conversation du 2026-06-13) — chantiers stratégiques
+// pré-remplis pour ne pas repartir de zéro : arborescence d'étapes complète +
+// question vivante liée (le « pourquoi » / l'apprentissage) + prochaine action.
+// Content-guardé par titre → pas de doublon quand un autre appareil se synchronise.
+async function seedChantiersPlansABC_2026() {
+  if (localStorage.getItem('zebracorn_seed_plansABC')) return;
+
+  const PLANS = [
+    {
+      titre: 'reVu — faire revivre la vigie médiatique',
+      organe: 'média · vigie',
+      progression: "Décisions du grill figées (13/06). Fact-base faite : Nova plausible, mais pitcher un reVu NATIF Nova léger (pas la greffe des 17 personnes). Posture : catalyseur, pas remplaçant.",
+      prochaine: "Aller au rassemblement de soutien à Vu (16 juin) — rencontrer l'écosystème",
+      etapes: [
+        "Rassemblement de soutien à Vu (16 juin) — rencontrer l'équipe et l'écosystème",
+        "Storyboard de l'hommage 60-90 s (rythme zapping) + structure de la frise web",
+        "Spécifier le pipeline de collecte (sources publiques légales : presse, INA, Arcom)",
+        "Publier l'hommage + frise teaser le 30 juin (jour de la mort de Vu)",
+        "Enquête complète 5-8 min + frise enrichie + onglet Méthode (mi-juillet)",
+        "Envoyer le dossier à l'équipe de Vu (vérification / témoignage)",
+        "Approcher Radio Nova — porte d'entrée : La Riposte (Akim Omiri)",
+        "Mail Regen School — cadres alternance / stage / mécénat (avant lancement)",
+      ],
+      question: {
+        intitule: "Comment faire revivre une idée sans trahir ceux qui l'ont portée ?",
+        intention: "reVu = hommage-catalyseur, jamais remplaçant de l'équipe de Patrick Menais.",
+      },
+      tacheRouge: { titre: "Aller au rassemblement de soutien à Vu", echeance: '2026-06-16' },
+    },
+    {
+      titre: 'Studio de rénovation frugale — coopétiteur de Murfy',
+      organe: 'studio · circularité',
+      progression: "EN CHANTIER. 80 % du business plan déjà écrit (mémo « Circularité Opératoire », mai 2026). Cadrage complet dans le Cerveau : wiki/projets/studio-renovation-frugale.",
+      prochaine: "Trancher Q4 (secteur) : électroménager vs habitat/mobilier — ça débloque tout",
+      etapes: [
+        "Relire + fusionner les 2 docs de mai (Circularité Opératoire + étude de marché)",
+        "Trancher Q4 (secteur) : la question qui débloque toutes les autres",
+        "Choisir le geste : rediriger / borner / supprimer (trois gestes sur un flux)",
+        "Faire 3 entretiens terrain (1 Envie, 1 Repair Café, 1 réparateur indépendant)",
+        "Tester la coopétition : 1 échange concret avec Murfy ou un réparateur local",
+        "Produire 1 portrait de réparateur (kit-et-média) — tester sens > épanouissement > argent",
+      ],
+      question: {
+        intitule: "Comment revaloriser les métiers que le système déclasse ?",
+        intention: "Le pari : ces profils sont excellents quand le sens les rebranche — argent < épanouissement < sens.",
+      },
+    },
+    {
+      titre: 'Refonte Reprise-Sport + nutrition',
+      organe: 'corps · discipline',
+      progression: "Tracker HTML gamifié existant (~/Desktop/Reprise-Sport/). Module nutrition rapatrié depuis Zebracorn OS le 11/06. Scope de la refonte à définir.",
+      prochaine: "Lister ce qui marche / ce qui coince dans le tracker actuel",
+      etapes: [
+        "Lister ce qui marche / ce qui coince dans le tracker actuel",
+        "Décider : fusionner sport + nutrition en une vue, ou garder séparé",
+        "Définir le scope de la refonte (1 tranche verticale, pas tout d'un coup)",
+      ],
+      question: {
+        intitule: "Comment rendre une discipline corporelle durable sans qu'elle devienne une corvée ?",
+        intention: "L'outil doit servir l'élan, pas devenir le projet lui-même.",
+      },
+    },
+  ];
+
+  const existing = await db.chantiers.toArray();
+  const titres = new Set(existing.map(c => (c.titre || '').trim().toLowerCase()));
+
+  for (const p of PLANS) {
+    if (titres.has(p.titre.trim().toLowerCase())) continue; // anti-doublon (sync)
+    const id = await addChantier({ titre: p.titre, prio: 'vert', organe: p.organe });
+    await updateChantier(id, { progression: p.progression, prochaine: p.prochaine });
+    for (const t of p.etapes) await addEtape(id, t);
+    if (p.question) await addQuestion({ ...p.question, chantierId: id });
+    if (p.tacheRouge) await addTache({ titre: p.tacheRouge.titre, prio: 'rouge', echeance: p.tacheRouge.echeance, chantierId: id });
+  }
+
+  localStorage.setItem('zebracorn_seed_plansABC', 'done');
+}
+
 // v3 — AMWAP : log de victoires quotidiennes
 db.version(3).stores({
   amwap: '++id, date',
