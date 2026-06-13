@@ -5,6 +5,30 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — md studio v1.1 : installable (manifest + SW), partage entrant, modèles narratifs
+
+- **Fait** : (1) **PWA installable** — `md-studio/manifest.webmanifest` + `sw.js`
+  (network-first, scope `/md-studio/`, réemploi des icônes terracotta `/icons/`),
+  métas apple-touch → « Ajouter à l'écran d'accueil » propre + offline. (2)
+  **Partage entrant** : `share_target` dans le manifest + lecture de `?text=` /
+  `?title=` / `?url=` au boot → l'éditeur se préremplit quand on partage un texte
+  depuis une autre app, puis l'URL est nettoyée. (3) **Modèles** : bottom-sheet
+  « Partir d'un modèle » avec 3 gabarits narratifs (Verdict de spike · Note de
+  décision · Données → récit).
+- **Pourquoi** : complète le point « installable propre » + sert l'usage iPhone
+  réel (« transformer depuis l'iPhone » = recevoir un partage). Modèles =
+  amorce de l'esprit Ferryman (du structuré au récit) ; **génériques par choix**,
+  les vrais gabarits éditoriaux Ferryman se brancheront quand le repo sera
+  accessible — pas de faux-semblant.
+- **DoD (Playwright)** : sheet s'ouvre + modèle « spike » inséré et rendu ;
+  partage `?title=&text=` → éditeur = `# Bonjour\n\n…` + URL nettoyée ; **SW
+  enregistré** (actif) ; manifest chargé (scope `/md-studio/`) ; export HTML
+  non régressé ; zéro erreur console. À confirmer device : déclenchement réel du
+  share_target iOS (support Safari limité → dégrade en simple deep-link, sans
+  casse) et l'install A2HS.
+- **Prochain** : brancher les vrais gabarits Ferryman (repo requis) ; éventuels
+  exports SVG. Déploiement après merge `main` → `/md-studio/`.
+
 ## 2026-06-13 — Brique « md studio » : Markdown → présentable (PWA autonome v1)
 
 - **Fait** : nouveau dossier **`md-studio/`** (un seul fichier `index.html`,
