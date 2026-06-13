@@ -18,12 +18,19 @@
 </head>
 <body>
 <div id="root"></div>
-<script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
+<script src="/vendor/dexie.min.js"></script>
 <script src="db.js"></script>
+<script type="importmap">
+{"imports":{
+  "preact":"/vendor/preact.module.js",
+  "preact/hooks":"/vendor/hooks.module.js",
+  "htm":"/vendor/htm.module.js"
+}}
+</script>
 <script type="module">
-import { h, render } from 'https://esm.sh/preact@10';
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'https://esm.sh/preact@10/hooks';
-import htm from 'https://esm.sh/htm@3';
+import { h, render } from 'preact';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'preact/hooks';
+import htm from 'htm';
 import { getSyncConfig, saveSyncConfig, syncConfigured, lastSync, pushAll, pullAll } from './sync.js';
 const html = htm.bind(h);
 

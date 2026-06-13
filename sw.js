@@ -1,5 +1,6 @@
-const CACHE = 'zebracorn-v2';
-const SHELL = ['/', '/index.html', '/styles.css', '/db.js', '/sync.js'];
+const CACHE = 'zebracorn-v3';
+const SHELL = ['/', '/index.html', '/styles.css', '/db.js', '/sync.js',
+  '/vendor/dexie.min.js', '/vendor/preact.module.js', '/vendor/hooks.module.js', '/vendor/htm.module.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
