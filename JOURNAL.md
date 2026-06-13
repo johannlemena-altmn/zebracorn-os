@@ -5,6 +5,40 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — Vendorisation des libs cœur (fin de la dépendance CDN runtime)
+
+- **Fait** : les 3 libs cœur (Dexie 3.2.7, Preact 10.29.2 + hooks, htm 3.1.1)
+  ne sont plus chargées depuis esm.sh / jsdelivr mais depuis `/vendor/` local
+  (~100 ko). `index.html` utilise désormais un **importmap** + imports bare
+  (`preact`, `preact/hooks`, `htm`). `sw.js` passe en cache `zebracorn-v3` et
+  ajoute les 4 fichiers vendorisés au SHELL → **vrai offline-first**.
+- **Pourquoi / décision clé** : l'app — PWA censée tourner offline sur l'iPhone
+  de Johann — dépendait au runtime de **deux CDN** pour booter. Point de panne
+  unique : si un CDN est injoignable, l'app est **morte au boot**. C'est aussi ce
+  qui bloquait toute vérif en session cloud depuis 3 sessions (proxy → 403 sur
+  les CDN JS). Découverte de cette session : **npm registry et GitHub sont
+  joignables** (200) alors que jsdelivr/esm.sh/unpkg sont bloqués (403) → on peut
+  vendoriser proprement depuis les tarballs npm. Choix validé avec Johann (choix
+  d'archi permanent, réversible). Frugal : zéro nouvelle dépendance de build, pas
+  de bundler — juste 4 fichiers statiques + un importmap standard.
+- **DoD** : `node --check` sur dexie/db/sync/sw OK ; **graphe ESM réellement
+  chargé** dans Node (arête risquée `hooks → preact` résolue via node_modules
+  factice) → tous les exports attendus présents (`h`, `render`, les 5 hooks,
+  `htm` default) + `htm.bind(h)` fonctionne ; importmap = JSON valide ; les 9
+  chemins servis répondent **200** avec MIME `text/javascript` (requis pour
+  l'ESM) ; **Dexie attache son global** en contexte navigateur simulé (vm,
+  self/window) v3.2.7 ; plus **aucune** ref CDN JS dans `index.html`. **Limite
+  honnête** : rendu DOM réel + IndexedDB **non** testés (pas de navigateur
+  headless — hôtes de download Playwright aussi bloqués en 403). Seule la *façon
+  de charger* les libs a changé, le code app est intact → risque faible, **à
+  confirmer sur device** (boot + Mémoire qui s'affiche).
+- **Prochain** : (1) Johann confirme le boot sur device après merge `main` ;
+  (2) creuser réellement la question de veille Fable/Opus — cadre épistémo
+  (faits / hypothèses / inconnues) + scénarios A/B/C.
+- **Note** : les Google Fonts restent externes mais dégradent proprement
+  (fallback système) — pas un point de panne bloquant, hors scope de cet
+  incrément.
+
 ## 2026-06-13 — Carré de veille « décision US / Fable·Opus » (réemploi chantier + question vivante)
 
 - **Fait** : un nouveau « carré » apparaît dans Mémoire — chantier **« Veille —
