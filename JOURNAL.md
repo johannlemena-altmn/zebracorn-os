@@ -5,6 +5,47 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — Brique « md studio » : Markdown → présentable (PWA autonome v1)
+
+- **Fait** : nouveau dossier **`md-studio/`** (un seul fichier `index.html`,
+  ~zéro dépendance). Depuis Safari iPhone : on colle / ouvre un `.md` → **aperçu
+  stylé** (rendu lisible façon Claude, design papier/encre/terracotta de la
+  famille) → **exports** : HTML autonome (styles inline, s'ouvre seul partout),
+  **PDF** (impression native → partage iOS « Enregistrer en PDF »), **PNG**
+  (best-effort SVG/foreignObject→canvas), **Copier** (HTML riche via
+  ClipboardItem, fallback texte). Onglets Écrire/Aperçu, **persistance du
+  brouillon** (localStorage), toasts, safe-area iOS. Mini-parseur Markdown inline
+  (titres, gras/ital, listes ±/ordonnées, citations, code inline + fences,
+  liens, images, tableaux simples, hr).
+- **Pourquoi / décision clé** : Johann a tranché **« PWA autonome (frugale) »**.
+  Choix structurant : **zéro CDN** → (1) marche 100 % offline et reste une vraie
+  brique autonome, (2) **testable dans ce conteneur cloud** alors que le reste de
+  l'app (Preact/Dexie via CDN) n'y boote pas (proxy réseau bloque esm.sh/jsdelivr).
+  Plutôt qu'embarquer une lib Markdown, **mini-parseur maison** couvrant le
+  sous-ensemble utile (frugalité > exhaustivité). Sécurité : on **escape** le HTML
+  avant transformation (rendu prévisible, pas d'injection). Placé dans le repo
+  `zebracorn-os` (sous-dossier isolé) car c'est la seule surface déployable
+  (Vercel sur `main`) disponible depuis le cloud — code séparé, déploiement
+  mutualisé ; détachable plus tard. **Sert directement Ferryman** (sortie md → vue
+  présentable), comme prévu.
+- **DoD (testé pour de vrai, Playwright headless sur `http.server`)** : rendu
+  vérifié sur un md complet → h1/h2, gras, ital, lien, ul+ol (4 li), citation,
+  bloc de code **avec `<`/`>` préservés** (HTML non cassé), tableau, hr, tous
+  présents ; **export HTML re-parsé** valide (titre extrait du `# `, `article.doc`
+  présent) ; **persistance au reload** OK ; **PNG** génère un fichier 47 Ko sous
+  Chromium ; **zéro erreur console**. Non vérifiable ici (à confirmer device) :
+  comportement exact iOS Safari du PNG (canvas tainted possible → fallback PDF
+  prévu) et du partage-PDF natif.
+- **Prochain** : (1) confirmer sur iPhone réel (preview + share-PDF + add-to-home-
+  screen) ; (2) si besoin offline installable « propre » : ajouter manifest + SW
+  minimal ; (3) brancher les **gabarits narratifs Ferryman** (la vraie valeur
+  éditoriale). Se déploiera après merge sur `main` → URL `/md-studio/`.
+- **Accès fichiers — constat** : le cloud branché à la session est **Google
+  Drive** (pas iCloud). Il contient les *documents* de Johann (sobriété, études…)
+  mais **pas** les projets de code (Reprise-Sport / Ferryman / Murfy), qui sont
+  sur iCloud Drive / Desktop — **non accessibles** depuis cette session. Les
+  tâches 1/2/3 restent à faire depuis la session Claude Code locale (Mac).
+
 ## 2026-06-13 — Carré de veille « décision US / Fable·Opus » (réemploi chantier + question vivante)
 
 - **Fait** : un nouveau « carré » apparaît dans Mémoire — chantier **« Veille —
