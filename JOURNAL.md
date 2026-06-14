@@ -5,6 +5,32 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-14 — Test FICV par IA : contenu réel (vision image) + question reliée au Aim
+
+- **Fait** : refonte du step `test` (Sonnet) du Filtre IA. (1) **Vision** : pour une
+  capture image/croquis, l'image (`dataUrl`) est désormais **jointe** à Sonnet
+  (message multimodal) → le FICV se fonde sur ce qui est réellement montré, plus
+  seulement le nom de fichier. (2) **Critères FICV rigoureux** dans le prompt :
+  Faits = littéral/vérifiable sans inférence · Interprétations = lectures marquées
+  comme hypothèses · Croyances = présupposé qui, s'il tombe, fait tomber la thèse ·
+  Valeurs = jugement en jeu. (3) **Question reliée au Aim** : la question socratique
+  relie la thèse à l'intention de départ (« ce qui devrait être vrai/faux pour que
+  ce contenu serve ce que tu cherches ») ; sans Aim, elle challenge la thèse seule.
+  Le Aim est tenu à part (pivot du Test, appoint pour le Compress). Client : passe
+  `dataUrl`/`mimeType` à l'API.
+- **Pourquoi** : le Test est le cœur critique d'ACTOR ; sa valeur = transformer un
+  contenu passif en challenge personnel qui force une position (Own) au service du
+  Aim. Vision sur image = la seule façon d'avoir un FICV juste sur un croquis/
+  screenshot (on ne « lit » pas un nom de fichier). Garde-fou taille base64
+  (~4,5 Mo) pour éviter les 413. On ne navigue toujours pas les URLs (liens =
+  titre/notes/compress), limite honnête assumée.
+- **DoD** : `node --check api/actor-ai.js` OK ; assemblage simulé sur 2 cas (lien
+  LinkedIn + Aim → texte avec Aim en tête ; image → message multimodal image+texte).
+  **Sortie réelle de Sonnet à confirmer en prod** (pas de clé API en session). Shape
+  JSON de réponse inchangée → genTest client intact.
+- **Prochain** : confirmer en prod la qualité FICV sur un lien et sur un croquis ;
+  selon retour, calibrer température/longueur.
+
 ## 2026-06-13 — Fix Flux/ACTOR (compress des liens) + design md studio (retours device)
 
 - **Fait** : (A) **Compress IA des liens réparé** — le « Résumer avec Haiku »
