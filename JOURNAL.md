@@ -5,6 +5,26 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-14 — Fix Test FICV : sortait du méta (auditait l'input) → recentré sur le sujet
+
+- **Fait** : sur un lien « maigre » (titre + hashtags), Sonnet répondait en **méta** —
+  « il n'y a qu'un titre, pas de contenu » (Faits), et **critiquait la Compress de
+  l'utilisateur** comme « une projection » (Interp), au lieu de penser le sujet.
+  Cause : mon prompt insistait trop sur « aucune inférence / seulement ce qui est
+  établi par le contenu » → repli sur l'audit de l'entrée. Réécriture du prompt
+  `test` : (1) mission = FICV **sur le sujet désigné**, en mobilisant ce que les
+  concepts/hashtags désignent réellement ; (2) **interdiction explicite** du
+  méta-commentaire (« pas de contenu », « lien non ouvert », « données
+  indisponibles ») ; (3) **ne pas critiquer la Compress/Aim** — les prolonger, pas
+  les auditer ; (4) Faits = établi *sur le sujet*, pas sur l'input. Labels du prompt
+  utilisateur adoucis (« Sujet de la capture », « Angle… à prolonger », « Lien
+  source »).
+- **Pourquoi** : retour device de Johann (FICV inutile, méta). Le Test doit aiguiser
+  la pensée sur le fond, pas commenter la complétude de la capture.
+- **DoD** : `node --check` OK ; prompt final simulé (sujet en tête, Compress balisée
+  « à prolonger pas critiquer », zéro incitation méta). Sortie réelle de Sonnet à
+  reconfirmer en prod.
+
 ## 2026-06-14 — Test FICV par IA : contenu réel (vision image) + question reliée au Aim
 
 - **Fait** : refonte du step `test` (Sonnet) du Filtre IA. (1) **Vision** : pour une
