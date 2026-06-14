@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const parts = [];
   if (titre && titre.trim() && titre.trim() !== content.trim()) parts.push(`Titre / accroche : ${titre.trim()}`);
   if (notes && notes.trim()) parts.push(`Notes : ${notes.trim()}`);
-  if (isUrl) parts.push(`Lien (non ouvert) : ${content.trim()}`);
+  if (isUrl) parts.push(`Lien source : ${content.trim()}`);
   else if (!hasImage && content.trim()) parts.push(content.trim());
   const captured = parts.join('\n') || (hasImage ? '(voir image jointe)' : content);
   const aimBlock = aim && aim.trim() ? aim.trim() : '';
@@ -74,26 +74,30 @@ ${captured.slice(0, 2000)}`,
       max_tokens: 700,
       temperature: testTemp,
       system: `Tu es un partenaire d'analyse critique pour la méthode ACTOR — étape T (Test).
-Tu reçois un contenu capturé (texte, titre/accroche d'un lien, ou une IMAGE jointe) et, souvent, l'intention de l'utilisateur (son « Aim » : ce qu'il cherche, la question qu'il explore).
+On te donne une capture qui pointe vers un SUJET : un titre, des hashtags, parfois une image, une synthèse (Compress) et l'intention de l'utilisateur (son « Aim »). Ta mission : produire un FICV utile SUR CE SUJET, pour aiguiser la pensée de l'utilisateur et l'aider à prendre position.
 
-Analyse le contenu RÉELLEMENT fourni. Si une image est jointe, fonde-toi sur ce qu'elle montre vraiment (décris-le mentalement avant d'interpréter). Ne extrapole pas au-delà de ce qui est donné.
+RÈGLES — lis-les, elles sont le cœur du travail :
+- Analyse le FOND (le sujet désigné), pas la forme de l'entrée. Mobilise ce que ces concepts/hashtags désignent réellement dans le monde (ex. ce qu'est la permacomptabilité, la RSE…) pour nourrir l'analyse.
+- N'écris JAMAIS de méta-commentaire sur l'input : interdit de dire « il n'y a qu'un titre », « pas de contenu », « lien non ouvert », « données indisponibles ». On le sait déjà ; ce n'est pas une analyse.
+- Ne critique PAS la synthèse (Compress) de l'utilisateur ni son intention : c'est son matériau de travail, engage-toi avec l'IDÉE, ne l'audite pas.
+- N'invente pas de propos précis attribués à un post que tu n'as pas lu : reste au niveau du concept/sujet, pas du contenu exact de la source.
 
-Applique le cadre FICV avec rigueur, en séparant nettement les niveaux :
-- faits : ce qui est littéralement affirmé ou montré, objectivement vérifiable. AUCUNE inférence — si le contenu ne l'établit pas, ce n'est pas un fait.
-- interp : les lectures plausibles de ces faits, ce qu'ils suggèrent. Formule-les comme des hypothèses, pas des certitudes.
-- croyances : le présupposé sous-jacent sur lequel repose la thèse (souvent implicite) — celui qui, s'il tombe, la fait tomber.
-- valeurs : la ou les valeurs en jeu, le jugement de valeur porté par le contenu.
+Cadre FICV (distingue bien les niveaux, sans verser dans le méta) :
+- faits : ce qui est solidement établi / reconnu SUR LE SUJET (définitions, mécanismes, données admises). Du concret sur le fond, pas sur l'entrée.
+- interp : ce que ça suggère, les lectures plausibles, les implications — formulées comme hypothèses.
+- croyances : le présupposé sous-jacent qui porte la thèse — celui qui, s'il tombe, la fait tomber.
+- valeurs : la ou les valeurs en jeu, le jugement de valeur porté.
 
-Puis formule UNE question socratique vraiment déstabilisante, sans réponse évidente :
-- Si une intention (Aim) est fournie : la question doit RELIER la thèse à cette intention — ce qui devrait être vrai (ou faux) pour que ce contenu serve réellement ce que l'utilisateur cherche.
-- Sinon : une question qui challenge la thèse en elle-même.
+Puis UNE question socratique vraiment déstabilisante, sans réponse évidente :
+- Si un Aim est fourni : la question RELIE le sujet à cette intention — ce qui devrait être vrai (ou faux) pour que ça serve réellement ce que l'utilisateur cherche.
+- Sinon : une question qui challenge la thèse elle-même.
 
 Réponds UNIQUEMENT en JSON valide, sans texte autour, sans markdown :
 {"faits":"…","interp":"…","croyances":"…","valeurs":"…","question":"…(phrase interrogative)"}
 
 Langue : français. Direct, précis, 1–2 phrases courtes par champ. La question doit challenger, pas conforter.`,
-      user: `${aimBlock ? `Intention de l'utilisateur (Aim) : ${aimBlock}\n\n` : ''}Contenu capturé :
-${captured.slice(0, 2500)}${urlContext}${compress ? `\n\nSynthèse (Compress) : ${compress}` : ''}${hasImage ? `\n\n(Une image est jointe ci-dessus — fonde ton analyse sur ce qu'elle montre.)` : ''}`,
+      user: `${aimBlock ? `Intention de l'utilisateur (Aim) : ${aimBlock}\n\n` : ''}Sujet de la capture :
+${captured.slice(0, 2500)}${compress ? `\n\nAngle de l'utilisateur (Compress, à prolonger — pas à critiquer) : ${compress}` : ''}${hasImage ? `\n\n(Une image est jointe ci-dessus — fonde ton analyse sur ce qu'elle montre.)` : ''}`,
     },
   };
 
