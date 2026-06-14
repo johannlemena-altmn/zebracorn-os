@@ -23,6 +23,8 @@
            --trait:#37322b; --blanc:#211e1a; }
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  /* [hidden] doit toujours gagner, même sur un sélecteur #id avec display: */
+  [hidden]{ display:none !important; }
   html,body{ margin:0; height:100%; }
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -147,11 +149,8 @@ Texte avec **gras**, *italique*, [lien](https://exemple.fr) et `code`.
 
   <footer>
     <button id="btn-tpl">Modèles</button>
-    <button id="btn-open">Ouvrir .md</button>
-    <button id="btn-html">Export HTML</button>
-    <button id="btn-pdf" class="primary">PDF</button>
-    <button id="btn-png">PNG</button>
-    <button id="btn-copy">Copier</button>
+    <button id="btn-open">Ouvrir</button>
+    <button id="btn-export" class="primary">Exporter ▾</button>
     <button id="btn-clear">Vider</button>
     <input type="file" id="file" accept=".md,.markdown,.txt,text/markdown,text/plain">
   </footer>
@@ -164,6 +163,14 @@ Texte avec **gras**, *italique*, [lien](https://exemple.fr) et `code`.
   <button class="tpl" data-tpl="spike"><b>Verdict de spike</b><span>Hypothèse → verdict → facile / coince → prochaine étape</span></button>
   <button class="tpl" data-tpl="decision"><b>Note de décision</b><span>Contexte → options → décision → pourquoi → conséquences</span></button>
   <button class="tpl" data-tpl="data"><b>Données → récit</b><span>Le chiffre clé → ce qu’il raconte → la nuance → tableau</span></button>
+</div>
+<div class="sheet" id="sheet-export" role="dialog" aria-label="Exporter">
+  <div class="grip"></div>
+  <h2>Exporter</h2>
+  <button class="tpl" id="btn-pdf"><b>PDF</b><span>Impression → « Enregistrer en PDF » (iOS)</span></button>
+  <button class="tpl" id="btn-html"><b>HTML autonome</b><span>Fichier .html qui s’ouvre partout, styles inclus</span></button>
+  <button class="tpl" id="btn-png"><b>Image PNG</b><span>Capture du rendu (best-effort ; sinon PDF)</span></button>
+  <button class="tpl" id="btn-copy"><b>Copier le rendu</b><span>Texte mis en forme dans le presse-papier</span></button>
 </div>
 
 <script>
@@ -328,18 +335,20 @@ function download(name, content, type){
 }
 $('#btn-html').onclick = ()=>{
   if(!editor.value.trim()) return toast('Rien à exporter');
+  closeSheets();
   download('document.html', standaloneHtml(), 'text/html'); toast('HTML exporté');
 };
 
 /* ── PDF : impression native (iOS → partage « Enregistrer en PDF ») ── */
 $('#btn-pdf').onclick = ()=>{ if(!editor.value.trim()) return toast('Rien à exporter');
-  setTab(true); setTimeout(()=>window.print(), 120); };
+  closeSheets(); setTab(true); setTimeout(()=>window.print(), 220); };
 
 /* ── PNG : best-effort via SVG <foreignObject> → canvas.
    Note honnête : marche bien sur Chrome/desktop ; Safari iOS peut refuser
    (canvas « tainted ») surtout avec des images distantes. Fallback : message. ── */
 $('#btn-png').onclick = async ()=>{
   if(!editor.value.trim()) return toast('Rien à exporter');
+  closeSheets();
   try{
     const w = Math.min(preview.scrollWidth||720, 720);
     const inner = '<div xmlns="http://www.w3.org/1999/xhtml" style="background:#fffdf8;color:#2b2723;'
@@ -368,6 +377,7 @@ $('#btn-png').onclick = async ()=>{
 /* ── copier le rendu (HTML riche si possible, sinon source) ── */
 $('#btn-copy').onclick = async ()=>{
   if(!editor.value.trim()) return toast('Rien à copier');
+  closeSheets();
   try{
     if(window.ClipboardItem && navigator.clipboard?.write){
       const html = standaloneHtml();
@@ -432,14 +442,17 @@ const TEMPLATES = {
 |-------|--------|
 | …     | …      |`,
 };
-const sheet = $('#sheet'), scrim = $('#scrim');
-function openSheet(o){ sheet.classList.toggle('show', o); scrim.classList.toggle('show', o); }
-$('#btn-tpl').onclick = ()=>openSheet(true);
-scrim.onclick = ()=>openSheet(false);
-document.querySelectorAll('.tpl').forEach(b => b.onclick = ()=>{
+const scrim = $('#scrim');
+function closeSheets(){ document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show')); scrim.classList.remove('show'); }
+function openSheet(el){ closeSheets(); el.classList.add('show'); scrim.classList.add('show'); }
+scrim.onclick = closeSheets;
+$('#btn-tpl').onclick = ()=>openSheet($('#sheet'));
+$('#btn-export').onclick = ()=>{ if(!editor.value.trim()) return toast('Rien à exporter'); openSheet($('#sheet-export')); };
+// Seuls les boutons modèles (data-tpl) — pas les boutons d'export qui partagent .tpl
+document.querySelectorAll('#sheet .tpl').forEach(b => b.onclick = ()=>{
   const tpl = TEMPLATES[b.dataset.tpl]; if(!tpl) return;
   if(editor.value.trim() && !confirm('Remplacer le contenu actuel par ce modèle ?')) return;
-  editor.value = tpl; render(); setTab(false); openSheet(false); editor.focus();
+  editor.value = tpl; render(); setTab(false); closeSheets(); editor.focus();
   toast('Modèle inséré');
 });
 

@@ -12,16 +12,26 @@ export default async function handler(req, res) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée — ajoute-la dans Vercel > Settings > Environment Variables' });
 
-  const { step, content, type, source, compress, notes = '', settings = {} } = req.body || {};
+  const { step, content, type, source, compress, notes = '', titre = '', aim = '', settings = {} } = req.body || {};
   if (!step || !content) return res.status(400).json({ error: 'Champs manquants : step, content' });
 
-  // Pour les captures de type lien/vidéo, le contenu est une URL — utiliser notes si disponibles
+  // Une capture « lien/vidéo » a pour `content` une URL : on NE navigue pas. On
+  // synthétise à partir du texte réellement disponible — d'abord le titre (souvent
+  // riche : accroche, hashtags, auteur), puis les notes et le contexte utilisateur
+  // (Aim). L'URL n'est qu'un appoint. Voir le garde-fou « ne jamais dire inaccessible »
+  // dans le prompt : un titre plein de hashtags suffit à dégager le thème.
   const isUrl = /^https?:\/\//i.test(content.trim());
-  const effectiveContent = isUrl && notes.trim()
-    ? notes.trim()
-    : content;
-  const urlContext = isUrl && !notes.trim()
-    ? `\n⚠ Le contenu est une URL (non accessible). Synthétise à partir de la source et du contexte disponibles uniquement. Si insuffisant, dis-le clairement.`
+  const parts = [];
+  if (titre && titre.trim() && titre.trim() !== content.trim()) parts.push(`Titre / accroche : ${titre.trim()}`);
+  if (notes && notes.trim()) parts.push(`Notes : ${notes.trim()}`);
+  if (aim && aim.trim()) parts.push(`Contexte donné par l'utilisateur : ${aim.trim()}`);
+  if (isUrl) parts.push(`Lien (non ouvert) : ${content.trim()}`);
+  else parts.push(content.trim());
+  const effectiveContent = parts.join('\n') || content;
+  // Vrai « rien d'exploitable » = seulement une URL nue, sans titre/notes/contexte.
+  const thinSignal = isUrl && !titre.trim() && !notes.trim() && !aim.trim();
+  const urlContext = thinSignal
+    ? `\n(Le seul signal est l'URL : déduis le thème probable du domaine et de la forme de l'URL, propose une synthèse prudente et invite à ajouter une note. Ne dis jamais « contenu inaccessible ».)`
     : '';
 
   const compressModel = settings.compressModel || 'claude-haiku-4-5-20251001';
@@ -35,7 +45,12 @@ export default async function handler(req, res) {
       max_tokens: 300,
       temperature: compressTemp,
       system: `Tu es un assistant de synthèse pour un second cerveau (méthode ACTOR — étape C : Compress).
-Ta tâche : extraire l'essentiel d'un contenu capturé.
+Ta tâche : extraire l'essentiel du texte capturé fourni.
+
+RÈGLES IMPORTANTES :
+- Tu ne navigues PAS : tu ne peux pas ouvrir d'URL. Travaille UNIQUEMENT avec le texte fourni (titre, accroche, hashtags, auteur, notes, contexte utilisateur).
+- Ne réponds JAMAIS que le contenu est « inaccessible » ou « impossible à synthétiser ». Un titre riche en hashtags suffit largement à dégager un thème : sers-t'en.
+- Si le signal est mince, produis quand même une synthèse prudente au mieux à partir des indices (thème via les hashtags, posture de l'auteur, type de source).
 
 Produis :
 1. Un titre court (5–8 mots max) qui capture la thèse ou l'idée centrale
