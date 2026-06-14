@@ -712,7 +712,7 @@ function Capture({onCapture,pushNav}){
       const r=await fetch('/api/actor-ai',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({step,content:item.contenu,type:item.type,source:item.source||'',compress:actorDraft.compress||'',notes:item.notes||'',settings:filtreIa,...extra}),
+        body:JSON.stringify({step,content:item.contenu,type:item.type,source:item.source||'',titre:item.titre||'',aim:actorDraft.aim||'',compress:actorDraft.compress||'',notes:item.notes||'',settings:filtreIa,...extra}),
       });
       const data=await r.json();
       if(!r.ok) throw new Error(data.error||`HTTP ${r.status}`);
@@ -1094,7 +1094,7 @@ function Capture({onCapture,pushNav}){
                 ${s==='C'?html`
                   ${filtreIa.enabled&&(actorItem.type==='lien'||actorItem.type==='video')&&!actorItem.notes&&!actorDraft.compress?html`
                     <div class="ai-error" style="background:rgba(194,85,47,.1)">
-                      📎 Lien sans contenu — colle les idées clés dans les <strong>Notes</strong> avant de lancer Haiku.
+                      📎 Lien : Haiku synthétise à partir du <strong>titre</strong>. Pour affiner, ajoute les idées clés dans le contexte (champ <strong>Aim</strong> ci-dessus) ou les Notes.
                     </div>
                   `:''}
                   ${filtreIa.enabled

@@ -5,6 +5,34 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-13 — Fix Flux/ACTOR (compress des liens) + design md studio (retours device)
+
+- **Fait** : (A) **Compress IA des liens réparé** — le « Résumer avec Haiku »
+  renvoyait « Contenu inaccessible » sur un post LinkedIn. Cause : le client
+  envoyait l'**URL nue** (pas le `titre` riche en hashtags), et le serveur ajoutait
+  un prompt défaitiste (« si insuffisant, dis-le clairement »). Désormais le client
+  passe `titre` + `aim` (contexte utilisateur) ; le serveur (`api/actor-ai.js`)
+  assemble tout le texte disponible (titre/accroche/hashtags + notes + contexte +
+  lien non ouvert) et le prompt **interdit** de dire « inaccessible » (un titre plein
+  de hashtags suffit à dégager le thème). Hint UI mis à jour. (B) **md studio
+  design** : corrigé la **vue scindée** (en mode Écrire l'aperçu ne se cachait pas —
+  `[hidden]` était écrasé par `#preview-wrap{display:flex}` → ajout `[hidden]{display:none!important}`),
+  et **désencombré la barre du bas** (5 boutons qui débordaient, « xport HTML » coupé)
+  en un seul **Exporter ▾** ouvrant une feuille PDF / HTML / PNG / Copier.
+- **Pourquoi** : retours de Johann sur device. Le compress des liens est le cœur du
+  Flux ; échouer dessus casse l'usage. Choix : exploiter le **titre déjà capturé**
+  (api/title.js) plutôt que tenter (en vain) d'ouvrir l'URL. Footer : une seule
+  action primaire d'export réduit la charge et règle le débordement mobile.
+- **DoD (Playwright + simulation)** : assemblage du prompt vérifié sur le cas
+  LinkedIn réel (Haiku reçoit titre + Aim + lien ; mode défaitiste = false) ;
+  `node --check api/actor-ai.js` OK. md studio : mode Écrire → aperçu **caché** (plus
+  de split), mode Aperçu → éditeur `display:none` + aperçu plein écran ; feuille
+  Exporter ouvre/ferme, export HTML télécharge ; sélecteur modèles re-scopé à
+  `#sheet` (n'écrase plus les boutons d'export qui partagent `.tpl`) ; zéro erreur
+  console. Réponse réelle de Haiku (qualité du résumé) à confirmer en prod.
+- **Prochain** : confirmer sur device le compress d'un lien LinkedIn ; vrais
+  gabarits Ferryman quand le repo sera accessible.
+
 ## 2026-06-13 — md studio v1.1 : installable (manifest + SW), partage entrant, modèles narratifs
 
 - **Fait** : (1) **PWA installable** — `md-studio/manifest.webmanifest` + `sw.js`
