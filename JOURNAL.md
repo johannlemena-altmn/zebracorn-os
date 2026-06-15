@@ -5,6 +5,52 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-15 — v0.3.6 (Build #2) : confort 7 j — frictions des onglets lissées
+
+F3 de la session « 7 jours d'usage ». Johann a choisi 3 chantiers de confort
+(question ciblée plutôt que supposer). Livrés en **3 tranches, 1 commit + vérif
+preview chacune** (cadence 1-2 features). Bonus vidéo non retenu cette fois.
+
+- **Tranche 1 — Édition de tâche fluide (Mémoire)** :
+  - **Fait** : (a) suppression du ✕ à **deux temps** (1er tap arme → « supprimer ? »
+    terracotta, 2e tap dans 3 s supprime, se désarme seul) → évite l'effacement
+    accidentel en amont du soft-delete v0.3.5. (b) **« ✎ renommer »** dans la zone
+    dépliée d'une tâche → input titre (`setTacheTitre`, refuse un titre vide), sauvé
+    au blur/Entrée. Plus besoin de supprimer/recréer pour corriger un libellé.
+  - **DoD** : renommage persistant (vérifié via flux UI réel + relecture DB) ;
+    ✕ 1er tap = armé (`t-del arm`, « supprimer ? ») sans suppression ; 2 taps dans
+    la fenêtre = soft-delete (en archive, `supprime:true`, hors actives) ; capture
+    écran du bouton renommer. Résidus nettoyés.
+
+- **Tranche 2 — Capture plus rapide (détection auto du type)** :
+  - **Fait** : helper `detectCaptureType` (URL seule → lien ; youtube/vimeo/… →
+    vidéo ; sinon note). Capture 1-geste de **Maintenant** : une URL collée part en
+    `lien` (host, audio, titre auto) au lieu de `note`. Composer **Flux** : coller
+    une URL en mode « Note » bascule le pill sur « Lien » (placeholder adapté),
+    sans écraser un choix explicite. Titre récupéré en arrière-plan (non bloquant).
+  - **Pourquoi** : pas d'auto-focus à l'arrivée sur Flux — sur iPhone ça ferait
+    surgir le clavier sans le vouloir (anti-confort). Le vrai « 1 geste » = ne plus
+    choisir le type à la main.
+  - **DoD** : capture rapide d'une URL → type `lien` en base (vérifié) ; composer
+    bascule Note→Lien au collage (pill + placeholder, capture écran) ; reload OK.
+
+- **Tranche 3 — Traitement inbox (retour visuel + ordre)** :
+  - **Fait** : (a) **flash** bref (1,6 s) après traité/plus-tard/effacé/remis —
+    avant, geste silencieux = doute. (b) **bascule d'ordre récent ⇄ ancien** sur
+    l'en-tête « À traiter » (dès 2 items, persistée localStorage) → vider le backlog
+    du plus ancien. (c) nudge **« charge ↑ »** dès 8 items (signal doux).
+  - **DoD** : 9 captures de test → « charge ↑ » affiché, toggle « récent ↓ » →
+    « ancien ↑ » inverse l'ordre (1er item passe de inbox 9 à inbox 1) + persiste
+    (`zc_inboxAsc`) ; flash « ↓ mis à plus tard » au clic Plus-tard + compteur
+    décrémenté ; capture écran de l'en-tête. Résidus nettoyés, reload sans erreur.
+
+- **Reste / veille** : tout à confirmer au **feel iPhone réel** (les vérifs preview
+  sont headless). Pistes si besoin : « vider l'archive » assumé ; auto-focus
+  conditionnel desktop-only ; ordre inbox « selon l'heure » (non fait — spéculatif,
+  écarté pour rester frugal).
+
+---
+
 ## 2026-06-15 — v0.3.5 (Build #2, 7 j d'usage) : capture de lien jamais bloquante + archive des tâches
 
 Session « 7 jours d'usage intensif ». Deux features livrées, 1 commit chacune,
@@ -59,10 +105,8 @@ vérifiées en preview (python http.server 4242, viewport 390 mobile).
   - **Reste** : feel iPhone réel ; éventuellement un « vider l'archive » (hard
     delete assumé) si elle gonfle.
 
-- **F3 — Confort 7 j (frictions des 4 onglets)** : non démarrée — demande trop
-  large pour supposer juste. Question ciblée posée à Johann (quelles frictions
-  prioriser) avant de construire. Bonus (vidéo sur note, optim Capture/Traitement)
-  en attente aussi.
+- **F3 — Confort 7 j (frictions des 4 onglets)** : livrée en v0.3.6 (voir entrée
+  du dessus). Bonus vidéo-sur-note non retenu cette session.
 
 ---
 
