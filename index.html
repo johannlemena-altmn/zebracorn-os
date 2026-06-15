@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=tache036">
+  <link rel="stylesheet" href="styles.css?v=inbox036">
 </head>
 <body>
 <div id="root"></div>
@@ -586,6 +586,8 @@ function Capture({onCapture,pushNav}){
   const [done,setDone]=useState([]);
   const [later,setLater]=useState([]);
   const [saving,setSaving]=useState(false);
+  const [flash,setFlash]=useState('');
+  const [inboxAsc,setInboxAsc]=useState(()=>localStorage.getItem('zc_inboxAsc')==='1');
   const [hsOpen,setHsOpen]=useState(false);
   const [file,setFile]=useState(null);
   const [fileWarn,setFileWarn]=useState('');
@@ -705,8 +707,11 @@ function Capture({onCapture,pushNav}){
     const item=inbox.find(x=>x.id===id);
     setAnnotId(id); setAnnotTxt(item?.notes||''); setExpandId(null); setConfirmDelId(null);
   }
-  async function validerTrait(id,txt){ await traitCapture(id,txt); setAnnotId(null); setAnnotTxt(''); await load(); if(onCapture)onCapture(); }
-  async function skipAnnot(id){ await traitCapture(id,null); setAnnotId(null); await load(); if(onCapture)onCapture(); }
+  // Retour visuel bref après une action de tri (sinon : geste silencieux, doute).
+  function dire(msg){ setFlash(msg); clearTimeout(window._zcFlashT); window._zcFlashT=setTimeout(()=>setFlash(''),1600); }
+  function toggleInboxOrder(){ const v=!inboxAsc; setInboxAsc(v); localStorage.setItem('zc_inboxAsc',v?'1':'0'); }
+  async function validerTrait(id,txt){ await traitCapture(id,txt); setAnnotId(null); setAnnotTxt(''); await load(); dire('✓ traité → Mémoire'); if(onCapture)onCapture(); }
+  async function skipAnnot(id){ await traitCapture(id,null); setAnnotId(null); await load(); dire('✓ traité'); if(onCapture)onCapture(); }
   function ouvrirActor(item){
     if(actorId===item.id){setActorId(null);setActorSaved(false);setConnectSuggestions(null);return;}
     const ex=item.actorAnalysis||{};
@@ -813,10 +818,10 @@ function Capture({onCapture,pushNav}){
     if(actorId===id&&(actorDraft.aim||actorDraft.compress||actorDraft.own)){
       await sauveActor(id); setActorId(null); setActorSaved(false); setConnectSuggestions(null);
     }
-    await updateCaptureStatut(id,'plus-tard'); await load(); if(onCapture)onCapture();
+    await updateCaptureStatut(id,'plus-tard'); await load(); dire('↓ mis à plus tard'); if(onCapture)onCapture();
   }
-  async function supprimerCapture(id){ if(confirmDelId!==id){setConfirmDelId(id);return;} await deleteCapture(id); setConfirmDelId(null); await load(); if(onCapture)onCapture(); }
-  async function remettreInbox(id){ await updateCaptureStatut(id,'inbox'); await load(); if(onCapture)onCapture(); }
+  async function supprimerCapture(id){ if(confirmDelId!==id){setConfirmDelId(id);return;} await deleteCapture(id); setConfirmDelId(null); await load(); dire('✕ effacé'); if(onCapture)onCapture(); }
+  async function remettreInbox(id){ await updateCaptureStatut(id,'inbox'); await load(); dire('↑ remis à traiter'); if(onCapture)onCapture(); }
 
   const now=new Date();
   const actorItem=actorId?([...inbox,...corpus].find(x=>x.id===actorId)):null;
@@ -860,9 +865,14 @@ function Capture({onCapture,pushNav}){
       </div>
     </div>
 
-    <div class="sec-h"><span class="sec-t">À traiter</span><span class="sec-c">${inbox.length}</span></div>
+    <div class="sec-h"><span class="sec-t">À traiter${inbox.length>=8?html` · <span style="color:var(--ac)">charge ↑</span>`:''}</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        ${inbox.length>1?html`<button class="inbox-sort" onClick=${toggleInboxOrder} title="Ordre de tri">${inboxAsc?'ancien ↑':'récent ↓'}</button>`:''}
+        <span class="sec-c">${inbox.length}</span>
+      </span></div>
+    ${flash?html`<div class="capt-ok" style="margin-top:-.3rem">${flash}</div>`:''}
     ${inbox.length===0?html`<div class="empty-state">Inbox vide — prête à capter ✶</div>`:''}
-    ${inbox.map(item=>{
+    ${(inboxAsc?[...inbox].reverse():inbox).map(item=>{
       const isExpanded=expandId===item.id;
       const isURL=(item.type==='lien'||item.type==='video')&&item.contenu?.startsWith('http');
       const isNLM=item.source==='NotebookLM'||item.contenu?.includes('notebooklm.google')||item.nlm;

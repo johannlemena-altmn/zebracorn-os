@@ -445,6 +445,8 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .capt input:focus{border-color:var(--ac);}
 .capt button{font-family:var(--fm);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--bg);border:none;border-radius:11px;padding:0 16px;cursor:pointer;font-weight:600;}
 .capt-ok,.act-ok{font-family:var(--fm);font-size:10px;color:var(--ok);margin:-.7rem 0 .9rem;animation:pop2 .3s var(--ease-spring);}
+.inbox-sort{font-family:var(--fm);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--border2);background:transparent;color:var(--ink3);border-radius:9px;padding:2px 8px;cursor:pointer;}
+.inbox-sort:active{color:var(--ac);border-color:var(--ac);}
 @keyframes pop2{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
 details.pli{border-top:1px solid var(--border);padding-top:.3rem;margin-bottom:1rem;}
 details.pli summary{list-style:none;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:8px;padding:.6rem 0;font-family:var(--fm);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
