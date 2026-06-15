@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=archive035">
+  <link rel="stylesheet" href="styles.css?v=tache036">
 </head>
 <body>
 <div id="root"></div>
@@ -1373,6 +1373,9 @@ function Semaine({pushNav,navDepth}){
   const [expandTacheId,setExpandTacheId] = useState(null);
   const [expandTacheNotes,setExpandTacheNotes] = useState('');
   const [editTacheId,setEditTacheId] = useState(null);
+  const [delConfirmId,setDelConfirmId] = useState(null);
+  const [titreEditId,setTitreEditId] = useState(null);
+  const [titreEditVal,setTitreEditVal] = useState('');
   const [questions,setQuestions]   = useState([]);
   const [qArchived,setQArchived]   = useState([]);
   const [qShowArch,setQShowArch]   = useState(false);
@@ -1416,7 +1419,17 @@ function Semaine({pushNav,navDepth}){
   function toggleExpandTache(id,notes){ if(expandTacheId===id){setExpandTacheId(null);setExpandTacheNotes('');}else{setExpandTacheId(id);setExpandTacheNotes(notes||'');} }
   async function sauveExpandNotes(id,val){ await setTacheNotes(id,val); setTaches(prev=>prev.map(t=>t.id===id?{...t,notes:val||null}:t)); }
   async function sauveObjectif(id,val){ await setTacheObjectif(id,val); setTaches(prev=>prev.map(t=>t.id===id?{...t,capObjectif:val||null}:t)); }
-  async function delTache(id){ await deleteTache(id); await load(); }
+  // Suppression à deux temps : 1er tap arme (✕ → danger), 2e tap dans 3 s supprime.
+  async function delTache(id){
+    if(delConfirmId!==id){ setDelConfirmId(id); clearTimeout(window._zcDelT); window._zcDelT=setTimeout(()=>setDelConfirmId(null),3000); return; }
+    setDelConfirmId(null); await deleteTache(id); await load();
+  }
+  function ouvrirTitre(t){ setTitreEditId(t.id); setTitreEditVal(t.titre||''); }
+  async function sauveTitre(id){
+    const v=titreEditVal.trim();
+    if(v){ await setTacheTitre(id,v); setTaches(prev=>prev.map(t=>t.id===id?{...t,titre:v}:t)); }
+    setTitreEditId(null);
+  }
   async function delChant(id){ await deleteChantier(id); await load(); }
   async function sauveEcheance(id,val){ await setTacheEcheance(id,val||null); setEditEchId(null); await load(); }
   function ouvrirEch(t){ setEditEchId(t.id); setEditEchVal(t.echeance||''); }
@@ -1506,8 +1519,16 @@ function Semaine({pushNav,navDepth}){
           ${todos.length?html`<span class="t-count">${doneC}/${todos.length}</span>`:''}
           ${isExp?'▾':'▸'}
         </span>
-        <span class="t-del" onClick=${()=>delTache(t.id)}>✕</span>
+        <span class=${'t-del'+(delConfirmId===t.id?' arm':'')} onClick=${()=>delTache(t.id)} title=${delConfirmId===t.id?'Confirmer la suppression':'Supprimer'}>${delConfirmId===t.id?'supprimer ?':'✕'}</span>
         ${isExp?html`<div class="task-notes">
+          ${titreEditId===t.id
+            ?html`<input class="task-titre-inp" value=${titreEditVal}
+                onInput=${e=>setTitreEditVal(e.target.value)}
+                onBlur=${()=>sauveTitre(t.id)}
+                onKeyDown=${e=>e.key==='Enter'&&sauveTitre(t.id)}
+                autofocus/>`
+            :html`<button class="titre-edit-btn" onClick=${e=>{e.stopPropagation();ouvrirTitre(t);}}>✎ renommer</button>`
+          }
           ${isEdit||!t.notes?html`
             <textarea class="task-notes-ta" rows="5" value=${expandTacheNotes}
               onInput=${e=>setExpandTacheNotes(e.target.value)}

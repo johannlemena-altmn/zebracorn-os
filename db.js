@@ -268,6 +268,11 @@ async function setTacheNotes(id, notes) {
   return db.taches.update(id, { notes: notes || null });
 }
 
+async function setTacheTitre(id, titre) {
+  if (!titre || !titre.trim()) return;          // jamais de tâche sans titre
+  return db.taches.update(id, { titre: titre.trim() });
+}
+
 async function setTacheObjectif(id, objectif) {
   return db.taches.update(id, { capObjectif: objectif || null });
 }
