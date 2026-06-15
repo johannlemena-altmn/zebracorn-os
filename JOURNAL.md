@@ -5,6 +5,67 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-15 — v0.3.5 (Build #2, 7 j d'usage) : capture de lien jamais bloquante + archive des tâches
+
+Session « 7 jours d'usage intensif ». Deux features livrées, 1 commit chacune,
+vérifiées en preview (python http.server 4242, viewport 390 mobile).
+
+- **F1 — Capture de lien (fix `Request Rejected`)** :
+  - **Fait** : coller une URL anti-bot (gallimard.fr → 403 « Request Rejected »,
+    Cloudflare → « Just a moment… ») ne pollue plus la capture. `api/title.js`
+    vérifie désormais `r.ok` (403/429/5xx → titre `null`), filtre une liste de
+    titres-poubelle même en 200, et envoie un UA navigateur réaliste (réduit les
+    blocages). Côté client, `fetchTitleFor` garde un filtre `TITRE_BLOC` (défense
+    si le proxy en laisse passer) et **le titre d'un lien devient éditable à la
+    main** : input dans la zone dépliée d'une capture lien (persisté via
+    `updateCaptureTitre`), placeholder « Titre (sinon : host) ».
+  - **Pourquoi** : la capture ne bloquait déjà pas (l'ajout précède le fetch), le
+    vrai bug était que le `<title>` de la page de blocage était stocké. L'URL
+    brute reste la donnée ; le titre n'est qu'un affichage. Fallback gracieux =
+    host + titre/note manuels. Frugal : aucune dépendance, ~20 lignes.
+  - **DoD** : preview statique (l'`/api/title` Vercel ne tourne pas en local → cas
+    idéal pour vérifier le fallback). Vérifié : capture lien → URL gardée, aucun
+    titre auto, `fetchTitleFor` non bloquant (retourne null), `TITRE_BLOC` matche
+    « Request Rejected »/« Just a moment » et laisse passer un vrai titre, titre
+    manuel persiste + s'efface (chaîne vide → null), input rendu avec le bon
+    placeholder (capture écran). Le fix proxy lui-même = vérif de logique (prod).
+  - **Reste** : valider en prod Vercel qu'un vrai lien gallimard renvoie host +
+    titre éditable (pas « Request Rejected »).
+
+- **F2 — Archive des tâches (soft-delete + rétro « Wrapped »)** :
+  - **Fait** : `deleteTache` faisait un **hard-delete** → une tâche supprimée ou
+    cochée par erreur était introuvable (cas vécu). Désormais soft-delete
+    (`supprime`+`supprimeLe`), `toggleTacheDone` horodate (`faitLe`),
+    `getArchivedTaches`/`restoreTache`, et `getTaches` exclut les supprimées des
+    vues actives. UI : carte **« Archive des tâches »** dans le pli « la
+    profondeur » (Mémoire), repliée. En tête, rétro **« Wrapped »** : faites cette
+    semaine / ce mois / total + nb supprimées + top 3 chantiers. Détail dépliable :
+    chaque tâche (✓/🗑) avec chantier + date + bouton ↑ rouvrir.
+  - **Pourquoi** : le besoin réel = ne plus perdre une tâche + une lecture
+    rétrospective par période/projet. Choix frugal : réutiliser le pattern
+    « questions archivées » (collapsible + `.q-card` + restore) et les tokens
+    existants ; pas de nouvel écran, pas d'index Dexie (champs non indexés,
+    filtrés en JS) → pas de bump de version DB. `taches` est déjà dans
+    `SYNC_TABLES` → l'archive se synchronise entre appareils.
+  - **DoD** : couche données vérifiée (cocher → exclu des actives + `faitLe` ;
+    supprimer → soft, toujours en base ; archive contient faites+supprimées ;
+    restore remet en actif + reset `fait`/`faitLe`). UI vérifiée en Mémoire :
+    3 cartes du pli (Questions / Archive / Bibliothèque), Wrapped « 3 faites…
+    🗑 1 supprimée » + pill chantier, liste avec ✓/🗑 + dates, **restauration via
+    le bouton ↑ rouvrir** (la tâche cochée par erreur revient en actif) — captures
+    écran. Résidus de test nettoyés, reload sans erreur console.
+  - **Point de veille** : les tâches cochées AVANT cette version n'ont pas de
+    `faitLe` → comptées via `cree` dans le Wrapped (approximation acceptable).
+  - **Reste** : feel iPhone réel ; éventuellement un « vider l'archive » (hard
+    delete assumé) si elle gonfle.
+
+- **F3 — Confort 7 j (frictions des 4 onglets)** : non démarrée — demande trop
+  large pour supposer juste. Question ciblée posée à Johann (quelles frictions
+  prioriser) avant de construire. Bonus (vidéo sur note, optim Capture/Traitement)
+  en attente aussi.
+
+---
+
 ## 2026-06-13 — v0.3.4 : seed des chantiers stratégiques (Plans A/B/C) + question vivante sur la fiche
 
 - **Fait** : trois chantiers stratégiques pré-remplis arrivent automatiquement
