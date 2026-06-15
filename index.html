@@ -192,6 +192,13 @@ async function loadGcalEvents(){
 
 /* ── Titres de liens : l'URL est la donnée, le titre est l'affichage ── */
 function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch{ return ''; } }
+// Détecte le type d'une capture à partir du texte collé (1 geste : pas de choix manuel).
+function detectCaptureType(s){
+  const t=(s||'').trim();
+  if(!/^https?:\/\/\S+$/i.test(t)) return 'note';                 // une seule URL, rien d'autre
+  if(/youtube\.com|youtu\.be|vimeo\.com|dailymotion|peertube/i.test(t)) return 'video';
+  return 'lien';
+}
 function capTitle(item){
   if(item.titre) return item.titre;
   if((item.type==='lien'||item.type==='video')&&/^https?:\/\//i.test(item.contenu||'')){
@@ -387,7 +394,10 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
   }
   async function capter(){
     if(!capTxt.trim()) return;
-    await addCapture('note',capTxt.trim(),'',{});
+    const txt=capTxt.trim();
+    const ty=detectCaptureType(txt);                 // lien/vidéo détecté → bonnes affordances
+    const id=await addCapture(ty,txt,'',{});
+    if(ty==='lien'||ty==='video') fetchTitleFor(id,txt);  // titre en arrière-plan, jamais bloquant
     setCapTxt(''); setCapOk(true); setTimeout(()=>setCapOk(false),1800);
     setCaps((await getInbox()).slice(0,4));
   }
@@ -829,7 +839,7 @@ function Capture({onCapture,pushNav}){
         </label>
         ${fileWarn?html`<div class="file-warn">⚠ ${fileWarn}</div>`:''}
         ${file&&file.type.startsWith('image/')?html`<img src=${URL.createObjectURL(file)} style="width:100%;border-radius:8px;margin-top:8px;max-height:160px;object-fit:cover;"/>`:''}`
-        :html`<textarea value=${content} onInput=${e=>setContent(e.target.value)} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>`
+        :html`<textarea value=${content} onInput=${e=>{const v=e.target.value;setContent(v);if(type==='note'){const d=detectCaptureType(v);if(d!=='note')setType(d);}}} placeholder=${T_PH[type]} onKeyDown=${e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')save();}} rows=3/>`
       }
       ${(chList.length>0||livreList.length>0)?html`
         ${linkOpen?html`
