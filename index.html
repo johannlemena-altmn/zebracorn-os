@@ -214,7 +214,11 @@ async function fetchTitleFor(id,url){
   try{
     const r=await fetch(`/api/title?url=${encodeURIComponent(url)}`);
     const {title}=await r.json();
-    if(title&&!TITRE_BLOC.test(title)){ await db.captures.update(id,{titre:title}); return title; }
+    if(title&&!TITRE_BLOC.test(title)){
+      // Ne jamais écraser un titre déjà posé (auto précédent OU manuel) — anti-race.
+      const cap=await db.captures.get(id);
+      if(cap&&!cap.titre){ await db.captures.update(id,{titre:title}); return title; }
+    }
     return null;
   }catch{ return null; }
 }
