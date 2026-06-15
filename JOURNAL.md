@@ -110,6 +110,186 @@ vérifiées en preview (python http.server 4242, viewport 390 mobile).
 
 ---
 
+## 2026-06-14 — Fix Test FICV : sortait du méta (auditait l'input) → recentré sur le sujet
+
+- **Fait** : sur un lien « maigre » (titre + hashtags), Sonnet répondait en **méta** —
+  « il n'y a qu'un titre, pas de contenu » (Faits), et **critiquait la Compress de
+  l'utilisateur** comme « une projection » (Interp), au lieu de penser le sujet.
+  Cause : mon prompt insistait trop sur « aucune inférence / seulement ce qui est
+  établi par le contenu » → repli sur l'audit de l'entrée. Réécriture du prompt
+  `test` : (1) mission = FICV **sur le sujet désigné**, en mobilisant ce que les
+  concepts/hashtags désignent réellement ; (2) **interdiction explicite** du
+  méta-commentaire (« pas de contenu », « lien non ouvert », « données
+  indisponibles ») ; (3) **ne pas critiquer la Compress/Aim** — les prolonger, pas
+  les auditer ; (4) Faits = établi *sur le sujet*, pas sur l'input. Labels du prompt
+  utilisateur adoucis (« Sujet de la capture », « Angle… à prolonger », « Lien
+  source »).
+- **Pourquoi** : retour device de Johann (FICV inutile, méta). Le Test doit aiguiser
+  la pensée sur le fond, pas commenter la complétude de la capture.
+- **DoD** : `node --check` OK ; prompt final simulé (sujet en tête, Compress balisée
+  « à prolonger pas critiquer », zéro incitation méta). Sortie réelle de Sonnet à
+  reconfirmer en prod.
+
+## 2026-06-14 — Test FICV par IA : contenu réel (vision image) + question reliée au Aim
+
+- **Fait** : refonte du step `test` (Sonnet) du Filtre IA. (1) **Vision** : pour une
+  capture image/croquis, l'image (`dataUrl`) est désormais **jointe** à Sonnet
+  (message multimodal) → le FICV se fonde sur ce qui est réellement montré, plus
+  seulement le nom de fichier. (2) **Critères FICV rigoureux** dans le prompt :
+  Faits = littéral/vérifiable sans inférence · Interprétations = lectures marquées
+  comme hypothèses · Croyances = présupposé qui, s'il tombe, fait tomber la thèse ·
+  Valeurs = jugement en jeu. (3) **Question reliée au Aim** : la question socratique
+  relie la thèse à l'intention de départ (« ce qui devrait être vrai/faux pour que
+  ce contenu serve ce que tu cherches ») ; sans Aim, elle challenge la thèse seule.
+  Le Aim est tenu à part (pivot du Test, appoint pour le Compress). Client : passe
+  `dataUrl`/`mimeType` à l'API.
+- **Pourquoi** : le Test est le cœur critique d'ACTOR ; sa valeur = transformer un
+  contenu passif en challenge personnel qui force une position (Own) au service du
+  Aim. Vision sur image = la seule façon d'avoir un FICV juste sur un croquis/
+  screenshot (on ne « lit » pas un nom de fichier). Garde-fou taille base64
+  (~4,5 Mo) pour éviter les 413. On ne navigue toujours pas les URLs (liens =
+  titre/notes/compress), limite honnête assumée.
+- **DoD** : `node --check api/actor-ai.js` OK ; assemblage simulé sur 2 cas (lien
+  LinkedIn + Aim → texte avec Aim en tête ; image → message multimodal image+texte).
+  **Sortie réelle de Sonnet à confirmer en prod** (pas de clé API en session). Shape
+  JSON de réponse inchangée → genTest client intact.
+- **Prochain** : confirmer en prod la qualité FICV sur un lien et sur un croquis ;
+  selon retour, calibrer température/longueur.
+
+## 2026-06-13 — Fix Flux/ACTOR (compress des liens) + design md studio (retours device)
+
+- **Fait** : (A) **Compress IA des liens réparé** — le « Résumer avec Haiku »
+  renvoyait « Contenu inaccessible » sur un post LinkedIn. Cause : le client
+  envoyait l'**URL nue** (pas le `titre` riche en hashtags), et le serveur ajoutait
+  un prompt défaitiste (« si insuffisant, dis-le clairement »). Désormais le client
+  passe `titre` + `aim` (contexte utilisateur) ; le serveur (`api/actor-ai.js`)
+  assemble tout le texte disponible (titre/accroche/hashtags + notes + contexte +
+  lien non ouvert) et le prompt **interdit** de dire « inaccessible » (un titre plein
+  de hashtags suffit à dégager le thème). Hint UI mis à jour. (B) **md studio
+  design** : corrigé la **vue scindée** (en mode Écrire l'aperçu ne se cachait pas —
+  `[hidden]` était écrasé par `#preview-wrap{display:flex}` → ajout `[hidden]{display:none!important}`),
+  et **désencombré la barre du bas** (5 boutons qui débordaient, « xport HTML » coupé)
+  en un seul **Exporter ▾** ouvrant une feuille PDF / HTML / PNG / Copier.
+- **Pourquoi** : retours de Johann sur device. Le compress des liens est le cœur du
+  Flux ; échouer dessus casse l'usage. Choix : exploiter le **titre déjà capturé**
+  (api/title.js) plutôt que tenter (en vain) d'ouvrir l'URL. Footer : une seule
+  action primaire d'export réduit la charge et règle le débordement mobile.
+- **DoD (Playwright + simulation)** : assemblage du prompt vérifié sur le cas
+  LinkedIn réel (Haiku reçoit titre + Aim + lien ; mode défaitiste = false) ;
+  `node --check api/actor-ai.js` OK. md studio : mode Écrire → aperçu **caché** (plus
+  de split), mode Aperçu → éditeur `display:none` + aperçu plein écran ; feuille
+  Exporter ouvre/ferme, export HTML télécharge ; sélecteur modèles re-scopé à
+  `#sheet` (n'écrase plus les boutons d'export qui partagent `.tpl`) ; zéro erreur
+  console. Réponse réelle de Haiku (qualité du résumé) à confirmer en prod.
+- **Prochain** : confirmer sur device le compress d'un lien LinkedIn ; vrais
+  gabarits Ferryman quand le repo sera accessible.
+
+## 2026-06-13 — md studio v1.1 : installable (manifest + SW), partage entrant, modèles narratifs
+
+- **Fait** : (1) **PWA installable** — `md-studio/manifest.webmanifest` + `sw.js`
+  (network-first, scope `/md-studio/`, réemploi des icônes terracotta `/icons/`),
+  métas apple-touch → « Ajouter à l'écran d'accueil » propre + offline. (2)
+  **Partage entrant** : `share_target` dans le manifest + lecture de `?text=` /
+  `?title=` / `?url=` au boot → l'éditeur se préremplit quand on partage un texte
+  depuis une autre app, puis l'URL est nettoyée. (3) **Modèles** : bottom-sheet
+  « Partir d'un modèle » avec 3 gabarits narratifs (Verdict de spike · Note de
+  décision · Données → récit).
+- **Pourquoi** : complète le point « installable propre » + sert l'usage iPhone
+  réel (« transformer depuis l'iPhone » = recevoir un partage). Modèles =
+  amorce de l'esprit Ferryman (du structuré au récit) ; **génériques par choix**,
+  les vrais gabarits éditoriaux Ferryman se brancheront quand le repo sera
+  accessible — pas de faux-semblant.
+- **DoD (Playwright)** : sheet s'ouvre + modèle « spike » inséré et rendu ;
+  partage `?title=&text=` → éditeur = `# Bonjour\n\n…` + URL nettoyée ; **SW
+  enregistré** (actif) ; manifest chargé (scope `/md-studio/`) ; export HTML
+  non régressé ; zéro erreur console. À confirmer device : déclenchement réel du
+  share_target iOS (support Safari limité → dégrade en simple deep-link, sans
+  casse) et l'install A2HS.
+- **Prochain** : brancher les vrais gabarits Ferryman (repo requis) ; éventuels
+  exports SVG. Déploiement après merge `main` → `/md-studio/`.
+
+## 2026-06-13 — Brique « md studio » : Markdown → présentable (PWA autonome v1)
+
+- **Fait** : nouveau dossier **`md-studio/`** (un seul fichier `index.html`,
+  ~zéro dépendance). Depuis Safari iPhone : on colle / ouvre un `.md` → **aperçu
+  stylé** (rendu lisible façon Claude, design papier/encre/terracotta de la
+  famille) → **exports** : HTML autonome (styles inline, s'ouvre seul partout),
+  **PDF** (impression native → partage iOS « Enregistrer en PDF »), **PNG**
+  (best-effort SVG/foreignObject→canvas), **Copier** (HTML riche via
+  ClipboardItem, fallback texte). Onglets Écrire/Aperçu, **persistance du
+  brouillon** (localStorage), toasts, safe-area iOS. Mini-parseur Markdown inline
+  (titres, gras/ital, listes ±/ordonnées, citations, code inline + fences,
+  liens, images, tableaux simples, hr).
+- **Pourquoi / décision clé** : Johann a tranché **« PWA autonome (frugale) »**.
+  Choix structurant : **zéro CDN** → (1) marche 100 % offline et reste une vraie
+  brique autonome, (2) **testable dans ce conteneur cloud** alors que le reste de
+  l'app (Preact/Dexie via CDN) n'y boote pas (proxy réseau bloque esm.sh/jsdelivr).
+  Plutôt qu'embarquer une lib Markdown, **mini-parseur maison** couvrant le
+  sous-ensemble utile (frugalité > exhaustivité). Sécurité : on **escape** le HTML
+  avant transformation (rendu prévisible, pas d'injection). Placé dans le repo
+  `zebracorn-os` (sous-dossier isolé) car c'est la seule surface déployable
+  (Vercel sur `main`) disponible depuis le cloud — code séparé, déploiement
+  mutualisé ; détachable plus tard. **Sert directement Ferryman** (sortie md → vue
+  présentable), comme prévu.
+- **DoD (testé pour de vrai, Playwright headless sur `http.server`)** : rendu
+  vérifié sur un md complet → h1/h2, gras, ital, lien, ul+ol (4 li), citation,
+  bloc de code **avec `<`/`>` préservés** (HTML non cassé), tableau, hr, tous
+  présents ; **export HTML re-parsé** valide (titre extrait du `# `, `article.doc`
+  présent) ; **persistance au reload** OK ; **PNG** génère un fichier 47 Ko sous
+  Chromium ; **zéro erreur console**. Non vérifiable ici (à confirmer device) :
+  comportement exact iOS Safari du PNG (canvas tainted possible → fallback PDF
+  prévu) et du partage-PDF natif.
+- **Prochain** : (1) confirmer sur iPhone réel (preview + share-PDF + add-to-home-
+  screen) ; (2) si besoin offline installable « propre » : ajouter manifest + SW
+  minimal ; (3) brancher les **gabarits narratifs Ferryman** (la vraie valeur
+  éditoriale). Se déploiera après merge sur `main` → URL `/md-studio/`.
+- **Accès fichiers — constat** : le cloud branché à la session est **Google
+  Drive** (pas iCloud). Il contient les *documents* de Johann (sobriété, études…)
+  mais **pas** les projets de code (Reprise-Sport / Ferryman / Murfy), qui sont
+  sur iCloud Drive / Desktop — **non accessibles** depuis cette session. Les
+  tâches 1/2/3 restent à faire depuis la session Claude Code locale (Mac).
+
+## 2026-06-13 — Carré de veille « décision US / Fable·Opus » (réemploi chantier + question vivante)
+
+- **Fait** : un nouveau « carré » apparaît dans Mémoire — chantier **« Veille —
+  décision US sur les modèles frontière (Fable / Opus) »** (organe *vigie ·
+  adaptation*). Il porte la **question vivante** « Comment se préparer
+  objectivement à un durcissement qu'on ne contrôle pas ? » et 6 étapes = les
+  **scénarios prospectifs** à creuser : cadre épistémologique (faits / hypothèses
+  / inconnues), scénario A/B/C (les 3 pistes de Johann : Opus relevé vers Fable
+  avec plus de garde-fous · voie d'accès UE · contournement type VPN cf.
+  openclaw), signaux d'alerte précoces, plan d'adaptation par scénario. Seed
+  `seedVeilleAnthropic_2026()` dans `db.js`, câblé au boot après les autres seeds.
+- **Pourquoi / décision clé** : Johann veut « garder la question dans un carré sur
+  l'app » pour la creuser ensemble plus tard. Choix **frugal** : zéro nouveau
+  composant/écran — un chantier EST déjà un carré avec progression, étapes,
+  badges, et la section « Question qui guide » (ajoutée en v0.3.4). On réutilise
+  exactement le pattern `seedChantiersPlansABC_2026`. Les pistes A/B/C sont
+  étiquetées **« (piste J.) »** dans les étapes pour les marquer comme hypothèses,
+  pas comme faits. La `progression` résume factuellement l'annonce Fable 5 /
+  Mythos 5 + le renvoi à `anthropic.com/news/claude-fable-5-mythos-5`.
+- **DoD** : `node --check db.js` OK ; `seedVeilleAnthropic_2026` confirmée chargée
+  comme fonction globale via sonde headless (Playwright). **Limite honnête** : le
+  boot complet (rendu de la carte + lecture IndexedDB) n'a **pas** pu être exécuté
+  dans le conteneur cloud — le proxy réseau y bloque les CDN Dexie/Preact
+  (403 / CORS / cert), donc l'app ne démarre pas ici. La fonction étant un clone
+  structurel d'un seed déjà en prod (mêmes helpers, même garde anti-doublon par
+  titre + flag localStorage), le risque résiduel est faible, mais **à confirmer
+  sur l'appareil de Johann** (preview navigateur réel, où les CDN se chargent) :
+  carte présente dans Mémoire, fiche = 6 étapes (0/6) + « Question qui guide »
+  rendue.
+- **Prochain** : Johann vérifie le rendu sur device ; puis on creuse réellement la
+  question (cadre épistémo + scénarios). Le carré ne se déploiera qu'après merge
+  sur `main` (Vercel auto-deploy sur `main` ; ici on pousse seulement la branche
+  `claude/multi-project-june-13-p7rgh3`).
+- **Note environnement** : cette session tourne dans le conteneur cloud Claude
+  Code (seul `zebracorn-os` cloné). Les projets `~/Desktop/Reprise-Sport`,
+  `Ferryman`, `Murfy` ne sont **pas** accessibles ici → les tâches 1/2/3 de la
+  reprise et les `vercel deploy` correspondants doivent se faire depuis la session
+  Claude Code locale (Mac).
+
+---
+
 ## 2026-06-13 — v0.3.4 : seed des chantiers stratégiques (Plans A/B/C) + question vivante sur la fiche
 
 - **Fait** : trois chantiers stratégiques pré-remplis arrivent automatiquement

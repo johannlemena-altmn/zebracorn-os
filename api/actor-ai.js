@@ -12,16 +12,28 @@ export default async function handler(req, res) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée — ajoute-la dans Vercel > Settings > Environment Variables' });
 
-  const { step, content, type, source, compress, notes = '', settings = {} } = req.body || {};
-  if (!step || !content) return res.status(400).json({ error: 'Champs manquants : step, content' });
+  const { step, content = '', type, source, compress, notes = '', titre = '', aim = '', dataUrl = '', mimeType = '', settings = {} } = req.body || {};
+  const hasImage = /^data:image\//i.test(dataUrl);
+  if (!step || (!content && !hasImage)) return res.status(400).json({ error: 'Champs manquants : step, content' });
 
-  // Pour les captures de type lien/vidéo, le contenu est une URL — utiliser notes si disponibles
+  // Une capture « lien/vidéo » a pour `content` une URL : on NE navigue pas. Une
+  // capture « image/croquis » a pour `content` un nom de fichier et l'image dans
+  // `dataUrl` → on joint l'image au Test (Sonnet multimodal). On assemble d'abord le
+  // texte réellement disponible (titre riche en hashtags, notes), l'URL en appoint.
+  // Le Aim (intention) est tenu À PART : appoint de contexte pour le Compress, et
+  // surtout pivot de la question socratique du Test.
   const isUrl = /^https?:\/\//i.test(content.trim());
-  const effectiveContent = isUrl && notes.trim()
-    ? notes.trim()
-    : content;
-  const urlContext = isUrl && !notes.trim()
-    ? `\n⚠ Le contenu est une URL (non accessible). Synthétise à partir de la source et du contexte disponibles uniquement. Si insuffisant, dis-le clairement.`
+  const parts = [];
+  if (titre && titre.trim() && titre.trim() !== content.trim()) parts.push(`Titre / accroche : ${titre.trim()}`);
+  if (notes && notes.trim()) parts.push(`Notes : ${notes.trim()}`);
+  if (isUrl) parts.push(`Lien source : ${content.trim()}`);
+  else if (!hasImage && content.trim()) parts.push(content.trim());
+  const captured = parts.join('\n') || (hasImage ? '(voir image jointe)' : content);
+  const aimBlock = aim && aim.trim() ? aim.trim() : '';
+  // Vrai « rien d'exploitable » = URL nue, sans titre/notes/contexte ni image.
+  const thinSignal = isUrl && !titre.trim() && !notes.trim() && !aimBlock && !hasImage;
+  const urlContext = thinSignal
+    ? `\n(Le seul signal est l'URL : déduis le thème probable du domaine et de la forme de l'URL, propose une synthèse prudente et invite à ajouter une note. Ne dis jamais « contenu inaccessible ».)`
     : '';
 
   const compressModel = settings.compressModel || 'claude-haiku-4-5-20251001';
@@ -35,7 +47,12 @@ export default async function handler(req, res) {
       max_tokens: 300,
       temperature: compressTemp,
       system: `Tu es un assistant de synthèse pour un second cerveau (méthode ACTOR — étape C : Compress).
-Ta tâche : extraire l'essentiel d'un contenu capturé.
+Ta tâche : extraire l'essentiel du texte capturé fourni.
+
+RÈGLES IMPORTANTES :
+- Tu ne navigues PAS : tu ne peux pas ouvrir d'URL. Travaille UNIQUEMENT avec le texte fourni (titre, accroche, hashtags, auteur, notes, contexte utilisateur).
+- Ne réponds JAMAIS que le contenu est « inaccessible » ou « impossible à synthétiser ». Un titre riche en hashtags suffit largement à dégager un thème : sers-t'en.
+- Si le signal est mince, produis quand même une synthèse prudente au mieux à partir des indices (thème via les hashtags, posture de l'auteur, type de source).
 
 Produis :
 1. Un titre court (5–8 mots max) qui capture la thèse ou l'idée centrale
@@ -46,36 +63,59 @@ Réponds UNIQUEMENT en JSON valide, sans texte autour, sans markdown :
 
 Langue : français. Ton : neutre, précis, sans jargon inutile.`,
       user: `Type de capture : ${type || 'note'}
-Source : ${source || 'non renseigné'}${urlContext}
+Source : ${source || 'non renseigné'}${urlContext}${aimBlock ? `\nContexte / intention de l'utilisateur : ${aimBlock}` : ''}
 
 Contenu :
-${effectiveContent.slice(0, 2000)}`,
+${captured.slice(0, 2000)}`,
     },
 
     test: {
       model: testModel,
-      max_tokens: 500,
+      max_tokens: 700,
       temperature: testTemp,
-      system: `Tu es un assistant d'analyse critique pour la méthode ACTOR — étape T (Think / Test).
-Cadre : FICV (Faits / Interprétations / Croyances / Valeurs) + question socratique.
+      system: `Tu es un partenaire d'analyse critique pour la méthode ACTOR — étape T (Test).
+On te donne une capture qui pointe vers un SUJET : un titre, des hashtags, parfois une image, une synthèse (Compress) et l'intention de l'utilisateur (son « Aim »). Ta mission : produire un FICV utile SUR CE SUJET, pour aiguiser la pensée de l'utilisateur et l'aider à prendre position.
+
+RÈGLES — lis-les, elles sont le cœur du travail :
+- Analyse le FOND (le sujet désigné), pas la forme de l'entrée. Mobilise ce que ces concepts/hashtags désignent réellement dans le monde (ex. ce qu'est la permacomptabilité, la RSE…) pour nourrir l'analyse.
+- N'écris JAMAIS de méta-commentaire sur l'input : interdit de dire « il n'y a qu'un titre », « pas de contenu », « lien non ouvert », « données indisponibles ». On le sait déjà ; ce n'est pas une analyse.
+- Ne critique PAS la synthèse (Compress) de l'utilisateur ni son intention : c'est son matériau de travail, engage-toi avec l'IDÉE, ne l'audite pas.
+- N'invente pas de propos précis attribués à un post que tu n'as pas lu : reste au niveau du concept/sujet, pas du contenu exact de la source.
+
+Cadre FICV (distingue bien les niveaux, sans verser dans le méta) :
+- faits : ce qui est solidement établi / reconnu SUR LE SUJET (définitions, mécanismes, données admises). Du concret sur le fond, pas sur l'entrée.
+- interp : ce que ça suggère, les lectures plausibles, les implications — formulées comme hypothèses.
+- croyances : le présupposé sous-jacent qui porte la thèse — celui qui, s'il tombe, la fait tomber.
+- valeurs : la ou les valeurs en jeu, le jugement de valeur porté.
+
+Puis UNE question socratique vraiment déstabilisante, sans réponse évidente :
+- Si un Aim est fourni : la question RELIE le sujet à cette intention — ce qui devrait être vrai (ou faux) pour que ça serve réellement ce que l'utilisateur cherche.
+- Sinon : une question qui challenge la thèse elle-même.
 
 Réponds UNIQUEMENT en JSON valide, sans texte autour, sans markdown :
-{
-  "faits":"Ce qui est objectivement observable dans ce contenu (1–2 phrases courtes)",
-  "interp":"Comment interpréter ces faits — ce que ça suggère (1–2 phrases)",
-  "croyances":"Quelle croyance sous-jacente est activée ou challengée (1 phrase)",
-  "valeurs":"Quelle(s) valeur(s) est en jeu ici (1 phrase)",
-  "question":"La question socratique la plus déstabilisante pour tester cette thèse — sans réponse évidente (1 phrase interrogative)"
-}
+{"faits":"…","interp":"…","croyances":"…","valeurs":"…","question":"…(phrase interrogative)"}
 
-Langue : français. Sois direct. La question doit vraiment challenger, pas conforter.`,
-      user: `Contenu original :
-${effectiveContent.slice(0, 2000)}${urlContext}
-${compress ? `\nSynthèse (Compress) :\n${compress}` : ''}`,
+Langue : français. Direct, précis, 1–2 phrases courtes par champ. La question doit challenger, pas conforter.`,
+      user: `${aimBlock ? `Intention de l'utilisateur (Aim) : ${aimBlock}\n\n` : ''}Sujet de la capture :
+${captured.slice(0, 2500)}${compress ? `\n\nAngle de l'utilisateur (Compress, à prolonger — pas à critiquer) : ${compress}` : ''}${hasImage ? `\n\n(Une image est jointe ci-dessus — fonde ton analyse sur ce qu'elle montre.)` : ''}`,
     },
   };
 
   const call = CALLS[step];
+
+  // Message envoyé. Pour le Test d'une capture image, on joint l'image (Sonnet
+  // multimodal) pour un FICV fondé sur ce qui est réellement montré. Garde-fou
+  // taille : au-delà de ~4,5 Mo de base64 on s'en tient au texte (évite les 413).
+  let messages = call ? [{ role: 'user', content: call.user }] : null;
+  if (step === 'test' && hasImage && call) {
+    const m = dataUrl.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+    if (m && m[2].length < 6_000_000) {
+      messages = [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } },
+        { type: 'text', text: call.user },
+      ] }];
+    }
+  }
 
   // ── Étape connect : traitement séparé (structure d'entrée différente) ──
   if (step === 'connect') {
@@ -144,7 +184,7 @@ ${othersText}`,
         max_tokens: call.max_tokens,
         temperature: call.temperature,
         system: call.system,
-        messages: [{ role: 'user', content: call.user }],
+        messages,
       }),
     });
 

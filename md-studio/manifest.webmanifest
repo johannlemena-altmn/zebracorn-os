@@ -1,0 +1,23 @@
+{
+  "name": "md studio",
+  "short_name": "md studio",
+  "description": "Markdown → présentable (HTML · PDF · PNG)",
+  "start_url": "/md-studio/",
+  "scope": "/md-studio/",
+  "display": "standalone",
+  "background_color": "#f6f3ec",
+  "theme_color": "#c4623d",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icons/icon.svg",     "sizes": "any",     "type": "image/svg+xml" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "/md-studio/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}
