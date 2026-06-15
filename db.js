@@ -65,6 +65,11 @@ async function updateCaptureNotes(id, notes) {
   return db.captures.update(id, { notes: notes || null });
 }
 
+// Titre manuel d'une capture (fallback gracieux quand l'auto-titre échoue/est bloqué).
+async function updateCaptureTitre(id, titre) {
+  return db.captures.update(id, { titre: titre && titre.trim() ? titre.trim().slice(0, 140) : null });
+}
+
 async function linkCaptures(idA, idB) {
   const [a, b] = await Promise.all([db.captures.get(idA), db.captures.get(idB)]);
   const la = a?.linkedIds || [], lb = b?.linkedIds || [];

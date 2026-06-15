@@ -200,13 +200,15 @@ function capTitle(item){
   }
   return item.contenu;
 }
+// Titres de pages anti-bot/erreur à ne jamais stocker (défense client si le proxy en laisse passer).
+const TITRE_BLOC=/^(request rejected|access denied|attention required|just a moment|pardon our interruption|bot verification|are you (a )?human|forbidden|403|404|not found|503|verification required|security check|un instant|veuillez patienter)\b/i;
 // Récupère le titre en arrière-plan après capture d'un lien (jamais bloquant).
 async function fetchTitleFor(id,url){
   try{
     const r=await fetch(`/api/title?url=${encodeURIComponent(url)}`);
     const {title}=await r.json();
-    if(title) await db.captures.update(id,{titre:title});
-    return title||null;
+    if(title&&!TITRE_BLOC.test(title)){ await db.captures.update(id,{titre:title}); return title; }
+    return null;
   }catch{ return null; }
 }
 
@@ -587,6 +589,7 @@ function Capture({onCapture,pushNav}){
   const [confirmDelId,setConfirmDelId]=useState(null);
   const [expandId,setExpandId]=useState(null);
   const [expandNotes,setExpandNotes]=useState('');
+  const [titreEdit,setTitreEdit]=useState('');
   const [linkedCaps,setLinkedCaps]=useState([]);
   const [linkPickerId,setLinkPickerId]=useState(null);
   const [pickerCaps,setPickerCaps]=useState([]);
@@ -642,11 +645,16 @@ function Capture({onCapture,pushNav}){
     await updateCaptureNotes(id,val);
     setInbox(prev=>prev.map(x=>x.id===id?{...x,notes:val||null}:x));
   }
+  async function sauveTitre(id,val){
+    const t=val&&val.trim()?val.trim():null;
+    await updateCaptureTitre(id,t);
+    setInbox(prev=>prev.map(x=>x.id===id?{...x,titre:t}:x));
+  }
   async function toggleExpand(id){
     if(expandId!==null&&expandId!==id&&expandNotes.trim()) await sauveNotes(expandId,expandNotes);
     if(expandId===id){ setExpandId(null); setLinkedCaps([]); setLinkPickerId(null); setQPickerId(null); return; }
     const item=inbox.find(x=>x.id===id);
-    setExpandId(id); setExpandNotes(item?.notes||'');
+    setExpandId(id); setExpandNotes(item?.notes||''); setTitreEdit(item?.titre||'');
     setAnnotId(null); setLinkPickerId(null); setQPickerId(null); setActorId(null);
     if(item?.linkedIds?.length){
       const caps=await Promise.all(item.linkedIds.map(lid=>db.captures.get(lid)));
@@ -871,12 +879,16 @@ function Capture({onCapture,pushNav}){
           <span style="font-size:11px;color:var(--ink3);flex-shrink:0;margin-left:4px">${isExpanded?'↑':'↓'}</span>
         </div>
         ${isExpanded?html`<div class="notes-wrap">
+          ${isURL?html`<input class="notes-ta" style="margin-bottom:7px" value=${titreEdit}
+            placeholder=${'Titre (sinon : '+(hostOf(item.contenu)||'lien')+')'}
+            onInput=${e=>setTitreEdit(e.target.value)}
+            onBlur=${()=>sauveTitre(item.id,titreEdit)}/>`:''}
           <textarea class="notes-ta" value=${expandNotes}
             placeholder="Notes, questions, liens avant de traiter…"
             onInput=${e=>setExpandNotes(e.target.value)}
             onBlur=${()=>sauveNotes(item.id,expandNotes)}
             rows=3></textarea>
-          ${expandNotes?html`<div class="hint" style="margin-top:4px">Sauvegardé à la perte de focus</div>`:''}
+          ${expandNotes||titreEdit?html`<div class="hint" style="margin-top:4px">Sauvegardé à la perte de focus</div>`:''}
         </div>
         ${item.type==='lien'&&isAudioUrl(item.contenu)?html`<div style="padding:10px 11px 2px"><audio controls style="width:100%;border-radius:8px;height:40px" src=${item.contenu}></audio></div>`:''}
         <div class="links-section">
