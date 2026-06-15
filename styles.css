@@ -219,6 +219,17 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .q-arch{font-family:var(--fm);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--border2);background:transparent;color:var(--ink3);border-radius:10px;padding:3px 9px;cursor:pointer;}
 .q-arch:active{opacity:.65;}
 
+/* ── Archive des tâches (rétro « Wrapped ») ── */
+.wrapped{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;}
+.wrapped-l{font-family:var(--fm);font-size:10px;letter-spacing:.02em;color:var(--ink2);line-height:1.6;}
+.wrapped-l b{color:var(--ink);font-size:12px;}
+.wrapped-proj{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.arch-task{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid var(--border);}
+.arch-task:last-child{border-bottom:none;}
+.arch-ic{font-size:12px;flex-shrink:0;width:16px;text-align:center;}
+.arch-ti{font-size:12.5px;color:var(--ink2);line-height:1.35;text-decoration:line-through;text-decoration-color:var(--ink3);}
+.arch-meta{display:flex;align-items:center;gap:6px;font-family:var(--fm);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-top:3px;}
+
 /* ── Corpus & Badges ── */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;}
 .stat-cell{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 5px;text-align:center;}

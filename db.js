@@ -228,13 +228,27 @@ async function addTache({ titre, prio = 'bleu', echeance = null, chantierId = nu
 
 async function getTaches({ fait = null, prio = null } = {}) {
   let arr = await db.taches.toArray();
+  arr = arr.filter(t => !t.supprime);          // soft-delete : exclu des vues actives
   if (fait !== null) arr = arr.filter(t => t.fait === fait);
   if (prio !== null) arr = arr.filter(t => t.prio === prio);
   return arr.sort((a, b) => (a.cree < b.cree ? 1 : -1));
 }
 
 async function toggleTacheDone(id, fait) {
-  return db.taches.update(id, { fait });
+  // Horodate la complétion → permet la rétrospective « Wrapped » par période.
+  return db.taches.update(id, { fait, faitLe: fait ? new Date().toISOString() : null });
+}
+
+// Archive : tâches faites OU supprimées, plus récentes d'abord (date d'archivage).
+async function getArchivedTaches() {
+  const arr = await db.taches.toArray();
+  const when = t => t.supprimeLe || t.faitLe || t.cree || '';
+  return arr.filter(t => t.fait || t.supprime).sort((a, b) => (when(a) < when(b) ? 1 : -1));
+}
+
+// Rouvrir une tâche archivée (cochée par erreur ou supprimée) → revient en actif.
+async function restoreTache(id) {
+  return db.taches.update(id, { fait: false, faitLe: null, supprime: false, supprimeLe: null });
 }
 
 async function setTacheDate(id, date) {
@@ -246,7 +260,8 @@ async function setTacheEcheance(id, echeance) {
 }
 
 async function deleteTache(id) {
-  return db.taches.delete(id);
+  // Soft-delete : la tâche reste consultable et récupérable dans l'Archive.
+  return db.taches.update(id, { supprime: true, supprimeLe: new Date().toISOString() });
 }
 
 async function setTacheNotes(id, notes) {
