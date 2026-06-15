@@ -418,6 +418,90 @@ async function seedChantiersPlansABC_2026() {
   localStorage.setItem('zebracorn_seed_plansABC', 'done');
 }
 
+// Seed des chantiers du système de travail (CHANTIERS-actifs.md, 15/06).
+// Reprise-Sport (#3) est déjà couvert par seedChantiersPlansABC → on seede les
+// 4 autres. Content-guardé par titre (anti-doublon en multi-device, comme ci-dessus).
+async function seedChantiersActifs_2026() {
+  if (localStorage.getItem('zebracorn_seed_actifs2026')) return;
+
+  const CHANTIERS = [
+    {
+      titre: 'App Zebracorn OS — capture & discipline',
+      organe: 'capture · discipline',
+      progression: "Clé de voûte de l'écosystème. Refonte « 7 jours d'usage » (v0.3.6) : capture de lien jamais bloquante, archive des tâches + rétro « Wrapped », confort des 4 onglets. Cf. JOURNAL.md.",
+      prochaine: "Tester v0.3.6 sur iPhone (feel : swipe, clavier iOS, slide)",
+      etapes: [
+        "Tester v0.3.6 sur iPhone — le feel réel (vérifs preview = headless)",
+        "Câbler le numéro de version des pieds de page sur une constante unique",
+        "Décider la prochaine tranche (vidéo sur note ? « vider l'archive » ?)",
+      ],
+      question: {
+        intitule: "Comment un outil de capture reste-t-il sobre quand on lui ajoute des features ?",
+        intention: "La meilleure feature est souvent celle qu'on ne construit pas — frugalité d'abord.",
+      },
+    },
+    {
+      titre: 'Vidéo Hyperframes + avatar (local, sensible)',
+      organe: 'récit · vidéo',
+      progression: "Cadré, assets sécurisés (local-only, rien sur le cloud sans accord). Stack frugale visée : HyperFrames + SadTalker/Piper. Plan : PLAN-video-avatar.md.",
+      prochaine: "Trancher l'angle éditorial avant de produire le moindre rush",
+      etapes: [
+        "Trancher l'angle éditorial (intention, ton, format)",
+        "Rassembler les rushes + écrire la voix (script narration)",
+        "Définir le branding (typo, couleurs, identité visuelle)",
+        "Lancer l'agent art-director sur le pipeline complet",
+      ],
+      question: {
+        intitule: "Comment garder la main (et les données) sur sa propre image en vidéo ?",
+        intention: "Local-first sur les assets sensibles — indépendance avant confort.",
+      },
+    },
+    {
+      titre: 'Outil vidéo → images (MVP local)',
+      organe: 'atelier · outil',
+      progression: "Plan validé (PLAN-outil-video-frames.md). Brique réutilisable pour les autres chantiers vidéo. Rendu local, open-source-first.",
+      prochaine: "Installer la stack + l'orchestrateur, tester sur 1 vidéo",
+      etapes: [
+        "Installer la stack (ffmpeg + extraction de frames)",
+        "Écrire l'orchestrateur (sélection des frames utiles)",
+        "Tester de bout en bout sur 1 vidéo réelle",
+      ],
+      question: {
+        intitule: "Quand un petit outil maison vaut-il mieux qu'un service tout fait ?",
+        intention: "Mesurer le coût réel : €, énergie, dépendance, données. Local quand c'est sobre.",
+      },
+    },
+    {
+      titre: 'Physique × archi / low-tech (méthode Feynman)',
+      organe: 'langage · vulgarisation',
+      progression: "Idée cadrée (15/06). Apprendre la physique du lycée en la vulgarisant (mix archi/design/low-tech, systémique), modèle Bobroff. Organe ⑤ + langage ③.",
+      prochaine: "Choisir le 1er triplet : concept × objet × format",
+      etapes: [
+        "Choisir le 1er triplet (1 concept physique × 1 objet × 1 format de restitution)",
+        "Le vulgariser façon Feynman (l'expliquer simplement = le comprendre)",
+        "Le relier à un geste low-tech / archi concret",
+      ],
+      question: {
+        intitule: "Comprend-on vraiment quelque chose si on ne sait pas l'expliquer simplement ?",
+        intention: "Méthode Feynman : la vulgarisation est le test de la compréhension.",
+      },
+    },
+  ];
+
+  const existing = await db.chantiers.toArray();
+  const titres = new Set(existing.map(c => (c.titre || '').trim().toLowerCase()));
+
+  for (const p of CHANTIERS) {
+    if (titres.has(p.titre.trim().toLowerCase())) continue; // anti-doublon (sync)
+    const id = await addChantier({ titre: p.titre, prio: 'vert', organe: p.organe });
+    await updateChantier(id, { progression: p.progression, prochaine: p.prochaine });
+    for (const t of p.etapes) await addEtape(id, t);
+    if (p.question) await addQuestion({ ...p.question, chantierId: id });
+  }
+
+  localStorage.setItem('zebracorn_seed_actifs2026', 'done');
+}
+
 // v3 — AMWAP : log de victoires quotidiennes
 db.version(3).stores({
   amwap: '++id, date',
