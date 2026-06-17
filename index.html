@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=inbox036">
+  <link rel="stylesheet" href="styles.css?v=lectures01">
 </head>
 <body>
 <div id="root"></div>
@@ -1409,6 +1409,7 @@ function Semaine({pushNav,navDepth}){
   const [livres,setLivres]         = useState([]);
   const [ficheLivreId,setFicheLivreId] = useState(null);
   const [newLivre,setNewLivre]     = useState('');
+  const [livrSearch,setLivrSearch] = useState('');
   const [capObjectifs,setCapObjectifs] = useState([]);
 
   const load = useCallback(async()=>{
@@ -1513,6 +1514,30 @@ function Semaine({pushNav,navDepth}){
     document.addEventListener(isTouch?'touchend':'mouseup',end);
   }
 
+  // Bibliothèque : groupement par collection + recherche
+  const livrQ = livrSearch.trim().toLowerCase();
+  const livrFiltered = livrQ
+    ? livres.filter(l =>
+        l.titre?.toLowerCase().includes(livrQ) ||
+        l.auteur?.toLowerCase().includes(livrQ) ||
+        (l.tags||[]).some(t => t.toLowerCase().includes(livrQ))
+      )
+    : null;
+  const livrGroups = livres.reduce((acc,l)=>{ const c=l.collection||'–'; (acc[c]=acc[c]||[]).push(l); return acc; },{});
+
+  const livrCard = l => html`<div class="livre-card" onClick=${()=>ouvrirLivre(l.id)} key=${l.id}>
+    <div class="ch-top">
+      <span class="ch-ti">${l.titre}</span>
+      <span class="livre-statut" style=${'color:'+(l.statut==='lu'?'var(--ok)':l.statut==='en-cours'?'var(--ac2)':'var(--ink3)')}>
+        ${l.statut==='lu'?'✓ Lu':l.statut==='en-cours'?'En cours':'À lire'}
+      </span>
+    </div>
+    ${l.auteur?html`<div class="ch-prog" style="font-style:italic;color:var(--ink3)">${l.auteur}</div>`:''}
+    ${l.statut==='en-cours'&&l.pages?html`<div class="ch-prog">${l.pagesLues||0}/${l.pages} p. · ${Math.round((l.pagesLues||0)/l.pages*100)} %</div>`:''}
+    ${l.intention?html`<div class="ch-prog" style="font-style:italic">${l.intention.slice(0,55)}${l.intention.length>55?'…':''}</div>`:''}
+    ${l.tags?.length?html`<div class="livre-tags">${l.tags.map(t=>html`<span class="livre-tag" key=${t}>${t}</span>`)}</div>`:''}
+  </div>`;
+
   const groupeTaches = (arr, dot, titreSec, sous, drag=false) => html`<div class="sec">
     <div class="sec-h"><span class="sec-t"><span class=${'pdot '+dot}/>${titreSec}</span><span class="sec-c">${arr.length}</span></div>
     ${arr.length===0?html`<div class="empty-state">${sous}</div>`:''}
@@ -1615,6 +1640,41 @@ function Semaine({pushNav,navDepth}){
       })}
     </div>
 
+    <div class="sec">
+      <div class="sec-h" style="margin-bottom:8px">
+        <span class="sec-t">Lectures</span>
+        <span class="sec-c">${livres.length}</span>
+      </div>
+      ${livres.length>0?html`<div class="bibl-search-wrap">
+        <input class="bibl-search" type="search" placeholder="Chercher titre, auteur, tag…"
+          value=${livrSearch} onInput=${e=>setLivrSearch(e.target.value)}/>
+      </div>`:''}
+      ${livrFiltered?html`
+        ${livrFiltered.length===0
+          ?html`<div class="empty-state">aucun résultat ✶</div>`
+          :livrFiltered.map(livrCard)
+        }
+      `:html`
+        ${Object.entries(livrGroups).map(([col,items])=>html`
+          <details class="col-group" open=${col==='Lectures'} key=${col}>
+            <summary class="col-group-h">
+              <span class="col-group-t">${col}</span>
+              <span class="sec-c">${items.length}</span>
+              <span class="chev">▾</span>
+            </summary>
+            <div class="col-group-body">${items.map(livrCard)}</div>
+          </details>
+        `)}
+      `}
+      ${livres.length===0?html`<div class="empty-state">aucun livre — ajoute le premier ↓</div>`:''}
+      <div class="composer-b" style="margin-top:8px">
+        <input class="taginp" style="flex:1" value=${newLivre} onInput=${e=>setNewLivre(e.target.value)}
+          placeholder="Ajouter un livre…"
+          onKeyDown=${async e=>{if(e.key==='Enter'&&newLivre.trim()){await addLivre({titre:newLivre.trim()});setNewLivre('');await load();}}}/>
+        <button class="save-btn" onClick=${async()=>{if(!newLivre.trim())return;await addLivre({titre:newLivre.trim()});setNewLivre('');await load();}}>+</button>
+      </div>
+    </div>
+
     <details class="pli">
       <summary><span>la profondeur</span><span class="chev">▾</span></summary>
       <div class="pli-grid">
@@ -1673,27 +1733,6 @@ function Semaine({pushNav,navDepth}){
           `}
         </div>
 
-        <div class="card-pli">
-          <div class="sec-h" style="margin-bottom:8px"><span class="sec-t">Bibliothèque</span><span class="sec-c">${livres.length}</span></div>
-          ${livres.length===0?html`<div class="empty-state">aucun livre — ajoute le premier ↓</div>`:''}
-          ${livres.map(l=>html`<div class="livre-card" onClick=${()=>ouvrirLivre(l.id)} key=${l.id}>
-            <div class="ch-top">
-              <span class="ch-ti">${l.titre}</span>
-              <span class="livre-statut" style=${'color:'+(l.statut==='lu'?'var(--ok)':l.statut==='en-cours'?'var(--ac2)':'var(--ink3)')}>
-                ${l.statut==='lu'?'✓ Lu':l.statut==='en-cours'?'En cours':'À lire'}
-              </span>
-            </div>
-            ${l.auteur?html`<div class="ch-prog" style="font-style:italic;color:var(--ink3)">${l.auteur}</div>`:''}
-            ${l.statut==='en-cours'&&l.pages?html`<div class="ch-prog">${l.pagesLues||0}/${l.pages} p. · ${Math.round((l.pagesLues||0)/l.pages*100)} %</div>`:''}
-            ${l.intention?html`<div class="ch-prog" style="font-style:italic">${l.intention.slice(0,55)}${l.intention.length>55?'…':''}</div>`:''}
-          </div>`)}
-          <div class="composer-b" style="margin-top:8px">
-            <input class="taginp" style="flex:1" value=${newLivre} onInput=${e=>setNewLivre(e.target.value)}
-              placeholder="Ajouter un livre…"
-              onKeyDown=${async e=>{if(e.key==='Enter'&&newLivre.trim()){await addLivre({titre:newLivre.trim()});setNewLivre('');await load();}}}/>
-            <button class="save-btn" onClick=${async()=>{if(!newLivre.trim())return;await addLivre({titre:newLivre.trim()});setNewLivre('');await load();}}>+</button>
-          </div>
-        </div>
 
       </div>
     </details>
