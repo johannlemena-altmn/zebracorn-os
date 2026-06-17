@@ -629,6 +629,7 @@ function Capture({onCapture,pushNav}){
   const [saving,setSaving]=useState(false);
   const [flash,setFlash]=useState('');
   const [inboxAsc,setInboxAsc]=useState(()=>localStorage.getItem('zc_inboxAsc')==='1');
+  const [inboxFilter,setInboxFilter]=useState('all');
   const [hsOpen,setHsOpen]=useState(false);
   const [file,setFile]=useState(null);
   const [fileWarn,setFileWarn]=useState('');
@@ -906,14 +907,27 @@ function Capture({onCapture,pushNav}){
       </div>
     </div>
 
+    ${(()=>{
+      const nLiens=inbox.filter(x=>x.linkedIds?.length>0).length;
+      const nQ=inbox.filter(x=>x.questionId).length;
+      const inboxFiltered=inboxFilter==='liens'?inbox.filter(x=>x.linkedIds?.length>0)
+        :inboxFilter==='questions'?inbox.filter(x=>x.questionId):inbox;
+      const sorted=inboxAsc?[...inboxFiltered].reverse():inboxFiltered;
+      return html`
     <div class="sec-h"><span class="sec-t">À traiter${inbox.length>=8?html` · <span style="color:var(--ac)">charge ↑</span>`:''}</span>
       <span style="display:flex;align-items:center;gap:10px">
         ${inbox.length>1?html`<button class="inbox-sort" onClick=${toggleInboxOrder} title="Ordre de tri">${inboxAsc?'ancien ↑':'récent ↓'}</button>`:''}
         <span class="sec-c">${inbox.length}</span>
       </span></div>
+    ${inbox.length>1?html`<div class="inbox-filters">
+      <button class=${'filter-pill'+(inboxFilter==='all'?' on':'')} onClick=${()=>setInboxFilter('all')}>Tous</button>
+      <button class=${'filter-pill'+(inboxFilter==='liens'?' on':'')} onClick=${()=>setInboxFilter('liens')}>Liés${nLiens?` · ${nLiens}`:''}</button>
+      <button class=${'filter-pill'+(inboxFilter==='questions'?' on':'')} onClick=${()=>setInboxFilter('questions')}>Questions${nQ?` · ${nQ}`:''}</button>
+    </div>`:''}
     ${flash?html`<div class="capt-ok" style="margin-top:-.3rem">${flash}</div>`:''}
     ${inbox.length===0?html`<div class="empty-state">Inbox vide — prête à capter ✶</div>`:''}
-    ${(inboxAsc?[...inbox].reverse():inbox).map(item=>{
+    ${inboxFiltered.length===0&&inbox.length>0?html`<div class="empty-state">Aucune capture dans ce filtre ✶</div>`:''}
+    ${sorted.map(item=>{
       const isExpanded=expandId===item.id;
       const isURL=(item.type==='lien'||item.type==='video')&&item.contenu?.startsWith('http');
       const isNLM=item.source==='NotebookLM'||item.contenu?.includes('notebooklm.google')||item.nlm;
@@ -1015,6 +1029,7 @@ function Capture({onCapture,pushNav}){
           </div>`}
       </div>`;
     })}
+    `; })()}
 
     <details class="pli" style=${(later.length+done.length+corpus.length)===0?'display:none':''}>
       <summary><span>le reste du flux · ${later.length+done.length+corpus.length}</span><span class="chev">▾</span></summary>
@@ -1122,6 +1137,13 @@ function Capture({onCapture,pushNav}){
         </div>
         </div>
         <div style="padding:10px 12px 0">
+        <div class="actor-cap-card">
+          <span class="actor-cap-icon">${T_ICONS[actorItem.type]||'📝'}</span>
+          <div style="flex:1;min-width:0">
+            <div class="actor-cap-ti">${capTitle(actorItem)}</div>
+            <div class="actor-cap-src">${actorItem.source?actorItem.source+' · ':''}${relDate(actorItem.date)}</div>
+          </div>
+        </div>
         ${['A','C','T','O','R'].map(s=>{
           const LABELS={A:'Aim — Intention',C:'Compress — Réduction',T:'Test — F/I/C/V',O:'Own — Position',R:'Run — Action'};
           const isOpen=actorSection===s;
