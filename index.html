@@ -431,7 +431,8 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
     const ty=detectCaptureType(txt);                 // lien/vidéo détecté → bonnes affordances
     const id=await addCapture(ty,txt,'',{});
     if(ty==='lien'||ty==='video') fetchTitleFor(id,txt);  // titre en arrière-plan, jamais bloquant
-    setCapTxt(''); setCapOk(true); setTimeout(()=>setCapOk(false),1800);
+    setCapTxt(''); setCapOk(true); setTimeout(()=>setCapOk(false),2200);
+    setStats(p=>({...p,total:p.total+1}));   // la table grossit en direct → compteur Pièces +1, n° = nouveau total
     setCaps((await getInbox()).slice(0,4));
   }
   async function togRout(i){
@@ -520,7 +521,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
         onKeyDown=${e=>e.key==='Enter'&&capter()} placeholder="Capter une idée, un lien… (1 geste)"/>
       <button onClick=${capter}>Capter</button>
     </div>
-    ${capOk?html`<div class="capt-ok">✓ capturé → inbox Flux</div>`:''}
+    ${capOk?html`<div class="piece-ok"><span class="piece-ok-n">N°${String(stats.total).padStart(3,'0')}</span><span class="piece-ok-t">pièce cataloguée → ta table</span></div>`:''}
 
     <details class="pli" open=${pliDefault}>
       <summary><span>le reste de la journée</span><span class="chev">▾</span></summary>
