@@ -1278,13 +1278,12 @@ function FicheLivre({id,onBack}){
   const [caps,setCaps]=useState([]);
   const [questions,setQuestions]=useState([]);
   const [qPickerOpen,setQPickerOpen]=useState(false);
-  const [intentionDraft,setIntentionDraft]=useState('');
   const [notesDraft,setNotesDraft]=useState('');
 
   const load=useCallback(async()=>{
     const l=await db.livres.get(id);
     setLivre(l);
-    if(l){ setIntentionDraft(l.intention||''); setNotesDraft(l.notes||''); }
+    if(l){ setNotesDraft(l.notes||''); }
     setCaps(await getCapturesByLivre(id));
     setQuestions(await getQuestions());
   },[id]);
@@ -1292,61 +1291,115 @@ function FicheLivre({id,onBack}){
 
   async function upd(patch){ await updateLivre(id,patch); setLivre(prev=>({...prev,...patch})); }
 
+  async function handlePhoto(e){
+    const file=e.target.files[0]; if(!file) return;
+    const MAX=4*1024*1024;
+    if(file.size>MAX){ alert('Image trop lourde (> 4 Mo) — compresse-la d\'abord.'); return; }
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      const photos=[...(livre.photos||[]),{dataUrl:reader.result,mimeType:file.type,createdAt:new Date().toISOString()}];
+      await upd({photos});
+    };
+    reader.readAsDataURL(file);
+  }
+  async function removePhoto(idx){
+    const photos=[...(livre.photos||[])]; photos.splice(idx,1); await upd({photos});
+  }
+
   if(!livre) return html`<div class="scroll"><div class="greet">Chargement…</div></div>`;
+
   const pct=livre.pages?Math.round((livre.pagesLues||0)/livre.pages*100):0;
   const linkedQ=questions.find(q=>q.id===livre.questionId);
   const now=new Date();
+  const amorces=livre.amorces||null;
+  const photos=livre.photos||[];
+  const SLBL={'a-lire':'À LIRE','en-cours':'EN COURS','lu':'LU ✓'};
+  const SCLR={'a-lire':'var(--ink3)','en-cours':'var(--ac2)','lu':'var(--ok)'};
 
-  return html`<div class="scroll">
-    <div class="hdr">
-      <div class="date-lbl">📚 Livre</div>
-    </div>
-    <div class="h1">${livre.titre}</div>
-    <div class="greet">${livre.auteur||'Auteur à compléter'}</div>
+  return html`<div class="scroll fl-carnet">
 
-    <div class="prio-pills" style="margin-bottom:1.1rem">
-      ${[['a-lire','📚','À lire'],['en-cours','📖','En cours'],['lu','✓','Lu']].map(([s,e,l])=>html`
-        <button class=${'prio-pill'+(livre.statut===s?' on':'')} onClick=${()=>upd({statut:s})} key=${s}>${e} ${l}</button>
-      `)}
-    </div>
+    <svg width="0" height="0" style="position:absolute;pointer-events:none"><defs>
+      <filter id="duo-book" color-interpolation-filters="sRGB">
+        <feColorMatrix type="matrix" values="0.33 0.34 0.33 0 0  0.33 0.34 0.33 0 0  0.33 0.34 0.33 0 0  0 0 0 1 0"/>
+        <feComponentTransfer>
+          <feFuncR type="table" tableValues="0.082 0.937"/>
+          <feFuncG type="table" tableValues="0.075 0.918"/>
+          <feFuncB type="table" tableValues="0.055 0.878"/>
+        </feComponentTransfer>
+      </filter>
+    </defs></svg>
 
-    <div class="sec">
-      <div class="sec-h"><span class="sec-t">Progression · pages</span></div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <input class="taginp" type="number" style="width:72px;text-align:center"
-          value=${livre.pagesLues||0}
-          onInput=${e=>upd({pagesLues:Math.max(0,+e.target.value||0)})}
-          placeholder="0"/>
-        <span style="color:var(--ink3);font-size:13px">/</span>
-        <input class="taginp" type="number" style="width:72px;text-align:center"
-          value=${livre.pages||''}
-          onInput=${e=>upd({pages:+e.target.value||null})}
-          placeholder="? p."/>
-        <span style="color:var(--ink3);font-size:13px">pages</span>
-        ${livre.pages?html`<span style="font-family:var(--fm);font-size:10px;color:var(--ac2);margin-left:auto">${pct} %</span>`:''}
+    <div class="fl-cartouche">
+      <div class="fl-ccard a"/><div class="fl-ccard b"/>
+      <div class="fl-meta-row">
+        <span class="fl-label">${livre.station||'LECTURE'}</span>
+        <span class="fl-rec" style=${'color:'+SCLR[livre.statut||'a-lire']}>● ${SLBL[livre.statut||'a-lire']}</span>
       </div>
-      ${livre.pages?html`<div class="prog-bar"><div class="prog-fill" style=${'width:'+pct+'%;background:var(--ac2)'}/></div>`:''}
+      <div class="fl-titre">${livre.titre}</div>
+      ${livre.auteur?html`<div class="fl-auteur">— ${livre.auteur}</div>`:''}
+      ${livre.intention?html`<div class="fl-intention">${livre.intention.slice(0,90)}${livre.intention.length>90?'…':''}</div>`:''}
+      ${photos.length>0?html`<div class="fl-hero">
+        <img class="fl-hero-img" src=${photos[0].dataUrl} alt="" style="filter:url(#duo-book)"/>
+        <div class="fl-scanline"/>
+      </div>`:''}
     </div>
 
     <div class="sec">
-      <div class="sec-h"><span class="sec-t">Intention · pourquoi ce livre</span></div>
-      <textarea class="notes-ta" rows=2 value=${intentionDraft}
-        onInput=${e=>setIntentionDraft(e.target.value)}
-        onBlur=${()=>upd({intention:intentionDraft})}
-        placeholder="Ce que tu cherches dans ce livre…"/>
+      <div class="prio-pills" style="margin-bottom:8px">
+        ${[['a-lire','À lire'],['en-cours','En cours'],['lu','Lu']].map(([s,l])=>html`
+          <button class=${'prio-pill'+(livre.statut===s?' on':'')} onClick=${()=>upd({statut:s})} key=${s}>${l}</button>
+        `)}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input class="taginp" type="number" style="width:68px;text-align:center"
+          value=${livre.pagesLues||0} onInput=${e=>upd({pagesLues:Math.max(0,+e.target.value||0)})} placeholder="0"/>
+        <span style="color:var(--ink3);font-size:13px">/</span>
+        <input class="taginp" type="number" style="width:68px;text-align:center"
+          value=${livre.pages||''} onInput=${e=>upd({pages:+e.target.value||null})} placeholder="? p."/>
+        <span style="color:var(--ink3);font-size:12px">pages</span>
+        ${livre.pages&&pct>0?html`<span class="fl-pct">${pct} %</span>`:''}
+      </div>
+      ${livre.pages&&pct>0?html`<div class="prog-bar"><div class="prog-fill" style=${'width:'+pct+'%;background:var(--ac2)'}/></div>`:''}
     </div>
 
+    ${amorces?html`<div class="sec">
+      <div class="sec-h" style="margin-bottom:10px"><span class="sec-t">Amorces · au fil des pages</span></div>
+      ${[['01',amorces.concept,'Concept transférable'],['02',amorces.exemple,'Objet incarné'],['03',amorces.question,'Question reliée']].filter(([,q])=>q).map(([n,q,lbl])=>html`
+        <div class="fl-amorce" key=${n}>
+          <span class="fl-am-n">${n}</span>
+          <div class="fl-am-body">
+            <div class="fl-am-lbl">${lbl}</div>
+            <div class="fl-am-q">${q}</div>
+          </div>
+        </div>
+      `)}
+    </div>`:''}
+
     <div class="sec">
-      <div class="sec-h"><span class="sec-t">Notes de lecture</span></div>
-      <textarea class="notes-ta" rows=4 value=${notesDraft}
+      <div class="sec-h"><span class="sec-t">Notes · carnet</span></div>
+      <textarea class="fl-notes-ta" rows=6 value=${notesDraft}
         onInput=${e=>setNotesDraft(e.target.value)}
         onBlur=${()=>upd({notes:notesDraft})}
-        placeholder="Idées, citations, désaccords, questions que ça soulève…"/>
+        placeholder="Citations · désaccords · connexions · questions que ça soulève…"/>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Pages annotées · captures</span><span class="sec-c">${photos.length}</span></div>
+      ${photos.length>0?html`<div class="fl-gallery">
+        ${photos.map((p,i)=>html`<div class="fl-thumb-wrap" key=${i}>
+          <img class="fl-thumb" src=${p.dataUrl} alt="" style="filter:url(#duo-book)"/>
+          <button class="fl-thumb-del" onClick=${()=>removePhoto(i)} title="Retirer">✕</button>
+        </div>`)}
+      </div>`:''}
+      <label class="fl-photo-btn">
+        <input type="file" accept="image/*" style="display:none" onChange=${handlePhoto}/>
+        ↑ Photo · page · croquis
+      </label>
     </div>
 
     <div class="sec">
       <div class="sec-h">
-        <span class="sec-t">❓ Question liée</span>
+        <span class="sec-t">Question liée</span>
         <button class="btn" style="font-size:10px;padding:4px 10px"
           onClick=${()=>livre.questionId?upd({questionId:null}):setQPickerOpen(o=>!o)}>
           ${livre.questionId?'✕ Dissocier':'+ Lier'}
