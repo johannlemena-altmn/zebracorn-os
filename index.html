@@ -980,7 +980,7 @@ function Capture({onCapture,pushNav}){
       const isURL=(item.type==='lien'||item.type==='video')&&item.contenu?.startsWith('http');
       const isNLM=item.source==='NotebookLM'||item.contenu?.includes('notebooklm.google')||item.nlm;
       const chName=chList.find(c=>c.id===item.chantierId)?.titre;
-      return html`<div class=${'item'+(isExpanded?' item-open':'')} key=${item.id}>
+      return html`<div class=${'item'+(isExpanded?' item-open cropped':'')} key=${item.id}>
         <div class="item-top" style="cursor:pointer" onClick=${()=>toggleExpand(item.id)}>
           ${item.type==='croquis'
             ?html`<img class="item-thumb" src=${item.dataUrl} alt="📐 croquis"/>`
@@ -1185,7 +1185,7 @@ function Capture({onCapture,pushNav}){
         </div>
         </div>
         <div style="padding:10px 12px 0">
-        <div class="actor-cap-card">
+        <div class="actor-cap-card cropped">
           <span class="actor-cap-icon">${T_ICONS[actorItem.type]||'📝'}</span>
           <div style="flex:1;min-width:0">
             <div class="actor-cap-ti">${capTitle(actorItem)}</div>
