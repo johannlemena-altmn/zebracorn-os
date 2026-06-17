@@ -5,6 +5,41 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-17 — Notes de lecture + Bibliothèque signature (branche `claude/notes-lectures-bibliotheque`)
+
+Session en 4 tranches. Sources : `MEMO_session-notes-lecture-et-cards.md`.
+
+- **T1 — Migration v9 + seed 8 livres** :
+  - **Fait** : `db.version(9)` indexe `livres` sur `collection`. `addLivre` étendu (champs `collection`, `tags`, `amorces`). `seedNotesLecture2026()` plante 8 livres collection « Lectures » avec station, objectif et 3 amorces de journaling. Câblé au boot. 8 fichiers `.md` de notes de lecture générés par sous-agent dans `~/Desktop/Zebracorn-Cerveau/wiki/livres/notes/`.
+  - **Pourquoi** : fondation du parcours lecture dans l'app — les 8 livres du plan 6 mois sont maintenant des objets de l'app avec leurs amorces, prêts à être travaillés.
+  - **DoD** : `db.livres.where('collection').equals('Lectures').count()` → 8 ; zéro erreur console ; reload OK.
+
+- **T2 — Groupes pliables Lectures + recherche** :
+  - **Fait** : Bibliothèque sort du pli « profondeur » → section top-level. Groupement par `collection` via `<details>` natif (groupe Lectures ouvert, autres fermés). Barre de recherche filtre JS sur titre/auteur/tags. Tags affichés en pills flex. CSS : `.col-group`, `.col-group-h` (marker supprimé), `.bibl-search`, `.livre-tag/s`.
+  - **Pourquoi** : 8 livres à plat dans le pli seraient noyés. La collection « Lectures » comme premier groupe ouvre la voie à d'autres collections futures sans rien imposer.
+  - **DoD** : 2 groupes (Lectures:8 ouvert, –:1 fermé), search "donut" → 1 carte, tags flex ; zéro régression Chantiers/Maintenant.
+
+- **T3 — FicheLivre carnet immersif** :
+  - **Fait** : FicheLivre entièrement refondua. Cartouche radius asymétrique (`0 36px 0 36px`) + corner brackets vermillon. Micro-labels mono (station, statut). Titre Fraunces display, auteur mono, intention italic. 3 amorces `01/02/03` en bold vermillon issues du seed. Textarea notes carnet. Photo capture (file picker + 4 Mo guard) + galerie miniatures 56 px + filtre duotone SVG inline. Ken Burns CSS + scanline animé sur photo hero.
+  - **Pourquoi** : la Bibliothèque est la section signature — un « carnet de terrain » numérique, pas une liste de fiches. L'identité video-avatar (cartouche, corner brackets, mono) est portée en CSS pur, sans dépendance. Limitée à FicheLivre (pas partout dans l'app).
+  - **DoD** : cartouche + 3 amorces rendus sur preview mobile, photo capture fonctionnelle (input file), duotone filter actif, zéro erreur console, zéro régression.
+
+- **Prochain** : merger la branche sur `main` → Vercel auto-deploy → tester sur iPhone réel (feel cartouche, capture photo, search). Puis : planning/agenda bidirectionnel (voir §6.3 ci-dessous).
+
+---
+
+## 2026-06-17 — §6.3 : planning/agenda bidirectionnel (chantier à ouvrir en session dédiée)
+
+- **Consigné comme prochain chantier.** Besoin : organiser les journées (cours Omnischool, travail, sport, lecture, méditation…) avec suivi AMWAP (2-3 victoires/jour) + synchro réciproque Google Calendar.
+- **Pistes d'archi pour la session dédiée** (ne PAS implémenter ici) :
+  - Nouveau type « bloc temporel / événement » distinct des cartes-notes.
+  - Import `.ics` (lecture) d'Omnischool & GCal + export `.ics` / lien d'abonnement — frugal d'abord, avant tout OAuth bidirectionnel.
+  - Vue jour/semaine dans Maintenant. AMWAP = mini-log fin de journée cousin de la heatmap « Did I Do ».
+  - `#nudges-ethiques` : faciliter la saisie, blocs de focus protégés, zéro notif culpabilisante.
+- **Ressource** : utiliser le skill `methode-app` pour le cadrage JTBD en ouverture de session.
+
+---
+
 ## 2026-06-15 — v0.3.6 (Build #2) : confort 7 j — frictions des onglets lissées
 
 F3 de la session « 7 jours d'usage ». Johann a choisi 3 chantiers de confort
