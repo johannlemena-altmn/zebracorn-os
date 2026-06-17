@@ -343,6 +343,8 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
   const [hsCount,setHsCount]=useState(0);
   const [revue,setRevue]=useState(getRevue);
   const [gcalEvts,setGcalEvts]=useState(null);
+  const [agendaEvts,setAgendaEvts]=useState([]);
+  const [agendaMode,setAgendaMode]=useState('today');
   const [livreEnCours,setLivreEnCours]=useState(null);
   const [resurfItems,setResurfItems]=useState([]);
   const pliDefault=new Date().getDay()===5&&!getRevue().done;
@@ -378,6 +380,10 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
       setMonth(cells);
     }catch(e){ setMonth([]); }
     loadGcalEvents().then(setGcalEvts).catch(()=>{});
+    const d0=new Date(), d7=new Date(d0.getTime()+8*86400000);
+    const from=d0.toISOString().slice(0,10).replace(/-/g,'');
+    const to=d7.toISOString().slice(0,10).replace(/-/g,'');
+    getEvenementsRange(from,to+'T235959').then(setAgendaEvts).catch(()=>{});
   },[loadNext]);
   useEffect(()=>{ load(); },[load]);
 
@@ -473,13 +479,44 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
       <summary><span>le reste de la journée</span><span class="chev">▾</span></summary>
       <div class="pli-grid">
 
-        ${gcalEvts?.length>0?html`<div class="gcal-block" style="margin:0">
-          <div class="gcal-hdr">◇ Aujourd'hui</div>
-          ${gcalEvts.slice(0,6).map((e,i)=>html`<div class="gcal-ev" key=${i}>
-            <span class="gcal-time">${fmtGcalTime(e.dtstart)}</span>
-            <span class="gcal-ti">${e.summary}</span>
-          </div>`)}
-        </div>`:''}
+        ${(()=>{
+          const todStr=new Date().toISOString().slice(0,10).replace(/-/g,'');
+          const todDb=agendaEvts.filter(e=>e.dateDebut.startsWith(todStr));
+          const merged=[...(gcalEvts||[]).map(e=>({dtstart:e.dtstart,titre:e.summary})),...todDb.map(e=>({dtstart:e.dateDebut,titre:e.titre}))].sort((a,b)=>a.dtstart<b.dtstart?-1:1);
+          const weekDays=Array.from({length:8}).map((_,i)=>{
+            const d=new Date(); d.setDate(d.getDate()+i);
+            const key=d.toISOString().slice(0,10).replace(/-/g,'');
+            const lbl=i===0?'Aujourd\'hui':`${DAYS[d.getDay()]}. ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+            return {key,lbl,evts:agendaEvts.filter(e=>e.dateDebut.startsWith(key))};
+          }).filter(d=>d.evts.length>0);
+          const hasData=merged.length>0||agendaEvts.length>0;
+          if(!hasData) return '';
+          return html`<div class="gcal-block" style="margin:0">
+            <div class="gcal-hdr" style="display:flex;justify-content:space-between;align-items:center">
+              <span>◇ Agenda</span>
+              <div style="display:flex;gap:3px">
+                <button class=${'agenda-tog'+(agendaMode==='today'?' on':'')} onClick=${()=>setAgendaMode('today')}>Auj.</button>
+                <button class=${'agenda-tog'+(agendaMode==='semaine'?' on':'')} onClick=${()=>setAgendaMode('semaine')}>Sem.</button>
+              </div>
+            </div>
+            ${agendaMode==='today'?html`
+              ${merged.length===0?html`<div class="gcal-ev" style="color:var(--ink3)"><span class="gcal-time">—</span><span class="gcal-ti">Aucun événement importé pour aujourd'hui</span></div>`:''}
+              ${merged.map((e,i)=>html`<div class="gcal-ev" key=${i}>
+                <span class="gcal-time">${fmtGcalTime(e.dtstart)}</span>
+                <span class="gcal-ti">${e.titre}</span>
+              </div>`)}
+            `:html`
+              ${weekDays.length===0?html`<div class="gcal-ev" style="color:var(--ink3)"><span class="gcal-time">—</span><span class="gcal-ti">Importe un .ics depuis Réglages pour voir ta semaine</span></div>`:''}
+              ${weekDays.map(day=>html`<div key=${day.key}>
+                <div class="gcal-day-hdr">${day.lbl}</div>
+                ${day.evts.map((e,i)=>html`<div class="gcal-ev" key=${i}>
+                  <span class="gcal-time">${fmtGcalTime(e.dateDebut)}</span>
+                  <span class="gcal-ti">${e.titre}</span>
+                </div>`)}
+              </div>`)}
+            `}
+          </div>`;
+        })()}
 
         ${cap.intention?html`<div class="cap-annuel" style="margin:0">◇ Cap 2026 · <em>${cap.intention}</em></div>`:''}
         ${cap.objectifsMois?html`<div class="cap-annuel" style="margin:0;opacity:.75">⬡ ${new Date().toLocaleDateString('fr-FR',{month:'long'})} · <em>${cap.objectifsMois.split('\n')[0]}</em></div>`:''}
