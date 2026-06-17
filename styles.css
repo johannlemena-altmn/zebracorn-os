@@ -568,3 +568,13 @@ button:active,.mode-auto:active,.task:active,.rout:active,.read:active,.item:act
 .fl-thumb-del{position:absolute;top:-5px;right:-5px;background:var(--ink);color:var(--bg);border:none;border-radius:50%;width:17px;height:17px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
 .fl-photo-btn{display:block;width:100%;font-family:var(--fm);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);border:1px dashed var(--border2);border-radius:var(--r);padding:11px;text-align:center;cursor:pointer;transition:border-color var(--t-tap),background var(--t-tap);}
 .fl-photo-btn:active{background:var(--bg2);border-color:var(--ac);}
+.fl-photo-som{border-color:var(--ac);color:var(--ac);}
+
+/* Badge sommaire sur miniature 0 */
+.fl-som-badge{position:absolute;bottom:0;left:0;background:var(--ac);color:var(--bg);font-family:var(--fm);font-size:7px;letter-spacing:.1em;padding:1px 3px;border-radius:0 2px 0 0;line-height:1.4;}
+
+/* Session +N pages */
+.fl-session-row{display:flex;align-items:center;gap:7px;margin:5px 0 8px;}
+.fl-session-inp{width:76px!important;text-align:center;}
+.fl-session-btn{font-size:11px!important;padding:5px 11px!important;flex-shrink:0;}
+.fl-last-sess{font-family:var(--fm);font-size:9px;color:var(--ink3);letter-spacing:.06em;margin-left:auto;white-space:nowrap;}

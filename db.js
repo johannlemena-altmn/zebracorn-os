@@ -710,6 +710,7 @@ async function seedQuestionsOnce() {
 async function addLivre({ titre, auteur = '', intention = '', pages = null, collection = null, tags = null, amorces = null }) {
   return db.livres.add({
     titre, auteur, intention, pages, pagesLues: 0, notes: '',
+    sessions: [],
     questionId: null, statut: 'a-lire', collection, tags, amorces,
     createdAt: new Date().toISOString(),
   });

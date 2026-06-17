@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=lectures01">
+  <link rel="stylesheet" href="styles.css?v=session01">
 </head>
 <body>
 <div id="root"></div>
@@ -1279,6 +1279,7 @@ function FicheLivre({id,onBack}){
   const [questions,setQuestions]=useState([]);
   const [qPickerOpen,setQPickerOpen]=useState(false);
   const [notesDraft,setNotesDraft]=useState('');
+  const [sessionDelta,setSessionDelta]=useState('');
 
   const load=useCallback(async()=>{
     const l=await db.livres.get(id);
@@ -1306,9 +1307,19 @@ function FicheLivre({id,onBack}){
     const photos=[...(livre.photos||[])]; photos.splice(idx,1); await upd({photos});
   }
 
+  async function addPageSession(){
+    const n=Math.max(1,parseInt(sessionDelta)||0);
+    if(!n) return;
+    const newPL=(livre.pagesLues||0)+n;
+    const sessions=[...(livre.sessions||[]),{date:new Date().toISOString().slice(0,10),delta:n}];
+    await upd({pagesLues:newPL,sessions});
+    setSessionDelta('');
+  }
+
   if(!livre) return html`<div class="scroll"><div class="greet">Chargement…</div></div>`;
 
   const pct=livre.pages?Math.round((livre.pagesLues||0)/livre.pages*100):0;
+  const lastSess=(livre.sessions||[]).slice(-1)[0]||null;
   const linkedQ=questions.find(q=>q.id===livre.questionId);
   const now=new Date();
   const amorces=livre.amorces||null;
@@ -1351,13 +1362,21 @@ function FicheLivre({id,onBack}){
         `)}
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <input class="taginp" type="number" style="width:68px;text-align:center"
+        <input class="taginp" type="number" style="width:62px;text-align:center"
           value=${livre.pagesLues||0} onInput=${e=>upd({pagesLues:Math.max(0,+e.target.value||0)})} placeholder="0"/>
         <span style="color:var(--ink3);font-size:13px">/</span>
-        <input class="taginp" type="number" style="width:68px;text-align:center"
+        <input class="taginp" type="number" style="width:62px;text-align:center"
           value=${livre.pages||''} onInput=${e=>upd({pages:+e.target.value||null})} placeholder="? p."/>
         <span style="color:var(--ink3);font-size:12px">pages</span>
         ${livre.pages&&pct>0?html`<span class="fl-pct">${pct} %</span>`:''}
+      </div>
+      <div class="fl-session-row">
+        <input class="taginp fl-session-inp" type="number" min="1" max="500"
+          value=${sessionDelta} onInput=${e=>setSessionDelta(e.target.value)}
+          onKeyDown=${e=>e.key==='Enter'&&addPageSession()}
+          placeholder="+30 p."/>
+        <button class="btn fl-session-btn" onClick=${addPageSession}>Session +</button>
+        ${lastSess?html`<span class="fl-last-sess">dernier : +${lastSess.delta} p. · ${lastSess.date.slice(5).replace('-','/')}</span>`:''}
       </div>
       ${livre.pages&&pct>0?html`<div class="prog-bar"><div class="prog-fill" style=${'width:'+pct+'%;background:var(--ac2)'}/></div>`:''}
     </div>
@@ -1384,16 +1403,17 @@ function FicheLivre({id,onBack}){
     </div>
 
     <div class="sec">
-      <div class="sec-h"><span class="sec-t">Pages annotées · captures</span><span class="sec-c">${photos.length}</span></div>
+      <div class="sec-h"><span class="sec-t">Sommaire + captures</span><span class="sec-c">${photos.length}</span></div>
       ${photos.length>0?html`<div class="fl-gallery">
-        ${photos.map((p,i)=>html`<div class="fl-thumb-wrap" key=${i}>
-          <img class="fl-thumb" src=${p.dataUrl} alt="" style="filter:url(#duo-book)"/>
+        ${photos.map((p,i)=>html`<div class="fl-thumb-wrap" key=${i} title=${i===0?'Sommaire':('Capture '+(i))}>
+          <img class="fl-thumb" src=${p.dataUrl} alt="" style=${'filter:url(#duo-book)'+(i===0?';outline:2px solid var(--ac);outline-offset:1px':'')}/>
+          ${i===0?html`<span class="fl-som-badge">S</span>`:''}
           <button class="fl-thumb-del" onClick=${()=>removePhoto(i)} title="Retirer">✕</button>
         </div>`)}
       </div>`:''}
-      <label class="fl-photo-btn">
-        <input type="file" accept="image/*" style="display:none" onChange=${handlePhoto}/>
-        ↑ Photo · page · croquis
+      <label class=${'fl-photo-btn'+(photos.length===0?' fl-photo-som':'')}>
+        <input type="file" accept="image/*" capture="environment" style="display:none" onChange=${handlePhoto}/>
+        ${photos.length===0?'↑ Sommaire · table des matières':'↑ Ajouter une capture'}
       </label>
     </div>
 
