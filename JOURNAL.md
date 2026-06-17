@@ -5,6 +5,16 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-18 — Flip 3D sur les cartes livre (Bibliothèque)
+
+- **Fait** : les cartes de la Bibliothèque (section Mémoire) flippent en 3D au tap/clic, révélant un verso sombre avec amorce de lecture (ou intention tronquée) + bouton vermillon « → Ouvrir ». Sur desktop, hover CSS pur. Structure : `.lv-flip-wrap > .lv-flip-inner > (.lv-face-front.livre-card + .lv-face-back)`. Radius verso asymétrique `36px 0 36px 0` (miroir du cartouche FicheLivre). `flippedLivrId` state Preact — toggle au tap, stopPropagation sur `→ Ouvrir`. Ancienne action `onClick ouvrirLivre` déplacée sur le bouton verso.
+- **Pourquoi** : les cartes ouvraient directement FicheLivre (trop directif). Le flip donne un avant-goût (amorce `l.amorces.concept` en priorité, sinon `l.intention`) + un choix conscient avant d'entrer dans la fiche. CSS-only sur desktop (`@media(hover:hover)`) — zéro JS pour le hover.
+- **DoD** : 9 flip wraps présents en Mémoire, classe `.flipped` toggle au clic (vérifié via DOM), verso rendu (titre + statut + amorce + bouton), `→ Ouvrir` ouvre FicheLivre via `pushNav` (nav-back-bar + FicheLivre vérifiés), zéro erreur console. `+41 index.html, +10 styles.css`.
+
+- **Prochain** : §6.3 planning/agenda bidirectionnel — cadrage JTBD avec `methode-app` d'abord.
+
+---
+
 ## 2026-06-17 — Plan lecture flexible + photo sommaire (suite session)
 
 - **Fait** : widget « Session + N pages » dans FicheLivre — input `+30 p.` + bouton → incrémente `pagesLues`, trace un log `sessions:[]` (date + delta), affiche « dernier : +35 p. · 06/17 » sous le bouton. Aucune friction : pas besoin de retenir le total cumulé. Section photos renommée « Sommaire + captures » ; 1er bouton en vermillon « ↑ Sommaire · table des matières » ; badge `S` sur la miniature photo[0] (héroïc = sommaire visuel du livre). `capture="environment"` sur l'input pour ouvrir directement la caméra sur iOS.

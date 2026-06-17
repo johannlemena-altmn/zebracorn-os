@@ -1483,6 +1483,7 @@ function Semaine({pushNav,navDepth}){
   const [ficheLivreId,setFicheLivreId] = useState(null);
   const [newLivre,setNewLivre]     = useState('');
   const [livrSearch,setLivrSearch] = useState('');
+  const [flippedLivrId,setFlippedLivrId] = useState(null);
   const [capObjectifs,setCapObjectifs] = useState([]);
 
   const load = useCallback(async()=>{
@@ -1598,18 +1599,36 @@ function Semaine({pushNav,navDepth}){
     : null;
   const livrGroups = livres.reduce((acc,l)=>{ const c=l.collection||'–'; (acc[c]=acc[c]||[]).push(l); return acc; },{});
 
-  const livrCard = l => html`<div class="livre-card" onClick=${()=>ouvrirLivre(l.id)} key=${l.id}>
-    <div class="ch-top">
-      <span class="ch-ti">${l.titre}</span>
-      <span class="livre-statut" style=${'color:'+(l.statut==='lu'?'var(--ok)':l.statut==='en-cours'?'var(--ac2)':'var(--ink3)')}>
-        ${l.statut==='lu'?'✓ Lu':l.statut==='en-cours'?'En cours':'À lire'}
-      </span>
-    </div>
-    ${l.auteur?html`<div class="ch-prog" style="font-style:italic;color:var(--ink3)">${l.auteur}</div>`:''}
-    ${l.statut==='en-cours'&&l.pages?html`<div class="ch-prog">${l.pagesLues||0}/${l.pages} p. · ${Math.round((l.pagesLues||0)/l.pages*100)} %</div>`:''}
-    ${l.intention?html`<div class="ch-prog" style="font-style:italic">${l.intention.slice(0,55)}${l.intention.length>55?'…':''}</div>`:''}
-    ${l.tags?.length?html`<div class="livre-tags">${l.tags.map(t=>html`<span class="livre-tag" key=${t}>${t}</span>`)}</div>`:''}
-  </div>`;
+  const livrCard = l => {
+    const isFlipped = flippedLivrId === l.id;
+    const statutColor = l.statut==='lu'?'var(--ok)':l.statut==='en-cours'?'var(--ac2)':'var(--ink3)';
+    const statutTxt = l.statut==='lu'?'✓ Lu':l.statut==='en-cours'?'En cours':'À lire';
+    const amorce = l.amorces?.concept || (l.intention?l.intention.slice(0,80)+(l.intention.length>80?'…':''):null);
+    return html`
+      <div class=${'lv-flip-wrap'+(isFlipped?' flipped':'')} key=${l.id}
+        onClick=${()=>setFlippedLivrId(isFlipped?null:l.id)}>
+        <div class="lv-flip-inner">
+          <div class="livre-card lv-face-front">
+            <div class="ch-top">
+              <span class="ch-ti">${l.titre}</span>
+              <span class="livre-statut" style=${'color:'+statutColor}>${statutTxt}</span>
+            </div>
+            ${l.auteur?html`<div class="ch-prog" style="font-style:italic;color:var(--ink3)">${l.auteur}</div>`:''}
+            ${l.statut==='en-cours'&&l.pages?html`<div class="ch-prog">${l.pagesLues||0}/${l.pages} p. · ${Math.round((l.pagesLues||0)/l.pages*100)} %</div>`:''}
+            ${l.intention?html`<div class="ch-prog" style="font-style:italic">${l.intention.slice(0,55)}${l.intention.length>55?'…':''}</div>`:''}
+            ${l.tags?.length?html`<div class="livre-tags">${l.tags.map(t=>html`<span class="livre-tag" key=${t}>${t}</span>`)}</div>`:''}
+          </div>
+          <div class="lv-face-back">
+            <div class="ch-top" style="margin-bottom:0">
+              <span class="lv-back-title">${l.titre}</span>
+              <span class="livre-statut" style=${'color:'+statutColor}>${statutTxt}</span>
+            </div>
+            ${amorce?html`<div class="lv-back-am">${amorce}</div>`:''}
+            <button class="lv-back-open" onClick=${e=>{e.stopPropagation();ouvrirLivre(l.id);}}>→ Ouvrir</button>
+          </div>
+        </div>
+      </div>`;
+  };
 
   const groupeTaches = (arr, dot, titreSec, sous, drag=false) => html`<div class="sec">
     <div class="sec-h"><span class="sec-t"><span class=${'pdot '+dot}/>${titreSec}</span><span class="sec-c">${arr.length}</span></div>
