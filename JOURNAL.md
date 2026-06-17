@@ -5,6 +5,16 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-17 — Plan lecture flexible + photo sommaire (suite session)
+
+- **Fait** : widget « Session + N pages » dans FicheLivre — input `+30 p.` + bouton → incrémente `pagesLues`, trace un log `sessions:[]` (date + delta), affiche « dernier : +35 p. · 06/17 » sous le bouton. Aucune friction : pas besoin de retenir le total cumulé. Section photos renommée « Sommaire + captures » ; 1er bouton en vermillon « ↑ Sommaire · table des matières » ; badge `S` sur la miniature photo[0] (héroïc = sommaire visuel du livre). `capture="environment"` sur l'input pour ouvrir directement la caméra sur iOS.
+- **Pourquoi** : les sessions de lecture varient (20–60 p.) ; additionner manuellement le total cumulé est une friction inutile. Le sommaire photographié est la clé de navigation du livre — le distinguer des captures de pages a du sens.
+- **DoD** : input + bouton présents, `pagesLues` → 35 après saisie, input vidé, "dernier : +35 p. · 06/17" visible, bouton sommaire en vermillon. Commit `6f4fa84` sur `main`.
+
+- **Prochain (nouvelle session)** : quick-win cartes flip (hover/tap 3D) → §6.3 planning/agenda bidirectionnel. Voir prompt de session ci-dessous.
+
+---
+
 ## 2026-06-17 — Notes de lecture + Bibliothèque signature (branche `claude/notes-lectures-bibliotheque`)
 
 Session en 4 tranches. Sources : `MEMO_session-notes-lecture-et-cards.md`.
