@@ -567,6 +567,11 @@ db.version(9).stores({
   livres: '++id, statut, collection',
 });
 
+// v10 — Agenda : événements importés (.ics / GCal)
+db.version(10).stores({
+  evenements: '++id, dateDebut, type, source',
+});
+
 // v6 — Settings clé/valeur (cap annuel, préférences) — syncable via Supabase
 db.version(6).stores({
   settings: 'key',
@@ -587,7 +592,7 @@ async function getAmwap(dateStr) {
 
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses','aliments_custom'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses','aliments_custom','evenements'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };
@@ -745,6 +750,48 @@ db.version(7).stores({
 db.version(8).stores({
   aliments_custom: '++id, cat',
 });
+
+// ── Agenda : événements importés (.ics) ───────────────────────────────────
+
+async function storeEvenementsFromSource(source, evts) {
+  await db.evenements.where('source').equals(source).delete();
+  if (!evts.length) return 0;
+  await db.evenements.bulkAdd(evts.map(e => ({ ...e, source, importeAt: new Date().toISOString() })));
+  return evts.length;
+}
+
+async function getEvenementsRange(from, to) {
+  const all = await db.evenements.toArray();
+  return all
+    .filter(e => e.dateDebut >= from && e.dateDebut <= to)
+    .sort((a, b) => (a.dateDebut < b.dateDebut ? -1 : 1));
+}
+
+// Export .ics : tâches avec échéance → VCALENDAR téléchargeable / importable GCal.
+function toICS(taches) {
+  const esc = s => (s || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/\n/g, '\\n').replace(/;/g, '\\;');
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//Zebracorn OS//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+  ];
+  for (const t of taches) {
+    if (!t.echeance) continue;
+    const d = t.echeance.replace(/-/g, '');
+    const stamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:zc-${t.id}@zebracorn-os`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${d}`,
+      `DTEND;VALUE=DATE:${d}`,
+      `SUMMARY:${esc(t.titre)}`,
+      `DESCRIPTION:Prio\\: ${t.prio || 'bleu'}`,
+      'END:VEVENT'
+    );
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
 
 async function getCapturesByLivre(livreId) {
   const all = await db.captures.filter(c => c.livreId === livreId).toArray();

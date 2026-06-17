@@ -1843,6 +1843,7 @@ function Reglages(){
   const [stats,setStats]=useState(null);
   const [gcalUrl,setGcalUrl]=useState(()=>localStorage.getItem('zc_gcal_url')||'');
   const [gcalTest,setGcalTest]=useState('');
+  const [icsMsg,setIcsMsg]=useState('');
   const [ia,setIa]=useState(()=>getFiltreIaSettings());
   const [usage,setUsage]=useState(null);
   function saveIa(patch){ const u={...ia,...patch}; setIa(u); saveFiltreIaSettings(u); }
@@ -1868,6 +1869,35 @@ function Reglages(){
 
   async function doExport(){ const dump=await exportAll(); const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='zebracorn-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); setMsg('Sauvegarde téléchargée ✓'); }
   function doImport(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=async()=>{ if(!confirm('Importer va REMPLACER les données de cet appareil. Continuer ?')) return; try{ await importAll(JSON.parse(r.result)); setMsg('Importé ✓ — rechargement…'); setTimeout(()=>location.reload(),800);}catch(err){ setMsg('⚠ fichier invalide'); } }; r.readAsText(f); }
+
+  async function doImportICS(file){
+    try{
+      const text=await file.text();
+      const unfolded=unfoldIcal(text);
+      const evts=[];
+      for(const block of unfolded.split('BEGIN:VEVENT').slice(1)){
+        const gv=key=>{const m=block.match(new RegExp('^'+key+'[^\\r\\n]*:([^\\r\\n]+)','m'));return m?m[1].trim():'';};
+        const dt=s=>{const m=block.match(new RegExp('^'+s+'[^\\r\\n]*','m'));return m?m[0].split(':').pop().trim():'';};
+        const dtstart=dt('DTSTART'), dtend=dt('DTEND')||dtstart;
+        const titre=gv('SUMMARY').replace(/\\,/g,',').replace(/\\n/g,' ').replace(/\\/g,'');
+        if(titre&&dtstart) evts.push({titre,dateDebut:dtstart,dateFin:dtend,type:'ical'});
+      }
+      const n=await storeEvenementsFromSource(file.name,evts);
+      setIcsMsg(`✓ ${n} événement(s) importés depuis « ${file.name} »`);
+    }catch(e){setIcsMsg('⚠ '+e.message);}
+  }
+  async function doExportICS(){
+    try{
+      const taches=await db.taches.filter(t=>t.echeance&&!t.fait).toArray();
+      const txt=toICS(taches);
+      const blob=new Blob([txt],{type:'text/calendar'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='zebracorn-taches-'+new Date().toISOString().slice(0,10)+'.ics';
+      document.body.appendChild(a); a.click(); a.remove();
+      setIcsMsg(`✓ ${taches.length} tâche(s) échéancées exportées`);
+    }catch(e){setIcsMsg('⚠ '+e.message);}
+  }
 
   async function doCorpus(){
     const all=await db.captures.toArray();
@@ -2097,6 +2127,20 @@ function Reglages(){
       </div>
       ${gcalTest?html`<div class="set-note" style="margin-top:6px;color:${gcalTest.startsWith('✓')?'var(--ok)':'var(--ac)'}">${gcalTest}</div>`:''}
       <div class="set-note">Google Calendar → chaque agenda → ⚙ Paramètres → « Adresse secrète au format iCal » · Colle une URL par ligne pour afficher plusieurs agendas dans Maintenant.</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="sec-t">Agenda · Import / Export .ics</span></div>
+      <div class="btn-row" style="margin-top:2px">
+        <label class="save-btn" style="flex:1;text-align:center;cursor:pointer">
+          ↓ Importer .ics
+          <input type="file" accept=".ics,text/calendar" style="display:none"
+            onChange=${e=>{const f=e.target.files[0];if(f){doImportICS(f);e.target.value='';}}}/>
+        </label>
+        <button class="btn" style="flex:1" onClick=${doExportICS}>↑ Exporter tâches</button>
+      </div>
+      ${icsMsg?html`<div class="set-note" style="margin-top:6px;color:${icsMsg.startsWith('✓')?'var(--ok)':'var(--ac)'}">${icsMsg}</div>`:''}
+      <div class="set-note">Import : télécharge le .ics depuis GCal / Omnischool → Importe ici · les événements s'affichent dans Maintenant. Export : génère un fichier .ics de tes tâches échéancées → importe dans GCal.</div>
     </div>
 
     <div class="sec">
