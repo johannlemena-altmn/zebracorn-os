@@ -562,6 +562,11 @@ db.version(5).stores({
   livres: '++id, statut',
 });
 
+// v9 — Livres indexés sur collection (groupement Bibliothèque)
+db.version(9).stores({
+  livres: '++id, statut, collection',
+});
+
 // v6 — Settings clé/valeur (cap annuel, préférences) — syncable via Supabase
 db.version(6).stores({
   settings: 'key',
@@ -702,10 +707,11 @@ async function seedQuestionsOnce() {
 
 // ── Bibliothèque légère ────────────────────────────────────────────────────
 
-async function addLivre({ titre, auteur = '', intention = '', pages = null }) {
+async function addLivre({ titre, auteur = '', intention = '', pages = null, collection = null, tags = null, amorces = null }) {
   return db.livres.add({
     titre, auteur, intention, pages, pagesLues: 0, notes: '',
-    questionId: null, statut: 'a-lire', createdAt: new Date().toISOString(),
+    questionId: null, statut: 'a-lire', collection, tags, amorces,
+    createdAt: new Date().toISOString(),
   });
 }
 
@@ -753,6 +759,104 @@ async function seedLivresOnce() {
     intention: 'Fil conducteur pour le mémoire M2 — vision systémique de la transition.',
   });
   localStorage.setItem('zebracorn_seed_livres_v1', 'done');
+}
+
+async function seedNotesLecture2026() {
+  if (localStorage.getItem('zebracorn_seed_notes_lecture_2026')) return;
+  const existing = await db.livres.where('collection').equals('Lectures').count();
+  if (existing > 0) { localStorage.setItem('zebracorn_seed_notes_lecture_2026', 'done'); return; }
+  const L = [
+    {
+      titre: "S'adapter au changement climatique",
+      auteur: 'Ilian Moundib', pages: 144,
+      intention: '④ vivant / ⑤ planète — adaptation, résilience, esprit critique',
+      tags: ['adaptation','résilience','alternance','FNE'],
+      amorces: {
+        concept: "Quel concept d'adaptation systémique peut enrichir ma grille de lecture pour les projets CEE / rénovation ?",
+        exemple: "Un cas incarné d'adaptation locale (territoire, écosystème, communauté) transposable à un argumentaire FNE.",
+        question: "Adapter vs résister vs transformer : où se situe la sobriété matières dans ce spectre ?",
+      },
+    },
+    {
+      titre: 'Neuromania',
+      auteur: 'Ania Moukheiber', pages: 288,
+      intention: '① corps / méta « penser contre son cerveau » — biais cognitifs, déconstruction',
+      tags: ['cognition','biais','dessin','métacognition'],
+      amorces: {
+        concept: "Quel biais est le plus actif quand je dessine ou quand je formule un récit de transition ?",
+        exemple: "Un mécanisme neuronal ou une illusion cognitive transposable en outil de sketching ou d'enseignement.",
+        question: "Comment ce livre change-t-il ma façon de lire les récits institutionnels sur la transition (ADEME, FNE) ?",
+      },
+    },
+    {
+      titre: 'Paresse pour tous',
+      auteur: 'Hadrien Klent', pages: 144,
+      intention: '⑤ société — sobriété, décroissance, récit (fiction)',
+      tags: ['sobriété','décroissance','fiction','récit'],
+      amorces: {
+        concept: "Quel argument sur le temps libre / la réduction du travail peut nourrir le récit SobMat pour FNE ?",
+        exemple: "Une scène ou un personnage dont le mode de vie incarnerait le concept de sobriété heureuse concrètement.",
+        question: "La paresse comme acte politique : compatible ou contradictoire avec l'engagement à plein régime de l'alternance ?",
+      },
+    },
+    {
+      titre: 'La théorie du donut',
+      auteur: 'Kate Raworth', pages: 432,
+      intention: '⑤ société · planète — économie régénérative, limites planétaires',
+      tags: ['donut','économie-régénérative','DRAP','alternance'],
+      amorces: {
+        concept: "Comment le cadre du donut peut-il restructurer la partie théorique de mon DRAP ?",
+        exemple: "Une application concrète du donut à l'échelle d'une entreprise ou d'un territoire — à transposer dans un slide d'alternance.",
+        question: "Qu'est-ce que le donut dit sur l'efficacité énergétique — est-ce un plancher, un plafond, ou les deux ?",
+      },
+    },
+    {
+      titre: 'Antibullshit',
+      auteur: 'Élodie Mielczareck', pages: 256,
+      intention: 'méta / épistémologie — sémiologie, langage, détection du bullshit',
+      tags: ['langage','sémiologie','FNE','épistémologie'],
+      amorces: {
+        concept: "Quels marqueurs linguistiques du bullshit retrouve-t-on dans la communication RSE ou les argumentaires CEE ?",
+        exemple: "Un slogan ou un discours institutionnel à décortiquer avec les outils du livre.",
+        question: "Comment ce filtre épistémologique change-t-il ma façon de rédiger pour FNE — et ma façon de lire les études d'impact ?",
+      },
+    },
+    {
+      titre: 'Vers une économie à trois zéros',
+      auteur: 'Muhammad Yunus', pages: 384,
+      intention: '⑤ société — social business, entreprise à mission',
+      tags: ['social-business','mission','alternance','FNE'],
+      amorces: {
+        concept: "Qu'est-ce que le modèle « zéro profit / zéro chômage / zéro carbone » dit sur la mission d'une structure comme Énergie Responsable ?",
+        exemple: "Un cas d'entreprise à mission décrit par Yunus transposable au secteur de la rénovation / efficacité énergétique.",
+        question: "En quoi la logique « trois zéros » est-elle compatible ou incompatible avec le mécanisme des CEE — subvention vs modèle d'affaires ?",
+      },
+    },
+    {
+      titre: 'Bienvenue en 2055',
+      auteur: 'Magali Reghezza-Zitt', pages: 256,
+      intention: '⑤ planète — prospective climat, fiction scientifique',
+      tags: ['prospective','climat','FNE','récit'],
+      amorces: {
+        concept: "Quel scénario de 2055 éclaire le mieux les enjeux de ma mission actuelle en efficacité énergétique ?",
+        exemple: "Un objet, un lieu ou une pratique du futur décrit dans le livre qui peut devenir une image-ancre dans un récit de transition.",
+        question: "Comment l'horizon 2055 change-t-il la façon dont je parle des CEE dans mon mémoire DRAP ?",
+      },
+    },
+    {
+      titre: "Histoire de l'île Sainte-Marie de Madagascar",
+      auteur: 'A. Imbiki', pages: 300,
+      intention: 'voyages / anthropologie — histoire, mémoire, territoire',
+      tags: ['anthropologie','mémoire','territoire','perso'],
+      amorces: {
+        concept: "Quelle logique de co-habitation ou de rapport au territoire décrite ici résonne avec des enjeux de transition locale ?",
+        exemple: "Un événement historique ou une pratique culturelle de l'île transposable comme métaphore de la bifurcation / transformation.",
+        question: "Ce récit sur une île change-t-il quelque chose à ma façon de penser l'identité d'un territoire face à l'histoire ?",
+      },
+    },
+  ];
+  for (const l of L) await addLivre({ ...l, collection: 'Lectures' });
+  localStorage.setItem('zebracorn_seed_notes_lecture_2026', 'done');
 }
 
 // ── ACTOR (analyse en 5 étapes) ───────────────────────────────────────────
