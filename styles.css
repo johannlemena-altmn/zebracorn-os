@@ -7,20 +7,29 @@
   --ink:#24211c;--ink2:#5c574d;--ink3:#9a9384;
   --border:rgba(36,33,28,0.10);--border2:rgba(36,33,28,0.20);
   --ac:#c2552f;--ac2:#8a6d2f;--ok:#3f7d5a;
+  /* ── Signature « table de dissection » ── */
+  --vm:#d83a1f;        /* vermillon — la machine, l'alerte, ce qu'on démonte */
+  --vm-soft:rgba(216,58,31,0.10);
+  --or:#d99320;        /* or — la bascule, le jugement repris, la série tenue */
+  --or-soft:rgba(217,147,32,0.12);
   --r:12px;--rl:18px;
   --fs:'Fraunces',Georgia,serif;
   --fb:'Inter',system-ui,sans-serif;
   --fm:'JetBrains Mono',ui-monospace,monospace;
+  --fd:'Bricolage Grotesque','Inter',system-ui,sans-serif; /* display — mots-héros, chiffres géants */
   /* motion */
   --t-tap:90ms;--t-state:280ms;--t-page:240ms;
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-spring:cubic-bezier(.34,1.4,.64,1);
 }
 @media(prefers-color-scheme:dark){:root{
-  --bg:#1a1813;--bg2:#221f18;--bg3:#2c2820;
-  --ink:#f0ece2;--ink2:#b3ab9a;--ink3:#746d5d;
+  /* cinématique — charbon profond légèrement froid (vs labo clair) */
+  --bg:#141216;--bg2:#1c1a20;--bg3:#262329;
+  --ink:#ece7dc;--ink2:#aca596;--ink3:#6e685c;
   --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
   --ac:#e0764a;--ac2:#c2a35a;--ok:#4f9a70;
+  --vm:#e8492c;--vm-soft:rgba(232,73,44,0.16);   /* le vermillon rayonne sur charbon */
+  --or:#f2b33d;--or-soft:rgba(242,179,61,0.16);  /* l'or électrique pleine puissance */
 }}
 
 /* ── Shell ── */
@@ -599,3 +608,41 @@ button:active,.mode-auto:active,.task:active,.rout:active,.read:active,.item:act
 .fl-session-inp{width:76px!important;text-align:center;}
 .fl-session-btn{font-size:11px!important;padding:5px 11px!important;flex-shrink:0;}
 .fl-last-sess{font-family:var(--fm);font-size:9px;color:var(--ink3);letter-spacing:.06em;margin-left:auto;white-space:nowrap;}
+
+/* ════════════════════════════════════════════════════════════════
+   IDENTITÉ · « La table de dissection »
+   Charte vidéo v2 adaptée à l'app : on ne scrolle pas, on dissèque.
+   Vermillon = ce qu'on démonte (le bruit, la machine).
+   Or = le jugement repris, la série tenue, la sortie.
+   Bricolage Grotesque = mots-héros + chiffres géants.
+   ════════════════════════════════════════════════════════════════ */
+
+/* — Crop-marks : catalogue un élément comme une pièce à conviction.
+   2 coins en diagonale (haut-gauche vermillon, bas-droite). Pose la
+   classe .cropped sur un conteneur position:relative. — */
+.cropped{position:relative;}
+.cropped::before,.cropped::after{content:"";position:absolute;width:13px;height:13px;pointer-events:none;z-index:2;}
+.cropped::before{top:-1px;left:-1px;border-top:2px solid var(--vm);border-left:2px solid var(--vm);border-radius:3px 0 0 0;}
+.cropped::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--border2);border-right:2px solid var(--border2);border-radius:0 0 4px 0;}
+
+/* — Label « pièce » : index mono brutaliste (PIÈCE N°047 · SOURCE…) — */
+.piece-lbl{font-family:var(--fm);font-size:8.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--vm);}
+.piece-lbl.neutre{color:var(--ink3);}
+
+/* — Chiffre géant (tableau de chasse, count-up façon Ego) — */
+.giant{font-family:var(--fd);font-weight:800;line-height:.82;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums;}
+.giant small{font-family:var(--fm);font-weight:400;letter-spacing:.04em;}
+.pop{animation:popN var(--t-state) var(--ease-spring);}
+@keyframes popN{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1)}}
+
+/* — Mot-héros display (titres d'écran à fort impact) — */
+.hero{font-family:var(--fd);font-weight:800;letter-spacing:-.035em;line-height:.9;color:var(--ink);}
+.hero .vm{color:var(--vm);}
+.hero .or{color:var(--or);}
+
+/* — Fil conducteur vermillon→or : l'accent qui relie/souligne — */
+.thread{background:linear-gradient(var(--vm),var(--or));}
+
+/* — Accent or réutilisable (série, victoire, empowerment) — */
+.or-ink{color:var(--or);}
+.vm-ink{color:var(--vm);}
