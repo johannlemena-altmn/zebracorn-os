@@ -5,6 +5,27 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-18 — §6.3 Agenda bidirectionnel v1
+
+### Cadrage JTBD (methode-app)
+> **Quand** je prépare ma journée, **je veux** voir mes événements extérieurs (Omnischool, RDV) côte à côte avec mes tâches Zebracorn ET exporter mes tâches échéancées vers GCal, **afin de** n'avoir qu'un seul endroit pour décider « qu'est-ce que je fais là ».
+>
+> Décisions Johann : déclencheur = onglet Maintenant (section dépliable) · import/export = bidirectionnel dès v1 · AMWAP = les deux (textarea + heatmap auto, déjà en place).
+
+### T1 — db.version(10) + import/export .ics (commit 75b9cfb)
+- **Fait** : table `evenements` (IndexedDB v10, index `dateDebut/type/source`). Helpers `storeEvenementsFromSource(source, evts)` (remplace + bulkAdd), `getEvenementsRange(from, to)`, `toICS(taches)` (export VCALENDAR valide). Section « Agenda · Import / Export .ics » dans Réglages : label bouton `↓ Importer .ics` (file picker, accept=.ics) + bouton `↑ Exporter tâches` + message statut. `evenements` ajouté à `SYNC_TABLES`.
+- **Pourquoi** : fondation offline-first sans OAuth. Workflow : download depuis GCal/Omnischool → importer ici → data en IndexedDB → vue agenda sans réseau. Export inverse = tâches → GCal via fichier .ics.
+- **DoD** : "✓ 1 tâche(s) échéancées exportées" affiché après clic, section agenda présente en Réglages, zéro erreur console.
+
+### T2 — Vue agenda toggle jour/semaine dans Maintenant (commit cbcb844)
+- **Fait** : le bloc gcal existant ("◇ Aujourd'hui") remplacé par un bloc "◇ Agenda" avec toggle `Auj. / Sem.`. Vue Auj. = fusion des événements GCal URL live + events DB du jour, triés par heure. Vue Sem. = events DB des 8 prochains jours, groupés par date (en-tête `gcal-day-hdr`). `agendaEvts` + `agendaMode` state dans Maintenant. `getEvenementsRange()` appelé dans `load()`. Bloc masqué si aucune donnée (zéro bruit, cohérent avec #nudges-éthiques).
+- **Pourquoi** : prolonge l'existant (parser `parseIcal`, proxy `/api/ical`, slot gcal) sans refonte. Les événements importés persistent offline ; la vue URL est live uniquement si GCal configuré.
+- **DoD** : 3 événements test injectés via eval → "Auj." montre 2 items (09:00 / 18:30), "Sem." montre 2 groupes (Aujourd'hui + VEN. 19 JUIN), `gcal-day-hdr` rendu, zéro erreur console. Données test purgées.
+
+- **Prochain** : AMWAP heatmap auto (tâches cochées + routines → heatmap `amwap` en parallèle de l'intention heatmap) · webcal:// export (Vercel API + Supabase comme source, v2).
+
+---
+
 ## 2026-06-18 — Flip 3D sur les cartes livre (Bibliothèque)
 
 - **Fait** : les cartes de la Bibliothèque (section Mémoire) flippent en 3D au tap/clic, révélant un verso sombre avec amorce de lecture (ou intention tronquée) + bouton vermillon « → Ouvrir ». Sur desktop, hover CSS pur. Structure : `.lv-flip-wrap > .lv-flip-inner > (.lv-face-front.livre-card + .lv-face-back)`. Radius verso asymétrique `36px 0 36px 0` (miroir du cartouche FicheLivre). `flippedLivrId` state Preact — toggle au tap, stopPropagation sur `→ Ouvrir`. Ancienne action `onClick ouvrirLivre` déplacée sur le bouton verso.
