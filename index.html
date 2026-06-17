@@ -19,7 +19,7 @@
 <body>
 <div id="root"></div>
 <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
-<script src="db.js"></script>
+<script src="db.js?v=session02"></script>
 <script type="module">
 import { h, render } from 'https://esm.sh/preact@10';
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'https://esm.sh/preact@10/hooks';
@@ -277,6 +277,26 @@ function useClock(){
   useEffect(()=>{ const t=setInterval(()=>setN(new Date()),30000); return()=>clearInterval(t); },[]);
   return n;
 }
+/* Count-up : anime un nombre vers sa cible (easeOutCubic). À l'ouverture,
+   0→valeur = la table « s'imprime » ; à chaque incrément, le compteur monte. */
+function useCountUp(target,dur=750){
+  const safe=Number.isFinite(target)?target:0;
+  const [val,setVal]=useState(safe);
+  const fromRef=useRef(safe);
+  useEffect(()=>{
+    const from=fromRef.current, to=safe;
+    if(from===to) return;
+    let raf; const t0=performance.now();
+    const tick=t=>{
+      const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3);
+      setVal(Math.round(from+(to-from)*e));
+      if(p<1){ raf=requestAnimationFrame(tick); } else { fromRef.current=to; }
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  },[safe,dur]);
+  return val;
+}
 
 /* ── AmwapModal ──────────────────────────────── */
 const AMWAP_PH = [
@@ -341,6 +361,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
   const [amwapYest,setAmwapYest]=useState(null);
   const [cap,setCap]=useState(CAP_EMPTY);
   const [hsCount,setHsCount]=useState(0);
+  const [stats,setStats]=useState({total:0,actor:0,jours:0});
   const [revue,setRevue]=useState(getRevue);
   const [gcalEvts,setGcalEvts]=useState(null);
   const [agendaEvts,setAgendaEvts]=useState([]);
@@ -371,9 +392,11 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
     setCap(await getCap()); setHsCount(await getHorsScopeMois());
     setLivreEnCours(await getLivreEnCours());
+    getStats().then(s=>setStats(p=>({...p,total:s.total,actor:s.actor}))).catch(()=>{});
     try{
       const rows=await db.intentions.toArray();
       const days=new Set(rows.filter(r=>r.texte&&r.texte.trim()).map(r=>r.date.slice(0,10)));
+      setStats(p=>({...p,jours:days.size}));
       const cells=[]; const d0=new Date();
       for(let i=27;i>=0;i--){ const d=new Date(d0); d.setDate(d0.getDate()-i);
         const k=d.toISOString().slice(0,10); cells.push({k,f:days.has(k),t:i===0}); }
@@ -432,6 +455,10 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
 
   const best=streaks.length?Math.max(...streaks):0;
   const idone=week.filter(d=>d.done).length;
+  const nPieces=useCountUp(stats.total);
+  const nActor=useCountUp(stats.actor);
+  const nSerie=useCountUp(best);
+  const nJours=useCountUp(stats.jours);
 
   return html`<div class="scroll">
     <div class="hdr"><div class="brand">Zebracorn OS</div><div class="date-lbl">${fmtDate(now)} · ${fmtTime(now)}${best>0?` · 🔥 ${best}j`:''}</div></div>
@@ -467,6 +494,26 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
       <button class="next-go" onClick=${doneNext} aria-label="Fait">✓</button>
     </div>`:html`<div class="next"><div class="next-body"><div class="next-k">La prochaine action</div><div class="next-t" style="color:var(--ink3)">Rien en attente — pose une priorité dans Mémoire →</div></div></div>`}
     ${actOk?html`<div class="act-ok">✓ fait · la chaîne tient 🔥</div>`:''}
+
+    <div class="chasse-hdr"><span class="piece-lbl neutre">◇ Ta table · pièces à conviction</span></div>
+    <div class="chasse">
+      <div class="chasse-c cropped">
+        <div class="chasse-n">${nPieces}</div>
+        <div class="chasse-l">Pièces</div>
+      </div>
+      <div class="chasse-c">
+        <div class="chasse-n">${nActor}</div>
+        <div class="chasse-l">Disséquées</div>
+      </div>
+      <div class="chasse-c">
+        <div class=${'chasse-n'+(nSerie>0?' or-ink':'')}>${nSerie}${nSerie>0?html`<span class="chasse-u">🔥</span>`:''}</div>
+        <div class="chasse-l">Série</div>
+      </div>
+      <div class="chasse-c">
+        <div class="chasse-n">${nJours}</div>
+        <div class="chasse-l">Jours</div>
+      </div>
+    </div>
 
     <div class="capt">
       <input value=${capTxt} onInput=${e=>setCapTxt(e.target.value)}

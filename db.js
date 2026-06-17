@@ -105,6 +105,7 @@ async function getStats() {
   return {
     total: caps.length,
     traites: caps.filter(c => c.statut === 'traité').length,
+    actor: caps.filter(c => c.actorAnalysis).length,
     avecNotes: caps.filter(c => c.notes).length,
     avecLiens: caps.filter(c => c.linkedIds?.length).length,
     tachesDone: tachs.filter(t => t.fait).length,
