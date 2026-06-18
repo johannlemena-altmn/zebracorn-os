@@ -1016,7 +1016,7 @@ function Capture({onCapture,pushNav}){
             </div>
             ${isExpanded&&chName?html`<div style="margin-top:5px"><span class="ch-pill on" style="font-size:9px;padding:2px 8px;cursor:pointer" onClick=${e=>{e.stopPropagation();pushNav&&pushNav({type:'chantier',id:item.chantierId,from:'Flux'});}}>◎ ${chName.slice(0,28)} ›</span></div>`:''}
           </div>
-          <span style="font-size:11px;color:var(--ink3);flex-shrink:0;margin-left:4px">${isExpanded?'↑':'↓'}</span>
+          <span class="item-chev">${isExpanded?'↑':'↓'}</span>
         </div>
         ${isExpanded?html`<div class="notes-wrap">
           ${isURL?html`<input class="notes-ta" style="margin-bottom:7px" value=${titreEdit}
@@ -1849,7 +1849,7 @@ function Semaine({pushNav,navDepth}){
       ${chantiersOrd.length===0?html`<div class="empty-state">aucun chantier ✶</div>`:''}
       ${chantiersOrd.map(c=>{
         const p=chProg[c.id];
-        return html`<div class="chantier-card" style="cursor:pointer" onClick=${()=>ouvrirChantier(c.id)} key=${c.id} data-did=${c.id}>
+        return html`<div class="chantier-card cropped" style="cursor:pointer" onClick=${()=>ouvrirChantier(c.id)} key=${c.id} data-did=${c.id}>
           <div class="ch-top"><span class="drag-h" onTouchStart=${e=>{e.stopPropagation();dragReorder(e,c.id,chantiersOrd,'chantiers');}} onMouseDown=${e=>{e.stopPropagation();dragReorder(e,c.id,chantiersOrd,'chantiers');}} onClick=${e=>e.stopPropagation()}>⠿</span><span class="ch-ti">${c.titre}</span><span class="t-del" onClick=${e=>{e.stopPropagation();delChant(c.id);}}>✕</span></div>
           ${p?.total>0?html`<div class="prog-bar" style="margin-top:8px"><div class="prog-fill" style=${'width:'+Math.round(p.done/p.total*100)+'%'}/></div>`:''}
           <div class="ch-prog">${c.prochaine?('→ '+c.prochaine):'Ouvre pour ajouter la 1ʳᵉ étape →'}${p?.total>0?` · ${p.done}/${p.total} étapes`:''}</div>
