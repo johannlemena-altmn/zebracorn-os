@@ -5,6 +5,42 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-18 (nuit) — Refonte identité « La table de dissection » + 4 mécaniques anti-scroll
+
+### Cadrage
+Adapter la charte de la vidéo *« L'ingénierie du désespoir »* (`~/Desktop/video-avatar-prive/build/identite/01-identite-v2-table-de-dissection.md`) dans l'app, et la transformer en levier produit pour le hackathon du 19/06 (capter un max).
+
+> **Le pont conceptuel** : sur les réseaux, *tu es le sujet* qu'on dissèque ; ici *c'est toi qui dissèques*. Chaque capture = une **pièce à conviction cataloguée**, ACTOR = la dissection, le corpus = ta table de preuves. **Vermillon** = ce qu'on démonte (le bruit) ; **Or** = le jugement repris / la sortie. Le clair=labo / sombre=cinématique mappe sur le light/dark déjà en place.
+
+> Décisions Johann (AskUserQuestion) : typo = **hybride éditorial** (garde Fraunces pour le récit, ajoute Bricolage Grotesque pour les mots-héros + chiffres géants, Space/JetBrains Mono pour les labels « pièce ») ; les **4 mécaniques** retenues, le tout **frugal et sans friction** (« réseaux sociaux mais plus sobre et intelligent »).
+
+> Méthode : fichier monolithique 130 KB → pas de fan-out sous-agents (collisions + re-dérivation coûteuse). Opus en incréments serrés, vérifiés, commités un par un.
+
+### Inc. 0 — Fondation design system (commit a…)
+- **Fait** : tokens `--vm` (vermillon), `--or` (or), `--fd` (Bricolage Grotesque) ; dark mode viré vers charbon cinématique profond ; composants signature additifs `.cropped` (crop-marks coin), `.piece-lbl`, `.giant`/`.pop`, `.hero`, `.thread`. Font Bricolage ajoutée au CDN. Cache-bust `?v=session02` (styles.css + db.js).
+- **DoD** : app rend, zéro régression, tokens vérifiés en preview.
+
+### Inc. 1 — Tableau de chasse (mécanique #2, count-up)
+- **Fait** : hook `useCountUp` (easeOutCubic, défensif NaN) ; bande `.chasse` de 4 compteurs géants sur Maintenant — Pièces (crop-mark) · Disséquées (ACTOR) · Série (or + flamme) · Jours ; placée juste avant la capture (voir sa table grossir → capturer). `getStats()` expose le compte ACTOR.
+- **DoD** : preview OK (14/12…), NaN corrigé (db.js était servi en cache sans le champ `actor` → cache-bust).
+
+### Inc. 2 — Capture = pièce cataloguée (mécanique #1)
+- **Fait** : confirmation = tampon vermillon « N°XXX · PIÈCE CATALOGUÉE → ta table » (anim `pieceStamp`) ; compteur Pièces +1 en direct à la capture.
+- **DoD** : preview OK — bump live 0→1→2, tampon « N°002 », input vidé, persistance ; dev DB isolée (sync non configurée).
+
+### Inc. 3 — Cartes sur la table (crop-marks)
+- **Fait** : la carte d'inbox ouverte (`.item-open`) + la pièce en cours d'ACTOR reçoivent les crop-marks (`.cropped`). Bouton « Ouvrir » du livre laissé terracotta (l'or cassait le contraste).
+- **DoD** : DOM vérifié — `item-open cropped`, bracket vermillon `rgb(232,73,44)`.
+
+### Inc. 4 — Pont de sortie anti-scroll (mécanique #3)
+- **Fait** : bouton « ↗ Creuser » (or) sur chaque pièce → iPhone : feuille de partage native (Substack/LinkedIn/Notes en 1 tap) ; desktop : copie + composeur LinkedIn. `.item-b` en flex-wrap.
+- **DoD** : DOM vérifié — bouton présent, couleur or `rgb(242,179,61)`, fallback desktop sans erreur.
+
+### Reste (prochaine session)
+- **Mécanique #4 — Rituel + chaîne renforcée** : l'UI streak/chaîne existe déjà solidement ; à enrichir (or sur la meilleure série, micro-célébration des paliers) sans dupliquer.
+- **iPhone réel** : tester la feuille de partage native du bouton Creuser + le rendu Bricolage.
+- **Sync** : `evenements` déjà dans SYNC_TABLES ; vérifier que la refonte n'a touché aucun schéma (elle n'a ajouté que le champ calculé `actor` dans `getStats`, pas de migration).
+
 ## 2026-06-18 — §6.3 Agenda bidirectionnel v1
 
 ### Cadrage JTBD (methode-app)
