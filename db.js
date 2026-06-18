@@ -578,6 +578,12 @@ db.version(6).stores({
   settings: 'key',
 });
 
+// v11 — « Avant de partir » : checklist matinale. Items persistants ; la coche
+// du jour = checkedDate === today() → se réinitialise automatiquement chaque matin.
+db.version(11).stores({
+  departItems: '++id, ordre',
+});
+
 // ── AMWAP (mes victoires du jour) ──────────────────────────────────────────
 
 async function saveAmwap(v1, v2, v3) {
@@ -591,9 +597,32 @@ async function getAmwap(dateStr) {
   return rows.length ? rows[rows.length - 1] : null;
 }
 
+// ── « Avant de partir » : checklist matinale ────────────────────────────────
+
+async function getDepartItems() {
+  const all = await db.departItems.toArray();
+  return all.sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || a.id - b.id);
+}
+async function addDepartItem(texte) {
+  const t = (texte || '').trim();
+  if (!t) return;
+  const all = await db.departItems.toArray();
+  const ordre = all.length ? Math.max(...all.map(x => x.ordre ?? 0)) + 1 : 0;
+  return db.departItems.add({ texte: t, ordre, checkedDate: null });
+}
+async function toggleDepartItem(id) {
+  const it = await db.departItems.get(id);
+  if (!it) return;
+  const done = it.checkedDate === today();
+  await db.departItems.update(id, { checkedDate: done ? null : today() });
+}
+async function delDepartItem(id) {
+  await db.departItems.delete(id);
+}
+
 // ── Export / Import (snapshot JSON — filet de sécurité offline + base sync) ──
 
-const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses','aliments_custom','evenements'];
+const SYNC_TABLES = ['captures','intentions','taskChecks','routineChecks','chantiers','etapes','taches','amwap','questions','livres','settings','repas','courses','aliments_custom','evenements','departItems'];
 
 async function exportAll() {
   const dump = { _app: 'zebracorn-os', _v: 2, _at: new Date().toISOString() };

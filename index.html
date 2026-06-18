@@ -14,12 +14,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=session02">
+  <link rel="stylesheet" href="styles.css?v=session03">
 </head>
 <body>
 <div id="root"></div>
 <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
-<script src="db.js?v=session02"></script>
+<script src="db.js?v=session03"></script>
 <script type="module">
 import { h, render } from 'https://esm.sh/preact@10';
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'https://esm.sh/preact@10/hooks';
@@ -362,6 +362,8 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
   const [cap,setCap]=useState(CAP_EMPTY);
   const [hsCount,setHsCount]=useState(0);
   const [stats,setStats]=useState({total:0,actor:0,jours:0});
+  const [depart,setDepart]=useState([]);
+  const [departTxt,setDepartTxt]=useState('');
   const [revue,setRevue]=useState(getRevue);
   const [gcalEvts,setGcalEvts]=useState(null);
   const [agendaEvts,setAgendaEvts]=useState([]);
@@ -392,6 +394,7 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
     setAmwapYest(await getAmwap(yest.toISOString().slice(0,10)));
     setCap(await getCap()); setHsCount(await getHorsScopeMois());
     setLivreEnCours(await getLivreEnCours());
+    setDepart(await getDepartItems());
     getStats().then(s=>setStats(p=>({...p,total:s.total,actor:s.actor}))).catch(()=>{});
     try{
       const rows=await db.intentions.toArray();
@@ -435,6 +438,9 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
     setStats(p=>({...p,total:p.total+1}));   // la table grossit en direct → compteur Pièces +1, n° = nouveau total
     setCaps((await getInbox()).slice(0,4));
   }
+  async function togDepart(id){ await toggleDepartItem(id); setDepart(await getDepartItems()); }
+  async function addDepartI(){ if(!departTxt.trim())return; await addDepartItem(departTxt); setDepartTxt(''); setDepart(await getDepartItems()); }
+  async function delDepartI(id){ await delDepartItem(id); setDepart(await getDepartItems()); }
   async function togRout(i){
     if(i===2&&!routs[2]){ setAmwapOpen(true); return; }
     const v=!routs[i]; setRouts(routs.map((x,j)=>j===i?v:x));
@@ -460,6 +466,9 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
   const nActor=useCountUp(stats.actor);
   const nSerie=useCountUp(best);
   const nJours=useCountUp(stats.jours);
+  const todayS=today();
+  const departDone=depart.filter(d=>d.checkedDate===todayS).length;
+  const departPare=depart.length>0&&departDone===depart.length;
 
   return html`<div class="scroll">
     <div class="hdr"><div class="brand">Zebracorn OS</div><div class="date-lbl">${fmtDate(now)} · ${fmtTime(now)}${best>0?` · 🔥 ${best}j`:''}</div></div>
@@ -495,6 +504,25 @@ function Maintenant({inboxCount,onGoCapture,onGoSem,pushNav}){
       <button class="next-go" onClick=${doneNext} aria-label="Fait">✓</button>
     </div>`:html`<div class="next"><div class="next-body"><div class="next-k">La prochaine action</div><div class="next-t" style="color:var(--ink3)">Rien en attente — pose une priorité dans Mémoire →</div></div></div>`}
     ${actOk?html`<div class="act-ok">✓ fait · la chaîne tient 🔥</div>`:''}
+
+    <div class=${'depart-card'+(departPare?' pare':'')}>
+      <div class="depart-hdr">
+        <span class="piece-lbl neutre">◇ Avant de partir</span>
+        <span class=${'depart-count'+(departPare?' pare':'')}>${depart.length===0?'à poser':departPare?'paré ✓':`${departDone}/${depart.length}`}</span>
+      </div>
+      ${depart.length===0?html`<div class="depart-empty">Tes 3-4 trucs à ne jamais oublier en partant (repas, clés, écrire à…, RDV…). Les coches se remettent à zéro chaque matin.</div>`:''}
+      ${depart.map(d=>{const done=d.checkedDate===todayS;return html`
+        <div class=${'depart-item'+(done?' done':'')} key=${d.id} onClick=${()=>togDepart(d.id)}>
+          <span class="depart-cb">${done?'☑':'☐'}</span>
+          <span class="depart-txt">${d.texte}</span>
+          <span class="depart-del" onClick=${e=>{e.stopPropagation();delDepartI(d.id);}} title="Retirer">✕</span>
+        </div>`;})}
+      ${depart.length<5?html`<div class="depart-add">
+        <input value=${departTxt} onInput=${e=>setDepartTxt(e.target.value)}
+          onKeyDown=${e=>e.key==='Enter'&&addDepartI()} placeholder="+ un truc à ne pas oublier…"/>
+        <button onClick=${addDepartI}>Ajouter</button>
+      </div>`:''}
+    </div>
 
     <div class="chasse-hdr"><span class="piece-lbl neutre">◇ Ta table · pièces à conviction</span></div>
     <div class="chasse">
