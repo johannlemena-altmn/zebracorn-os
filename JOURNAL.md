@@ -36,6 +36,10 @@ Adapter la charte de la vidéo *« L'ingénierie du désespoir »* (`~/Desktop/v
 - **Fait** : bouton « ↗ Creuser » (or) sur chaque pièce → iPhone : feuille de partage native (Substack/LinkedIn/Notes en 1 tap) ; desktop : copie + composeur LinkedIn. `.item-b` en flex-wrap.
 - **DoD** : DOM vérifié — bouton présent, couleur or `rgb(242,179,61)`, fallback desktop sans erreur.
 
+### Inc. 5 — Cartes-pièces ouvrables (chantiers + à traiter)
+- **Fait** : chantiers reçoivent les crop-marks permanents (chaque chantier = pièce cataloguée cliquable) ; le chevron d'ouverture des cartes « à traiter » devient un badge encadré qui vire au vermillon à l'ouverture ; retour tactile au tap (`:active`) ; animation `snapOpen` (la pièce se pose sur la table). Demande Johann : « rangé pour que chaque carte soit cliquable et s'ouvre comme dans les vidéos ».
+- **DoD** : preview vérifié — chantiers `cropped` (bracket vermillon), chevron vermillon à l'ouverture, snap OK, zéro erreur console.
+
 ### Reste (prochaine session)
 - **Mécanique #4 — Rituel + chaîne renforcée** : l'UI streak/chaîne existe déjà solidement ; à enrichir (or sur la meilleure série, micro-célébration des paliers) sans dupliquer.
 - **iPhone réel** : tester la feuille de partage native du bouton Creuser + le rendu Bricolage.
