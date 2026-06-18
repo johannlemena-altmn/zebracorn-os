@@ -5,6 +5,16 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-06-18 (nuit) — Rituel « Avant de partir » (checklist matinale anti-oubli)
+
+### Cadrage (atelier-produit)
+> **Quand** je pars le matin, **je veux** une checklist courte (3-4 max) des trucs à ne pas oublier (repas, clés, écrire à X, prendre tel objet, RDV), **afin de** ne plus partir en ayant oublié quelque chose.
+
+- **Modèle** : items **persistants** (récurrents) ; coche du jour = `checkedDate === today()` → **reset auto chaque matin**, pas de table de checks séparée ni cron. One-off du jour = ajout + suppression 1 tap.
+- **Fait** : db **v11** `departItems` (+ helpers get/add/toggle/del, ajouté à SYNC_TABLES) ; carte « ◇ Avant de partir » dans Maintenant, en **gate du matin** (après la prochaine action, avant le tableau de chasse). Checkbox **or** (= paré/empowerment), barré quand fait ; compteur `X/N` → « paré ✓ » or + carte atténuée quand tout coché ; ajout inline (cap doux à 5), état vide pédagogique.
+- **DoD** : preview vérifié — add/toggle/**reset journalier** (`checkedDate===today`), état « paré », zéro erreur console ; `node --check db.js` OK ; cache-bust `?v=session03`.
+- **Prochain** : si Johann veut, distinguer item récurrent vs one-off du jour (flag) ; sinon la suppression 1-tap suffit.
+
 ## 2026-06-18 (nuit) — Refonte identité « La table de dissection » + 4 mécaniques anti-scroll
 
 ### Cadrage
