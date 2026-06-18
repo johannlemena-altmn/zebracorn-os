@@ -179,7 +179,7 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .item-ic{font-size:18px;flex-shrink:0;line-height:1.4;}
 .item-ti{font-size:14px;font-weight:500;line-height:1.3;}
 .item-src{font-family:var(--fm);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
-.item-b{display:flex;gap:7px;margin-top:10px;}
+.item-b{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
 .btn{font-family:var(--fb);font-size:12px;font-weight:600;border-radius:18px;padding:7px 13px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--ink2);transition:.15s;}
 .btn:active{opacity:.8;}
 .btn.pri{background:var(--ink);color:var(--bg);border-color:var(--ink);}
@@ -196,6 +196,9 @@ body{background:var(--bg3);color:var(--ink);font-family:var(--fb);line-height:1.
 .item-pdf{width:56px;height:56px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
 .share-btn{font-family:var(--fb);font-size:12px;font-weight:600;border-radius:18px;padding:7px 13px;cursor:pointer;border:1px solid var(--ok);background:transparent;color:var(--ok);transition:.15s;}
 .share-btn:active{background:var(--ok);color:#fff;}
+/* Pont de sortie : creuser ailleurs (or = la sortie, le jugement repris) */
+.creuser-btn{font-family:var(--fb);font-size:12px;font-weight:600;border-radius:18px;padding:7px 13px;cursor:pointer;border:1px solid var(--or);background:transparent;color:var(--or);transition:.15s;}
+.creuser-btn:active{background:var(--or);color:#15130e;}
 .file-warn{font-family:var(--fm);font-size:9px;color:var(--ac);margin-top:5px;letter-spacing:.02em;}
 .link-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:8px 0 6px;}
 .link-lbl{font-family:var(--fm);font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;margin-right:2px;}

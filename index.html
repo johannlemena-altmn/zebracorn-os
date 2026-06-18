@@ -664,6 +664,23 @@ async function shareFile(item){
   try{ await navigator.share({files:[f],title:item.filename||'Fichier Zebracorn'}); }catch(e){ if(e.name!=='AbortError') alert('Erreur partage : '+e.message); }
 }
 
+/* Pont de sortie anti-scroll : pousse une pièce vers Substack/LinkedIn pour
+   la creuser. iPhone → feuille de partage native (Substack/LinkedIn/Notes en
+   1 tap). Desktop → copie le texte + ouvre le composeur LinkedIn. */
+async function creuser(item){
+  const titre=(item.titre||item.contenu||'').trim();
+  const isUrl=item.contenu&&/^https?:\/\//.test(item.contenu);
+  const corps=titre+(item.notes?'\n\n'+item.notes:'');
+  if(navigator.share){
+    const data={title:'À creuser · Zebracorn',text:corps};
+    if(isUrl) data.url=item.contenu;
+    try{ await navigator.share(data); }catch(e){ if(e.name!=='AbortError'){} }
+    return;
+  }
+  try{ await navigator.clipboard.writeText(corps+(isUrl?'\n'+item.contenu:'')); }catch(e){}
+  window.open('https://www.linkedin.com/feed/?shareActive=true','_blank','noopener');
+}
+
 /* ── Capture ─────────────────────────────────── */
 const isAudioUrl=u=>/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(u||'');
 
@@ -1072,6 +1089,7 @@ function Capture({onCapture,pushNav}){
             <button class="btn pri" onClick=${e=>{e.stopPropagation();markDone(item.id);}}>Traiter ✓</button>
             <button class="btn" onClick=${e=>{e.stopPropagation();markLater(item.id);}}>↓ Plus tard</button>
             <button class=${'actor-btn'+(actorId===item.id?' active':'')} onClick=${e=>{e.stopPropagation();ouvrirActor(item);}}>⊙ ACTOR</button>
+            <button class="creuser-btn" onClick=${e=>{e.stopPropagation();creuser(item);}} title="Pousser vers Substack / LinkedIn pour creuser">↗ Creuser</button>
             ${isURL?html`<a class="share-btn" href=${item.contenu} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}>↗ Ouvrir</a>`:''}
             ${item.type==='fichier'&&item.dataUrl?html`<button class="share-btn" onClick=${e=>{e.stopPropagation();shareFile(item);}}>↗ Partager</button>`:''}
           </div>`}
