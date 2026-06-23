@@ -548,6 +548,69 @@ async function seedVeilleAnthropic_2026() {
   localStorage.setItem('zebracorn_seed_veille_anthropic', 'done');
 }
 
+// Seed Adaptation (conversation du 2026-06-22) — 2 chantiers issus du grill
+// « Boussole d'Adaptation » : Piste A (compagnonnage oncle / méthode) et Piste B
+// (validation terrain du wedge assurabilité). Premiers exemples actionnables pour
+// la semaine. Content-guardé par titre + flag localStorage (anti-doublon sync).
+async function seedChantiersAdaptation_2026() {
+  if (localStorage.getItem('zebracorn_seed_adaptation_2026')) return;
+
+  const CHANTIERS = [
+    {
+      titre: 'Adaptation · Piste A — Compagnonnage oncle (méthode)',
+      organe: 'adaptation · méthode',
+      progression: "Co-construire la méthode (OCARA-simplifié, appui T. Doguet) en compagnonnage cadré : lui = méthode/terrain/crédibilité CSRD ; moi = couche différenciante (P7 justice, pédagogie, outillage IA). La Boussole reste mon organe, branchée sur sa méthode.",
+      prochaine: "Confirmer le créneau visio avec l'oncle",
+      etapes: [
+        "Confirmer le créneau visio avec l'oncle (date + heure)",
+        "Relire notes-entretien.md (à jour) comme trame de profondeur",
+        "Cadrer le « qui possède quoi » : moi = P7/pédagogie/IA, lui = méthode/terrain",
+        "Préparer 3 questions : OCARA-simplifié · où la Boussole s'y branche · rôle de T. Doguet",
+        "Préparer la démo Renault (cas examen) comme preuve de lecture systémique",
+        "Pendant la visio : noter ses use-cases IA (futur livrable formation)",
+        "Après : consigner 3 décisions / apprentissages dans le second cerveau",
+      ],
+      question: {
+        intitule: "Comment profiter d'un mentor sans devenir le junior qui déploie sa méthode ?",
+        intention: "Compagnonnage cadré : garder une brique défendable (P7, pédagogie, IA) qui reste mienne.",
+      },
+    },
+    {
+      titre: 'Adaptation · Piste B — Validation terrain (wedge assurabilité)',
+      organe: 'adaptation · terrain',
+      progression: "Valider (ou tuer) le wedge « assurabilité/anticipation » auprès de dirigeants de PME en zone exposée, AVANT de construire. Posture Mom Test : faits passés, pas de pitch. Kit prêt : Boussole-Adaptation/kit-entretien-assurabilite.md.",
+      prochaine: "Relire le kit puis repérer 5-8 communes sous tension",
+      etapes: [
+        "Relire le kit d'entretien (hypothèses H1-H4 + grille de dépouillement)",
+        "Repérer 5-8 communes « sous tension » (croiser CCR / Géorisques par adresse)",
+        "Lister 5-8 dirigeants PME (logistique, agro, viti, industrie) + 2-3 courtiers",
+        "Rédiger le message de prise de contact (« travail de terrain, je ne vends rien »)",
+        "Envoyer les 5 premières prises de contact",
+        "Caler les 2 premiers entretiens",
+        "Mener l'entretien + remplir la grille de dépouillement après chacun",
+        "Après 2 entretiens : choisir le format du mini-cas (PG&E ou PME) et le commencer",
+      ],
+      question: {
+        intitule: "Le problème que je crois résoudre est-il vraiment ressenti — et payé ?",
+        intention: "Leçon post-hackathon : valider le problème par le terrain, pas l'élargir. Seuil : >= 4/8 sur douleur + déclencheur.",
+      },
+    },
+  ];
+
+  const existing = await db.chantiers.toArray();
+  const titres = new Set(existing.map(c => (c.titre || '').trim().toLowerCase()));
+
+  for (const p of CHANTIERS) {
+    if (titres.has(p.titre.trim().toLowerCase())) continue; // anti-doublon (sync)
+    const id = await addChantier({ titre: p.titre, prio: 'vert', organe: p.organe });
+    await updateChantier(id, { progression: p.progression, prochaine: p.prochaine });
+    for (const t of p.etapes) await addEtape(id, t);
+    if (p.question) await addQuestion({ ...p.question, chantierId: id });
+  }
+
+  localStorage.setItem('zebracorn_seed_adaptation_2026', 'done');
+}
+
 // v3 — AMWAP : log de victoires quotidiennes
 db.version(3).stores({
   amwap: '++id, date',

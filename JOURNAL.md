@@ -5,7 +5,11 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
-## 2026-06-18 (nuit) — Rituel « Avant de partir » (checklist matinale anti-oubli)
+## 2026-06-22 — Seed « Adaptation » : 2 chantiers actionnables (Boussole d'Adaptation)
+- **Fait** : `seedChantiersAdaptation_2026()` dans `db.js` (appelée dans `index.html`) injecte 2 chantiers 🟢 issus du grill du 22/06 — *Piste A : Compagnonnage oncle (méthode)* (7 étapes) et *Piste B : Validation terrain / wedge assurabilité* (8 étapes), chacun avec progression, prochaine action et question vivante.
+- **Pourquoi** : donner à Johann, dès demain, des exemples concrets et suivables dans l'app (onglet Semaine) pour piloter sa semaine adaptation. Voie native = pattern seed déjà établi (1 conversation → 1 seed), local-only, pas de push cloud. Aucune UI ajoutée : réemploi total de `addChantier`/`addEtape`/`addQuestion`.
+- **DoD** : `node --check db.js` OK ; fonction définie 1× et appelée 1× ; content-guard par titre + flag `zebracorn_seed_adaptation_2026` (anti-doublon multi-device). **Non vérifié en navigateur** (à confirmer par Johann au reload — même mécanique que 4 seeds déjà fonctionnels).
+- **Prochain** : Johann recharge l'app → les 2 chantiers apparaissent ; cocher les étapes au fil de la semaine.
 
 ### Cadrage (atelier-produit)
 > **Quand** je pars le matin, **je veux** une checklist courte (3-4 max) des trucs à ne pas oublier (repas, clés, écrire à X, prendre tel objet, RDV), **afin de** ne plus partir en ayant oublié quelque chose.
