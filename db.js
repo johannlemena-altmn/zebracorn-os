@@ -1052,6 +1052,63 @@ function saveFiltreIaSettings(settings) {
   localStorage.setItem(IA_KEY, JSON.stringify(settings));
 }
 
+// Seed « trio de convergence fin 2026 » (conversation du 2026-06-28).
+// Cap North Star + chantier O1 (le seul front neuf : Carnet ville-chaleur).
+// O2 est méta (l'app elle-même, portée par le Cap) et O3 est porté par les
+// routines DEF_ROUTINES[3..6] + le plan lecture déjà seedé — pas de chantier
+// dédié pour éviter les doublons. Content-guardé par titre + flag localStorage.
+async function seedConvergenceFin2026() {
+  if (localStorage.getItem('zebracorn_seed_convergence_fin2026')) return;
+
+  // ── A1. CAP (North Star) — seulement si vide ──────────────────────────────
+  const cap = await getCap();
+  if (!cap || !cap.objectifs || !cap.objectifs.trim()) {
+    await saveCap({
+      intention: "Converger vers 3 objectifs traçables d'ici fin 2026 : l'Œuvre, l'Organe, le Socle.",
+      objectifs: "O1 · Carnet ville-chaleur n°1 (l'Œuvre)\nO2 · Zebracorn OS = cockpit de pilotage (l'Organe)\nO3 · Discipline : bouger · lire · écrire · récupérer (le Socle)",
+      nonNeg: "DRAP + BAPEC — soutenance 13/07/2026",
+      objectifsMois: cap?.objectifsMois || "",
+    });
+  }
+
+  // ── A2. Chantier O1 — Carnet ville-chaleur n°1 ────────────────────────────
+  const CHANTIERS = [
+    {
+      titre: "O1 · Carnet ville-chaleur n°1",
+      organe: "académie · ville",
+      progression: "L'Œuvre. Diagnostic + 1-2 propositions d'adaptation sur UNE place minérale parisienne, montrable en pro. Méthode : ~/Desktop/Apprentissages/ville-chaleur/.",
+      prochaine: "Scouter 3-4 places minérales pendant la canicule",
+      etapes: [
+        "Scouter 3-4 places minérales (balades)",
+        "Choisir 1 lieu + 3 sessions d'observation (matin / pic / soir)",
+        "Lire le socle (Gaillard « Bioclimatique » + 1 ressource ICU)",
+        "Diagnostic dessiné (cartes d'usage superposées)",
+        "1-2 propositions dessinées, ancrées sur l'observé",
+        "Mise au propre « montrable »",
+      ],
+      question: {
+        intitule: "Comment les gens habitent-ils une place minérale quand il fait trop chaud ?",
+        intention: "Le terrain commande : produire (un carnet) plutôt que consommer.",
+      },
+      tacheRouge: { titre: "Scouter 3-4 places minérales (canicule)", prio: 'rouge' },
+    },
+  ];
+
+  const existing = await db.chantiers.toArray();
+  const titres = new Set(existing.map(c => (c.titre || '').trim().toLowerCase()));
+
+  for (const p of CHANTIERS) {
+    if (titres.has(p.titre.trim().toLowerCase())) continue; // anti-doublon (sync)
+    const id = await addChantier({ titre: p.titre, prio: 'vert', organe: p.organe });
+    await updateChantier(id, { progression: p.progression, prochaine: p.prochaine });
+    for (const t of p.etapes) await addEtape(id, t);
+    if (p.question) await addQuestion({ ...p.question, chantierId: id });
+    if (p.tacheRouge) await addTache({ titre: p.tacheRouge.titre, prio: 'rouge', chantierId: id });
+  }
+
+  localStorage.setItem('zebracorn_seed_convergence_fin2026', 'done');
+}
+
 // ── Suivi des écritures locales (sync non destructive) ──────────────────────
 // Toute écriture marque l'appareil « en avance » (zc_dirty). Le boot ne tire le
 // cloud QUE si rien n'est en attente ; sinon il pousse. Le flag est levé par

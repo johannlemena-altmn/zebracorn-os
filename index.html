@@ -99,6 +99,10 @@ const DEF_ROUTINES = [
   { key:'routine_0', nom:'Pas de tel 15 min au réveil',    moment:'Matin'  },
   { key:'routine_1', nom:'Pilier Spinoza — 1 idée + 1 preuve', moment:'Aprem' },
   { key:'routine_2', nom:'AMWAP — mes victoires du jour',   moment:'Soir'   },
+  { key:'routine_3', nom:'Bouger — séance ou marche',       moment:'Jour'   },
+  { key:'routine_4', nom:'Lire — quelques pages',           moment:'Jour'   },
+  { key:'routine_5', nom:'Écrire — quelques lignes',        moment:'Soir'   },
+  { key:'routine_6', nom:'Récupérer — sommeil / nutrition notés', moment:'Soir' },
 ];
 function seededShuffle(arr, seed) {
   const a = [...arr];
@@ -2561,6 +2565,7 @@ await seedChantiersActifs_2026();
 await seedVeilleAnthropic_2026();
 await seedNotesLecture2026();
 await seedChantiersAdaptation_2026();
+await seedConvergenceFin2026();
 render(html`<${App}/>`, document.getElementById('root'));
 
 // iOS Safari n'applique :active qu'avec un listener touch — feedback tactile réel.
