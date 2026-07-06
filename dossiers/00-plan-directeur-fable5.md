@@ -61,3 +61,4 @@ Le même travail nourrit les deux : c'est le critère qui faisait hésiter la no
 - `03-protocole-preenregistre.md` : protocole empirique figé (H1-H4, spécifications S1-S3, placebos), le commit Git faisant foi d'horodatage.
 - `scripts/assemble_donnees.py` : assemblage DVF × BDNB × Géorisques × LCZ en étapes rejouables, filtres du protocole implémentés.
 - `maquette-radar-boussole.html` : maquette de présentation autonome (radar 6 rayons + anneau P7, vue table, modes clair/sombre, palette validée daltonisme/contraste).
+- `04-carto-cee-cadrage.md` + `carto-cee.html` (ajout du 6 juillet, soir) : cadrage et prototype v0 de l'outil de cartographie des logements candidats aux aides (CEE, MaPrimeRénov') croisés avec les signaux d'adaptation Géorisques ; c'est la vue « bâtiment » opérationnelle du triangle Boussole × valeur × terrain.
