@@ -14,9 +14,9 @@ D'après la note d'intention, le cœur de l'outil est stable :
 - **Cinq prismes branchent des données qui existent déjà** (Météo-France, Géorisques, Banque de France).
 - **Deux prismes n'existent nulle part et sont la signature** : la **justice de l'adaptation** (garde-fou contre la maladaptation) et les **dépendances matérielles** (les achats, scope 3), avec une grille à cinq critères par intrant : concentration de l'offre, exposition climatique de la source, levier géopolitique, substituabilité, criticité opérationnelle.
 
-## 2. Nomenclature proposée des 7 prismes (PROPOSITION à valider ou corriger)
+## 2. Nomenclature des 7 prismes (VALIDÉE par Johann le 6 juillet 2026, y compris P7 en anneau)
 
-Les cinq premiers prismes ne sont pas nommés dans les documents disponibles. Reconstruction cohérente avec « exposition → capacité → impact » et avec les trois sources de données citées :
+Reconstruction cohérente avec « exposition → capacité → impact » et avec les trois sources de données citées, validée comme nomenclature de travail (maquette : `maquette-radar-boussole.html`) :
 
 | # | Prisme | Lecture | Référentiel d'écart | Donnée d'appui |
 |---|---|---|---|---|
@@ -62,6 +62,8 @@ Six candidats, chacun avec sa condition de viabilité et le test terrain qui per
 **Recommandation** : instruire 1 et 3 en parallèle (les deux ont déjà leur test terrain planifié et leurs interlocuteurs identifiés), garder 2 et 4 comme structures de revenus à 12-18 mois, traiter 5 en opportuniste, ne pas investir 6.
 
 ## 5. Trames de présentation (les « plusieurs acteurs » de la note)
+
+**Ordre retenu (décision du 6 juillet)** : 1. l'oncle (méthode, valide la nomenclature et P7-anneau) → 2. Massiet du Biest (barème P6) → 3. courtiers/CCI (après 2-3 entretiens Piste B, avec verbatims). Chaque étape produit l'artefact dont la suivante a besoin.
 
 **Trame Massiet du Biest (prisme P6, 30 minutes)** : 1 image du radar → le principe d'écart au référentiel en une phrase → la grille 5 critères appliquée à UN intrant METRO réel (reprendre la note achats durables) → ses trois questions (déclencheurs réels de diversification ; achat durable alibi vs levier de résilience ; les 5-6 signaux qu'un acheteur surveille) → demande explicite : caler le barème, pas valider le plan.
 

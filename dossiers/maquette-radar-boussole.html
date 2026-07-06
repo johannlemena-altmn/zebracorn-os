@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boussole d'Adaptation · radar 7 prismes (maquette)</title>
+<style>
+  :root{
+    --bg:#faf8f3; --bg2:#f1ede3; --ink:#24211c; --ink2:#6b675f; --ligne:#dcd6c8;
+    --org:#c2552f; --ref:#1f80b3;
+    --ok:#3f7d5a; --warn:#8a6d2f; --warn-fill:#f2b33d; --crit:#c2552f; --crit-vif:#b83a20;
+    --fs:'Fraunces',Georgia,'Times New Roman',serif;
+    --fb:'Inter',-apple-system,'Segoe UI',sans-serif;
+    --fm:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --r:12px; --rl:18px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1b1916; --bg2:#242019; --ink:#efe9dc; --ink2:#a29c90; --ligne:#3a352c;
+      --org:#cf6238; --ref:#3d8db8;
+      --ok:#5a9d78; --warn:#c9a24a; --warn-fill:#f2b33d; --crit:#e8492c; --crit-vif:#ef6a4e;
+    }
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--fb);line-height:1.5;
+       padding:20px 16px calc(24px + env(safe-area-inset-bottom));max-width:1060px;margin:0 auto}
+  .piece{font-family:var(--fm);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+  h1{font-family:var(--fs);font-weight:600;font-size:clamp(24px,4.5vw,34px);line-height:1.15;margin:6px 0 2px}
+  .sous{color:var(--ink2);font-size:14px;max-width:56ch}
+  .grille{display:grid;gap:18px;margin-top:20px}
+  @media(min-width:760px){.grille{grid-template-columns:minmax(0,1.2fr) minmax(280px,1fr);align-items:start}}
+  .carte{background:var(--bg2);border:1px solid var(--ligne);border-radius:var(--rl);padding:16px}
+  figure{margin:0}
+  figcaption{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:2px 2px 8px}
+  .leg{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2)}
+  .leg .tr{width:18px;height:0;border-top:3px solid var(--org);border-radius:2px}
+  .leg .tb{width:18px;height:0;border-top:3px dashed var(--ref)}
+  svg{display:block;width:100%;height:auto}
+  .axe-lbl{font-family:var(--fm);font-size:11px;fill:var(--ink);cursor:pointer}
+  .axe-lbl.actif{fill:var(--org);font-weight:700}
+  .axe-val{font-family:var(--fm);font-size:10.5px;fill:var(--ink2)}
+  .grid-l{fill:none;stroke:var(--ligne);stroke-width:1}
+  .axe-l{stroke:var(--ligne);stroke-width:1}
+  .poly-org{fill:var(--org);fill-opacity:.14;stroke:var(--org);stroke-width:2;stroke-linejoin:round}
+  .poly-ref{fill:none;stroke:var(--ref);stroke-width:2;stroke-dasharray:5 4;stroke-linejoin:round}
+  .pt{fill:var(--org);stroke:var(--bg2);stroke-width:2;r:4.5}
+  .pt-hit{fill:transparent;r:14;cursor:pointer}
+  .anneau{fill:none;stroke-width:7;opacity:.9}
+  .anneau-lbl{font-family:var(--fm);font-size:10.5px;letter-spacing:.1em}
+  #tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);
+       font-family:var(--fm);font-size:11.5px;padding:6px 9px;border-radius:8px;
+       opacity:0;transition:opacity .12s;z-index:9;max-width:230px}
+  .detail h2{font-family:var(--fs);font-size:19px;margin:2px 0 6px}
+  .detail dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13.5px}
+  .detail dt{font-family:var(--fm);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);padding-top:2px}
+  .curseurs{margin-top:14px;border-top:1px solid var(--ligne);padding-top:12px}
+  .cur{display:grid;grid-template-columns:34px 1fr 26px;gap:10px;align-items:center;margin:7px 0}
+  .cur label{font-family:var(--fm);font-size:11px;color:var(--ink2)}
+  .cur output{font-family:var(--fm);font-size:12px;text-align:right}
+  input[type=range]{accent-color:var(--org);width:100%;min-height:28px}
+  .p7-sel{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .p7-btn{font-family:var(--fm);font-size:11.5px;padding:7px 11px;border-radius:999px;
+          border:1.5px solid var(--ligne);background:transparent;color:var(--ink);cursor:pointer;min-height:34px}
+  .p7-btn[aria-pressed=true]{border-color:currentColor;font-weight:700}
+  .p7-btn.ok{color:var(--ok)} .p7-btn.warn{color:var(--warn)} .p7-btn.crit{color:var(--crit-vif)}
+  .verdict{margin-top:10px;font-size:13.5px;display:flex;gap:8px;align-items:baseline}
+  .verdict b{font-family:var(--fm);font-size:12px;letter-spacing:.06em}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  caption{text-align:left;font-family:var(--fm);font-size:11px;letter-spacing:.12em;
+          text-transform:uppercase;color:var(--ink2);padding-bottom:8px}
+  th{font-family:var(--fm);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--ink2);text-align:left;font-weight:500}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--ligne)}
+  td.num,th.num{text-align:right;font-family:var(--fm);font-size:12.5px}
+  .ecart-neg{color:var(--crit-vif);font-weight:600}.ecart-pos{color:var(--ok);font-weight:600}
+  .note{font-size:12px;color:var(--ink2);margin-top:14px;max-width:70ch}
+  .tbl-wrap{overflow-x:auto}
+</style>
+</head>
+<body data-palette="#c2552f,#1f80b3">
+<header>
+  <div class="piece">Boussole d'Adaptation · maquette de présentation · données fictives</div>
+  <h1>Lire l'écart, pas prédire l'avenir</h1>
+  <p class="sous">Six prismes notés en écart à un référentiel sectoriel (0 = très en retrait, 4 = au niveau ou mieux).
+  Le septième, la justice de l'adaptation, n'est pas un score : c'est l'anneau qui valide ou invalide le plan.</p>
+</header>
+
+<div class="grille">
+  <figure class="carte" aria-label="Radar des six prismes, avec anneau justice de l'adaptation">
+    <figcaption>
+      <span class="leg"><i class="tr"></i>PME exemple (Translog SAS, fictive)</span>
+      <span class="leg"><i class="tb"></i>Référentiel : médiane logistique, zone inondable</span>
+    </figcaption>
+    <svg id="radar" viewBox="-75 0 610 440" role="img"
+         aria-label="Radar : P1 3,0 · P2 2,0 · P3 1,0 · P4 1,5 · P5 2,5 · P6 1,0 ; référentiel autour de 2 à 2,5 ; anneau P7 : signalé"></svg>
+    <div class="verdict" id="verdict"></div>
+  </figure>
+
+  <aside class="carte detail" id="panneau">
+    <div class="piece" id="d-code">P3 · CAPACITÉ</div>
+    <h2 id="d-nom"></h2>
+    <dl>
+      <dt>Lecture</dt><dd id="d-lecture"></dd>
+      <dt>Écart à</dt><dd id="d-ref"></dd>
+      <dt>Donnée</dt><dd id="d-source"></dd>
+    </dl>
+    <div class="curseurs" aria-label="Ajuster les scores (démonstration)">
+      <div class="piece" style="margin-bottom:4px">Démo live · ajuster les scores</div>
+      <div id="curseurs"></div>
+      <div class="piece" style="margin:10px 0 4px">P7 · Justice de l'adaptation</div>
+      <div class="p7-sel" role="group" aria-label="État P7">
+        <button class="p7-btn ok"   data-p7="ok">✓ conforme</button>
+        <button class="p7-btn warn" data-p7="warn">⚠ signalé</button>
+        <button class="p7-btn crit" data-p7="crit">✕ invalidé</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="carte tbl-wrap" style="margin-top:18px">
+  <table id="table">
+    <caption>Vue table · scores et écarts au référentiel</caption>
+    <thead><tr><th>Prisme</th><th>Ce qu'il lit</th><th class="num">Score</th><th class="num">Référentiel</th><th class="num">Écart</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<p class="note">Maquette de démonstration : scores et référentiels fictifs, aucun étalonnage scientifique à ce stade
+(la validation est décrite au dossier 02, section 7). Palette vérifiée pour les daltonismes et le contraste,
+modes clair et sombre ; le référentiel est aussi distingué par le pointillé, jamais par la couleur seule.</p>
+<div id="tip" role="status"></div>
+
+<script>
+const PRISMES = [
+ {code:"P1", famille:"EXPOSITION", nom:"Exposition physique des sites", court:"P1 · Sites",
+  lecture:"Aléas subis par les sites propres (chaleur, inondation, argiles)",
+  ref:"Aléas médians des sites du secteur d'activité", source:"Météo-France (Climadiag), Géorisques",
+  score:3.0, refv:2.5},
+ {code:"P2", famille:"EXPOSITION", nom:"Exposition des marchés et revenus", court:"P2 · Revenus",
+  lecture:"Sensibilité climat du chiffre d'affaires et des clients",
+  ref:"Sensibilité médiane du secteur", source:"Banque de France (ODACC, cotation)",
+  score:2.0, refv:2.5},
+ {code:"P3", famille:"CAPACITÉ", nom:"Capacité financière d'absorption", court:"P3 · Finances",
+  lecture:"Trésorerie et endettement face à un choc",
+  ref:"Seuils de résilience du secteur", source:"Banque de France",
+  score:1.0, refv:2.0},
+ {code:"P4", famille:"CAPACITÉ", nom:"Capacité organisationnelle et assurantielle", court:"P4 · Organisation",
+  lecture:"Couverture, plans de continuité, gouvernance du risque",
+  ref:"Pratique de référence (esprit OCARA)", source:"Déclaratif structuré + courtier",
+  score:1.5, refv:2.0},
+ {code:"P5", famille:"IMPACT", nom:"Impact réel constaté", court:"P5 · Impact réel",
+  lecture:"Sinistres et interruptions déjà vécus",
+  ref:"Sinistralité attendue de la zone", source:"Historique CatNat, déclaratif",
+  score:2.5, refv:2.0},
+ {code:"P6", famille:"EXPOSITION AMONT", nom:"Dépendances matérielles (achats)", court:"P6 · Achats",
+  lecture:"Intrants critiques : concentration, exposition source, géopolitique, substituabilité, criticité",
+  ref:"Panier de référence du métier", source:"Grille 5 critères (signature)",
+  score:1.0, refv:2.0},
+];
+const P7 = {
+  ok:  {lbl:"✓ P7 conforme : aucun critère de maladaptation détecté", couleur:"var(--ok)"},
+  warn:{lbl:"⚠ P7 signalé : le plan reporte du risque vers l'aval (à retravailler)", couleur:"var(--warn-fill)"},
+  crit:{lbl:"✕ P7 invalidé : mesure maladaptative, le radar ne vaut pas avis favorable", couleur:"var(--crit-vif)"},
+};
+let etatP7 = "warn", actif = 5; // P6 ouvert par défaut (le prisme signature)
+
+const svg = document.getElementById("radar"), NS = "http://www.w3.org/2000/svg";
+const CX = 230, CY = 222, R = 150, RMAX = 4;
+const ang = i => -Math.PI/2 + i * Math.PI/3;
+const xy  = (i,v) => [CX + Math.cos(ang(i))*R*v/RMAX, CY + Math.sin(ang(i))*R*v/RMAX];
+const el = (t,a,parent)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(parent||svg).appendChild(e);return e};
+const tip = document.getElementById("tip");
+
+function dessiner(){
+  svg.innerHTML = "";
+  // anneau P7 (extérieur, jamais un rayon)
+  el("circle",{cx:CX,cy:CY,r:R+26,class:"anneau",stroke:P7[etatP7].couleur});
+  const arcT = el("text",{x:CX,y:CY-R-42,"text-anchor":"middle",class:"anneau-lbl",fill:P7[etatP7].couleur});
+  arcT.textContent = P7[etatP7].lbl.split(" : ")[0].toUpperCase() + " · JUSTICE DE L'ADAPTATION";
+  // grille (niveaux 1-4) + graduations
+  for(let n=1;n<=RMAX;n++){
+    el("polygon",{class:"grid-l",points:PRISMES.map((_,i)=>xy(i,n).join(",")).join(" ")});
+    el("text",{x:CX+4,y:CY-R*n/RMAX-3,class:"axe-val"}).textContent = n;
+  }
+  // axes + étiquettes cliquables
+  PRISMES.forEach((p,i)=>{
+    const [x,y]=xy(i,RMAX); el("line",{class:"axe-l",x1:CX,y1:CY,x2:x,y2:y});
+    const [lx,ly]=[CX+Math.cos(ang(i))*(R+13),CY+Math.sin(ang(i))*(R+13)];
+    const anchor = Math.abs(Math.cos(ang(i)))<.3 ? "middle" : (Math.cos(ang(i))>0?"start":"end");
+    const t = el("text",{x:lx,y:ly+4,"text-anchor":anchor,class:"axe-lbl"+(i===actif?" actif":""),tabindex:0,role:"button"});
+    t.textContent = p.court;
+    t.addEventListener("click",()=>ouvrir(i));
+    t.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" ")ouvrir(i)});
+  });
+  // polygones : référentiel (dessous, pointillé bleu) puis organisation
+  el("polygon",{class:"poly-ref",points:PRISMES.map((p,i)=>xy(i,p.refv).join(",")).join(" ")});
+  const po = el("polygon",{class:"poly-org",points:PRISMES.map((p,i)=>xy(i,p.score).join(",")).join(" ")});
+  if(etatP7==="crit") po.setAttribute("fill-opacity",".05"), po.setAttribute("stroke-dasharray","3 3");
+  // sommets + cibles de survol larges (tooltip par marque)
+  PRISMES.forEach((p,i)=>{
+    const [x,y]=xy(i,p.score);
+    el("circle",{class:"pt",cx:x,cy:y});
+    const hit = el("circle",{class:"pt-hit",cx:x,cy:y});
+    hit.addEventListener("pointerenter",e=>{
+      tip.innerHTML = `<b>${p.code}</b> ${p.nom}<br>score ${fmt(p.score)} · réf. ${fmt(p.refv)} · écart ${ecart(p)}`;
+      tip.style.opacity=1; bouge(e);
+    });
+    hit.addEventListener("pointermove",bouge);
+    hit.addEventListener("pointerleave",()=>tip.style.opacity=0);
+    hit.addEventListener("click",()=>ouvrir(i));
+  });
+  document.getElementById("verdict").innerHTML =
+    `<b style="color:${P7[etatP7].couleur}">${P7[etatP7].lbl.split(" : ")[0]}</b><span>${P7[etatP7].lbl.split(" : ")[1]}</span>`;
+}
+function bouge(e){const m=8;tip.style.left=Math.min(e.clientX+m,innerWidth-tip.offsetWidth-m)+"px";tip.style.top=(e.clientY+m)+"px"}
+const fmt = v => v.toFixed(1).replace(".",",");
+const ecart = p => {const d=p.score-p.refv;const s=(d>0?"+":"−")+fmt(Math.abs(d));return d<0?`<span class="ecart-neg">${s}</span>`:`<span class="ecart-pos">${s}</span>`};
+
+function ouvrir(i){
+  actif=i; const p=PRISMES[i];
+  document.getElementById("d-code").textContent = `${p.code} · ${p.famille}`;
+  document.getElementById("d-nom").textContent = p.nom;
+  document.getElementById("d-lecture").textContent = p.lecture;
+  document.getElementById("d-ref").textContent = p.ref;
+  document.getElementById("d-source").textContent = p.source;
+  dessiner();
+}
+function tableau(){
+  document.querySelector("#table tbody").innerHTML = PRISMES.map(p=>
+    `<tr><td class="num" style="text-align:left">${p.code}</td><td>${p.nom}</td>
+     <td class="num">${fmt(p.score)}</td><td class="num">${fmt(p.refv)}</td><td class="num">${ecart(p)}</td></tr>`).join("")
+    + `<tr><td class="num" style="text-align:left">P7</td><td>Justice de l'adaptation (garde-fou, non scoré)</td>
+       <td class="num" colspan="3" style="text-align:right">${P7[etatP7].lbl}</td></tr>`;
+}
+function curseurs(){
+  document.getElementById("curseurs").innerHTML = "";
+  PRISMES.forEach((p,i)=>{
+    const row=document.createElement("div");row.className="cur";
+    row.innerHTML=`<label for="c${i}">${p.code}</label>
+      <input id="c${i}" type="range" min="0" max="4" step="0.5" value="${p.score}"
+             aria-label="Score ${p.code} ${p.nom}">
+      <output for="c${i}">${fmt(p.score)}</output>`;
+    row.querySelector("input").addEventListener("input",e=>{
+      p.score=parseFloat(e.target.value);
+      row.querySelector("output").textContent=fmt(p.score);
+      dessiner();tableau();
+    });
+    document.getElementById("curseurs").appendChild(row);
+  });
+}
+document.querySelectorAll(".p7-btn").forEach(b=>{
+  b.setAttribute("aria-pressed", b.dataset.p7===etatP7);
+  b.addEventListener("click",()=>{
+    etatP7=b.dataset.p7;
+    document.querySelectorAll(".p7-btn").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p7===etatP7));
+    dessiner();tableau();
+  });
+});
+ouvrir(actif);tableau();curseurs();
+</script>
+</body>
+</html>

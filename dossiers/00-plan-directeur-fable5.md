@@ -47,8 +47,17 @@ Le principe de répartition : **Fable 5 pour tout ce qui est cadrage, architectu
 
 Le même travail nourrit les deux : c'est le critère qui faisait hésiter la note initiale, et il est levé.
 
-## 4. Ce que ce plan ne décide pas (à trancher par Johann)
+## 4. Décisions tranchées (validées par Johann le 6 juillet 2026)
 
-- La nomenclature exacte des 7 prismes : le dossier 02 propose une reconstruction complète, marquée comme proposition, à valider ou corriger.
-- Le choix des départements pilotes pour le jeu de données (proposition par défaut : un littoral atlantique, un urbain dense soumis aux îlots de chaleur, un rural argileux soumis au retrait-gonflement).
-- La priorité entre les deux acteurs à présenter en premier (Massiet du Biest sur le prisme achats, ou l'oncle sur la méthode OCARA-simplifiée) : les deux trames sont dans le dossier 02.
+- **Nomenclature P1-P7** : validée telle que proposée au dossier 02 (P7 en anneau transversal, pas en rayon).
+- **Pilote du jeu de données** : l'urbain ICU, soit Paris et petite couronne (75, 92, 93, 94). Périmètre figé dans le protocole préenregistré (dossier 03, section 2).
+- **Ordre des présentations acteurs** (logique : chaque étape produit l'artefact dont la suivante a besoin) :
+  1. **L'oncle** (méthode) : c'est déjà la prochaine action de la Piste A, l'enjeu est interne et le risque faible ; il valide la nomenclature et la décision P7-anneau avant toute exposition externe. Support : la maquette radar.
+  2. **Massiet du Biest** (P6) : on arrive avec un radar validé côté méthode et la grille 5 critères ; l'entretien sert à caler le barème achats, pas à défendre l'architecture.
+  3. **Courtiers / CCI** (trame générique) : seulement après 2 ou 3 entretiens Piste B, pour présenter avec des verbatims terrain plutôt que des hypothèses.
+
+### Livrables Fable 5 complémentaires (produits le 6 juillet)
+
+- `03-protocole-preenregistre.md` : protocole empirique figé (H1-H4, spécifications S1-S3, placebos), le commit Git faisant foi d'horodatage.
+- `scripts/assemble_donnees.py` : assemblage DVF × BDNB × Géorisques × LCZ en étapes rejouables, filtres du protocole implémentés.
+- `maquette-radar-boussole.html` : maquette de présentation autonome (radar 6 rayons + anneau P7, vue table, modes clair/sombre, palette validée daltonisme/contraste).
