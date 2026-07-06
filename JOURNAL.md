@@ -5,6 +5,12 @@ Tenu selon le skill `atelier-produit`. Entrées les plus récentes en haut.
 
 ---
 
+## 2026-07-06 — Dossiers « prix hédonique × Boussole 7 prismes » (branche dédiée, hors app)
+- **Fait** : dossier `dossiers/` (3 documents, zéro code app) sur la branche `claude/hedonic-pricing-risk-analysis-fqiic1` : `00-plan-directeur-fable5.md` (répartition Fable 5 maintenant / Claude Science ensuite, arbitrage M2/pro), `01-prix-hedonique-cadrage.md` (Rosen 1re étape, spécification préenregistrable, données DVF/BDNB/Géorisques, 8 limites concrètes dont CatNat), `02-boussole-7-prismes-consolidation.md` (nomenclature P1-P7 proposée, positionnement vs OCARA/ClimaDiag/ODACC, 6 modèles économiques ordonnés, trames acteurs, plan de validation).
+- **Pourquoi** : la note du chantier posait « hédonique OU Boussole » ; le cadrage montre que l'hédonique est la couche valeur de la Boussole (un seul récit, deux livrables M2 + pro). Exploiter Fable 5 avant la fin du forfait pour tout ce qui est cadrage/rédaction, réserver l'empirique à Claude Science.
+- **DoD** : documents relus, conventions rédactionnelles respectées (pas de tirets cadratins), sources terrain citées (note d'intention Massiet du Biest, pistes A/B). Rien ne touche l'app.
+- **Prochain** : Johann valide/corrige la nomenclature P1-P7 et le choix des départements pilotes ; puis produire avec Fable 5 le protocole préenregistré + script d'assemblage DVF×BDNB×Géorisques + maquette radar.
+
 ## 2026-06-22 — Seed « Adaptation » : 2 chantiers actionnables (Boussole d'Adaptation)
 - **Fait** : `seedChantiersAdaptation_2026()` dans `db.js` (appelée dans `index.html`) injecte 2 chantiers 🟢 issus du grill du 22/06 — *Piste A : Compagnonnage oncle (méthode)* (7 étapes) et *Piste B : Validation terrain / wedge assurabilité* (8 étapes), chacun avec progression, prochaine action et question vivante.
 - **Pourquoi** : donner à Johann, dès demain, des exemples concrets et suivables dans l'app (onglet Semaine) pour piloter sa semaine adaptation. Voie native = pattern seed déjà établi (1 conversation → 1 seed), local-only, pas de push cloud. Aucune UI ajoutée : réemploi total de `addChantier`/`addEtape`/`addQuestion`.
